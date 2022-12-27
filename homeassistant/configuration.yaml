@@ -18,5 +18,4 @@ mqtt:
   light:
     - name: "Hatch"
       command_topic: "nursery/hatch"
-      payload_on: "on"
-      payload_off: "off"
+      state_topic: "nursery/hatch/state"
