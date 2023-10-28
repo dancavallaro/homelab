@@ -4,6 +4,7 @@ import adafruit_dht
 from board import D25
 from retry import retry
 
+
 def c_to_f(temp):
   return 1.8 * temp + 32
 
@@ -22,4 +23,8 @@ def print_temp_in_degrees():
   finally:
     dht.exit()
 
-print_temp_in_degrees()
+
+if __name__ == '__main__':
+  import logging
+  logging.basicConfig()
+  print_temp_in_degrees()
