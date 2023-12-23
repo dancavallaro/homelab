@@ -62,3 +62,7 @@ mqtt:
       state_topic: "nursery/twinkling/mode/status"
       payload_on: "3"
       payload_off: "0"
+binary_sensor:
+  - platform: flic
+    host: 172.17.0.1
+    ignored_click_types: [double, hold]

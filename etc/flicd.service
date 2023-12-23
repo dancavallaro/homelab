@@ -1,0 +1,14 @@
+[Unit]
+Description=flicd service for flic buttons integration with HA
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=pi
+ExecStart=/usr/local/bin/flicd -f /var/local/flicd/flic.sqlite3 --server-addr 0.0.0.0
+
+[Install]
+WantedBy=multi-user.target
