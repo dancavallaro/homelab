@@ -1,0 +1,2 @@
+* * * * * pi /home/pi/rpi-config/bin/publish_temp_metric.sh 2>&1 | logger -t rpitemp
+*/30 * * * * root /home/pi/rpi-config/bin/refresh_aws_creds.py > /home/pi/.aws/credentials
