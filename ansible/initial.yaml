@@ -1,0 +1,80 @@
+- name: Bootstrap RPi
+  hosts: all
+  tasks:
+    - name: Sanity check
+      ansible.builtin.ping:
+    - name: Update apt cache
+      become: true
+      ansible.builtin.apt:
+        update_cache: yes
+    - name: Install apt packages
+      become: true
+      ansible.builtin.apt:
+        pkg:
+          - vim
+    - name: Check out rpi-config repo
+      ansible.builtin.git:
+        repo: git@github.com:dancavallaro/rpi-config.git
+        dest: ~/rpi-config
+        accept_newhostkey: true
+        version: main
+    - name: Install .vimrc
+      ansible.builtin.file:
+        src: ~/rpi-config/dotfiles/vimrc
+        dest: ~/.vimrc
+        state: link
+        force: true
+    - name: Install .gitconfig
+      ansible.builtin.file:
+        src: ~/rpi-config/dotfiles/gitconfig
+        dest: ~/.gitconfig
+        state: link
+        force: true
+    - name: Check out telemetry repo
+      ansible.builtin.git:
+        repo: git@github.com:dancavallaro/telemetry.git
+        dest: ~/telemetry
+        accept_newhostkey: true
+        version: main
+    - name: Create virtual env
+      become: true
+      ansible.builtin.command: python3 -m venv /usr/local/rpi-config/.venv
+    - name: Install dependencies for Python scripts
+      become: true
+      ansible.builtin.pip:
+        requirements: /home/dan/rpi-config/requirements.txt
+        executable: /usr/local/rpi-config/.venv/bin/pip
+    - name: Copy scripts
+      become: true
+      ansible.builtin.copy:
+        remote_src: true
+        src: /home/dan/rpi-config/bin
+        dest: /usr/local/rpi-config
+        mode: '755'
+    - name: Create pi user
+      become: true
+      ansible.builtin.user:
+        name: pi
+        groups: gpio
+        append: true
+    - name: Create user pi's .aws directory
+      become: true
+      ansible.builtin.file:
+        path: /home/pi/.aws
+        state: directory
+        owner: pi
+        group: pi
+    - name: Create user pi's AWS credentials file
+      become: true
+      ansible.builtin.file:
+        path: /home/pi/.aws/credentials
+        state: touch
+        owner: pi
+        group: pi
+        mode: '600'
+    - name: Install AWS CLI
+      become: true
+      ansible.builtin.command: /home/dan/rpi-config/ansible/install-aws-cli
+    - name: Print completion message
+      ansible.builtin.debug:
+        msg: Done with initial provisioning! Run SSM activation, then run post-ssm playbook.

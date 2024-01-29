@@ -5,7 +5,7 @@ services:
     image: "ghcr.io/home-assistant/home-assistant:stable"
     volumes:
       - /home/pi/.homeassistant:/config
-      - /home/pi/rpi-config/homeassistant/configuration.yaml:/config/configuration.yaml
+      - ./homeassistant/configuration.yaml:/config/configuration.yaml
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
     privileged: true
@@ -15,9 +15,7 @@ services:
     container_name: mosquitto
     volumes:
       - /opt/mosquitto:/mosquitto
-      - /opt/mosquitto/data:/mosquitto/data
-      - /opt/mosquitto/log:/mosquitto/log
-      - /home/pi/rpi-config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
     ports:
       - 1883:1883
       - 9001:9001 
