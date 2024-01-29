@@ -3,6 +3,6 @@
 REGION=us-east-1
 
 mkdir /tmp/ssm
-curl "https://amazon-ssm-${REGION}.s3.${REGION}.amazonaws.com/latest/debian_arm/ssm-setup-cli" -o /tmp/ssm/ssm-setup-cli
+curl "https://amazon-ssm-${REGION}.s3.${REGION}.amazonaws.com/latest/debian_arm64/ssm-setup-cli" -o /tmp/ssm/ssm-setup-cli
 sudo chmod +x /tmp/ssm/ssm-setup-cli
-sudo /tmp/ssm/ssm-setup-cli -register -activation-code "activation-code" -activation-id "activation-id" -region "${REGION}"
+sudo /tmp/ssm/ssm-setup-cli -register -activation-code "$1" -activation-id "$2" -region "${REGION}"
