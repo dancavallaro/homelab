@@ -1,0 +1,14 @@
+[alias]
+    st = status
+    co = checkout
+    br = branch
+    lastdiff = diff HEAD~1..HEAD
+[core]
+    pager = less -r
+[user]
+    name = Dan Cavallaro
+    email = dan.t.cavallaro@gmail.com
+[push]
+    default = simple
+[color]
+    ui = true
