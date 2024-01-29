@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/dan/rpi-config/.venv/bin/python
 
 import boto3
 
