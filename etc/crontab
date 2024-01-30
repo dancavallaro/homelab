@@ -1,2 +1,2 @@
-* * * * * pi /home/dan/rpi-config/bin/publish_temp_metric.sh 2>&1 | logger -t rpitemp
-*/30 * * * * root /home/dan/rpi-config/bin/refresh_aws_creds.py > /home/pi/.aws/credentials
+* * * * * pi /usr/local/rpi-config/bin/publish_temp_metric.sh 2>&1 | logger -t rpitemp
+*/30 * * * * root /usr/local/rpi-config/bin/refresh_aws_creds.py > /home/pi/.aws/credentials
