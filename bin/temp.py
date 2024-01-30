@@ -1,4 +1,4 @@
-#!/home/dan/rpi-config/.venv/bin/python
+#!/usr/local/rpi-config/.venv/bin/python
 import adafruit_dht
 from board import D25
 from retry import retry
