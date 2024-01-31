@@ -51,11 +51,17 @@
         src: /home/dan/rpi-config/bin
         dest: /usr/local/rpi-config
         mode: '755'
+    - name: Install AWS CLI
+      become: true
+      ansible.builtin.command: /home/dan/rpi-config/ansible/install-aws-cli
+    - name: Install Docker
+      become: true
+      ansible.builtin.command: /home/dan/rpi-config/ansible/install-docker
     - name: Create pi user
       become: true
       ansible.builtin.user:
         name: pi
-        groups: gpio
+        groups: gpio,docker
         append: true
     - name: Create user pi's .aws directory
       become: true
@@ -72,9 +78,6 @@
         owner: pi
         group: pi
         mode: '600'
-    - name: Install AWS CLI
-      become: true
-      ansible.builtin.command: /home/dan/rpi-config/ansible/install-aws-cli
     - name: Print completion message
       ansible.builtin.debug:
         msg: Done with initial provisioning! Run SSM activation, then run post-ssm playbook.
