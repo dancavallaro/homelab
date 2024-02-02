@@ -5,6 +5,7 @@
     lastdiff = diff HEAD~1..HEAD
 [core]
     pager = less -r
+	editor = vim
 [user]
     name = Dan Cavallaro
     email = dan.t.cavallaro@gmail.com
