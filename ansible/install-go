@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd `mktemp -d`
+curl https://dl.google.com/go/go1.21.6.linux-arm64.tar.gz -o go.tar.gz
+tar xzf go.tar.gz
+chown -R root:root go
+mv go /usr/local

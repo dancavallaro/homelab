@@ -3,15 +3,14 @@
   tasks:
     - name: Sanity check
       ansible.builtin.ping:
-    - name: Update apt cache
-      become: true
-      ansible.builtin.apt:
-        update_cache: yes
     - name: Install apt packages
       become: true
       ansible.builtin.apt:
+        update_cache: yes
         pkg:
           - vim
+          - curl
+          - ca-certificates
     - name: Check out rpi-config repo
       ansible.builtin.git:
         repo: git@github.com:dancavallaro/rpi-config.git
@@ -57,6 +56,9 @@
     - name: Install Docker
       become: true
       ansible.builtin.command: /home/dan/rpi-config/ansible/install-docker
+    - name: Install Go
+      become: true
+      ansible.builtin.command: /home/dan/rpi-config/ansible/install-go
     - name: Create pi user
       become: true
       ansible.builtin.user:
