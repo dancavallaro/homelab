@@ -5,7 +5,6 @@ services:
     image: "ghcr.io/home-assistant/home-assistant:stable"
     volumes:
       - /home/pi/.homeassistant:/config
-      - ./homeassistant/configuration.yaml:/config/configuration.yaml
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
     restart: unless-stopped

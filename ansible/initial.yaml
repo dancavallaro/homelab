@@ -63,7 +63,7 @@
       become: true
       ansible.builtin.user:
         name: pi
-        groups: gpio,docker
+        groups: gpio,docker,dialout
         append: true
     - name: Create user pi's .aws directory
       become: true
