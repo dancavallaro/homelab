@@ -66,3 +66,13 @@ binary_sensor:
   - platform: flic
     host: 172.17.0.1
     ignored_click_types: [double, hold]
+emulated_hue:
+  listen_port: 80
+  expose_by_default: false
+  entities:
+    script.goodnight:
+      hidden: false
+    script.goodnight_penny:
+      hidden: false
+    script.goodbye:
+      hidden: false
