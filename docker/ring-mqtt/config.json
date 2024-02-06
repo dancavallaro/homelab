@@ -1,0 +1,4 @@
+{
+    "mqtt_url": "mqtt://ring:REDACTED@localhost:1883",
+    "enable_cameras": false
+}

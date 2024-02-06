@@ -20,3 +20,16 @@ services:
       - 1883:1883
       - 9001:9001 
     restart: unless-stopped
+  ring-mqtt:
+    container_name: ring-mqtt
+    restart: unless-stopped
+    image: tsightler/ring-mqtt
+    network_mode: host
+    volumes:
+      - ring-mqtt:/data
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+volumes:
+  ring-mqtt:
