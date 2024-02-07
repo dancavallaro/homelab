@@ -76,3 +76,13 @@ emulated_hue:
       hidden: false
     script.goodbye:
       hidden: false
+    script.good_morning:
+      hidden: false
+    light.stars:
+      hidden: false
+    light.twinkling_stars:
+      hidden: false
+    light.hatch:
+      hidden: false
+    light.pennys_dance_party:
+      hidden: false
