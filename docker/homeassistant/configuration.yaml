@@ -86,3 +86,38 @@ emulated_hue:
       hidden: false
     light.pennys_dance_party:
       hidden: false
+
+ios:
+  actions:
+    - name: goodnight_penny
+      background_color: "#07699e"
+      label:
+        text: Goodnight Penny
+        color: "#ffffff"
+      icon:
+        icon: sleep
+        color: "#ffffff"
+    - name: goodnight
+      background_color: "#07699e"
+      label:
+        text: Goodnight
+        color: "#ffffff"
+      icon:
+        icon: sleep
+        color: "#ffffff"
+    - name: goodbye
+      background_color: "#07699e"
+      label:
+        text: Goodbye
+        color: "#ffffff"
+      icon:
+        icon: hand_wave
+        color: "#ffffff"
+    - name: good_morning
+      background_color: "#07699e"
+      label:
+        text: Good Morning
+        color: "#ffffff"
+      icon:
+        icon: weather_sunny
+        color: "#ffffff"
