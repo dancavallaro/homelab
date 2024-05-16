@@ -1,3 +1,4 @@
 adafruit-circuitpython-dht
 retry
 boto3
+requests
