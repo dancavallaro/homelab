@@ -1,4 +1,4 @@
-# 2024-05-29 09:37:50 by RouterOS 7.14.1
+# 2024-06-01 23:12:51 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -6,6 +6,7 @@
 /interface bridge
 add admin-mac=78:9A:18:BD:BF:20 auto-mac=no comment=defconf name=bridge port-cost-mode=short
 add comment="bridges ports 7/8 to \"WAN\" (dtcnet/home LAN) on port 1" name=dtcnet_bridge
+add comment="Bridge for BF3 network behind Protectli" name=labnet_bridge
 /interface ethernet
 set [ find default-name=ether7 ] comment="Lutron hub (bridged to dtcnet)"
 set [ find default-name=ether8 ] comment="Lauren's office (bridged to dtcnet)"
@@ -26,7 +27,7 @@ add bridge=bridge comment=defconf interface=ether6 internal-path-cost=10 path-co
 add bridge=dtcnet_bridge comment=defconf interface=ether7 internal-path-cost=10 path-cost=10
 add bridge=dtcnet_bridge comment=defconf interface=ether8 internal-path-cost=10 path-cost=10
 add bridge=bridge comment=defconf interface=sfp-sfpplus1 internal-path-cost=10 path-cost=10
-add bridge=bridge interface=ether4
+add bridge=labnet_bridge interface=ether4
 add bridge=dtcnet_bridge interface=ether1
 /ip firewall connection tracking
 set udp-timeout=10s
@@ -37,6 +38,7 @@ add comment=defconf interface=bridge list=LAN
 add comment=defconf interface=dtcnet_bridge list=WAN
 /ip address
 add address=10.42.42.1/16 comment=defconf interface=bridge network=10.42.0.0
+add address=10.255.1.2/16 interface=labnet_bridge network=10.255.0.0
 /ip dhcp-client
 add interface=dtcnet_bridge
 /ip dhcp-server lease
@@ -52,30 +54,20 @@ set allow-remote-requests=yes servers=8.8.8.8,8.8.4.4
 add address=10.42.42.1 comment=defconf name=router.lan
 add address=192.168.4.221 name=rpi
 /ip firewall filter
-add action=passthrough chain=forward disabled=yes dst-address=10.42.42.10 protocol=tcp src-port=22
-add action=passthrough chain=forward disabled=yes dst-port=22 log-prefix=wtf protocol=tcp src-address=10.42.42.10
-add action=drop chain=forward comment="[TEMP] disable outbound Internet from dpu-dev" disabled=yes log=yes log-prefix=bf3test out-interface-list=WAN src-address=10.42.42.4
-add action=drop chain=forward comment="[TEMP] disable outbound Internet from BF3" disabled=yes out-interface-list=WAN src-address=10.255.0.0/16
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
-add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid
+add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
 add action=accept chain=input comment="defconf: accept ICMP" protocol=icmp
 add action=accept chain=input comment="defconf: accept to local loopback (for CAPsMAN)" dst-address=127.0.0.1
-add action=drop chain=input comment="defconf: drop all not coming from LAN (TODO: should re-enable this; I think I disabled it only so I could access Mikrotik admin interface from dtcnet)" disabled=yes in-interface-list=!LAN
-add action=accept chain=forward disabled=yes dst-address=10.255.0.0/16 log=yes log-prefix=lol protocol=tcp
-add action=accept chain=forward disabled=yes log=yes log-prefix=lol protocol=tcp src-address=10.255.0.0/16
+add action=drop chain=input comment="defconf: drop all not coming from LAN" in-interface-list=!LAN
 add action=accept chain=forward comment="defconf: accept in ipsec policy" ipsec-policy=in,ipsec
 add action=accept chain=forward comment="defconf: accept out ipsec policy" ipsec-policy=out,ipsec
 add action=fasttrack-connection chain=forward comment="defconf: fasttrack" connection-state=established,related hw-offload=yes
 add action=accept chain=forward comment="defconf: accept established,related, untracked" connection-state=established,related,untracked
-add action=drop chain=forward comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix=invalid_apr5
+add action=drop chain=forward comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalid]"
 add action=drop chain=forward comment="defconf: drop all from WAN not DSTNATed" connection-nat-state=!dstnat connection-state=new in-interface-list=WAN
 /ip firewall nat
 add action=masquerade chain=srcnat comment="defconf: masquerade" ipsec-policy=out,none out-interface-list=WAN
 add action=dst-nat chain=dstnat comment="allow SSH to lab bastion (but only from RPi)" dst-port=4242 in-interface=dtcnet_bridge protocol=tcp src-address=192.168.4.221 to-addresses=10.42.42.42 to-ports=22
-/ip firewall raw
-add action=notrack chain=prerouting comment="Disable conntrack between work laptop and Protectli because of L2/L3 weirdness (TODO: need to remove Protectli from LAN bridge)" dst-address=10.255.0.0/16 src-address=10.42.42.10
-/ip route
-add disabled=no distance=1 dst-address=10.255.0.0/16 gateway=10.42.42.4 pref-src="" routing-table=main suppress-hw-offload=no
 /ipv6 firewall address-list
 add address=::/128 comment="defconf: unspecified address" list=bad_ipv6
 add address=::1/128 comment="defconf: lo" list=bad_ipv6
