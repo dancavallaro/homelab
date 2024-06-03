@@ -1,4 +1,4 @@
-# 2024-06-01 23:12:51 by RouterOS 7.14.1
+# 2024-06-03 11:21:53 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -38,7 +38,7 @@ add comment=defconf interface=bridge list=LAN
 add comment=defconf interface=dtcnet_bridge list=WAN
 /ip address
 add address=10.42.42.1/16 comment=defconf interface=bridge network=10.42.0.0
-add address=10.255.1.2/16 interface=labnet_bridge network=10.255.0.0
+add address=10.255.1.2/24 interface=labnet_bridge network=10.255.1.0
 /ip dhcp-client
 add interface=dtcnet_bridge
 /ip dhcp-server lease
@@ -68,6 +68,8 @@ add action=drop chain=forward comment="defconf: drop all from WAN not DSTNATed" 
 /ip firewall nat
 add action=masquerade chain=srcnat comment="defconf: masquerade" ipsec-policy=out,none out-interface-list=WAN
 add action=dst-nat chain=dstnat comment="allow SSH to lab bastion (but only from RPi)" dst-port=4242 in-interface=dtcnet_bridge protocol=tcp src-address=192.168.4.221 to-addresses=10.42.42.42 to-ports=22
+/ip route
+add disabled=no distance=1 dst-address=10.255.0.0/16 gateway=10.255.1.1 pref-src="" routing-table=main suppress-hw-offload=no
 /ipv6 firewall address-list
 add address=::/128 comment="defconf: unspecified address" list=bad_ipv6
 add address=::1/128 comment="defconf: lo" list=bad_ipv6
