@@ -1,4 +1,4 @@
-# 2024-06-08 10:22:33 by RouterOS 7.14.1
+# 2024-06-09 12:46:38 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -47,11 +47,11 @@ add address=10.255.1.2/24 interface=labnet_bridge network=10.255.1.0
 /ip dhcp-client
 add interface=dtcnet_bridge
 /ip dhcp-server lease
-add address=10.42.42.10 client-id=1:ac:1a:3d:34:5e:f0 comment=MBPs mac-address=AC:1A:3D:34:5E:F0 server=defconf
+add address=10.42.42.10 client-id=work-laptop comment="Work MBP" mac-address=AC:1A:3D:34:5E:F0 server=defconf
 add address=10.42.42.42 client-id=1:d8:3a:dd:c8:db:3c comment="bastion RPi" mac-address=D8:3A:DD:C8:DB:3C server=defconf
 add address=10.42.42.4 comment="dpu-dev appliance" mac-address=00:E0:67:30:D6:DE server=defconf
-add address=10.42.42.3 client-id=1:88:ae:dd:e:7d:23 comment="NUC (Windows)" mac-address=88:AE:DD:0E:7D:23 server=defconf
 add address=10.42.42.2 client-id=ff:64:4:95:7c:0:2:0:0:ab:11:8f:7f:dc:5f:f4:a5:eb:d5 comment="NUC (Ubuntu)" mac-address=88:AE:DD:0E:7D:23 server=defconf
+add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-address=AC:1A:3D:34:5E:F0 server=defconf
 /ip dhcp-server network
 add address=10.42.0.0/16 comment=defconf dns-server=10.42.42.1 gateway=10.42.42.1 netmask=16
 /ip dns
