@@ -59,6 +59,9 @@ set allow-remote-requests=yes servers=8.8.8.8,8.8.4.4
 /ip dns static
 add address=10.42.42.1 comment=defconf name=router.lan
 add address=192.168.4.221 name=rpi
+add address=10.255.0.1 name=dpu-dev
+add address=10.42.42.2 name=dpu-host
+add address=10.255.2.3 name=dpu
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
