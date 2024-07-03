@@ -1,11 +1,11 @@
-# 2024-06-24 15:24:50 by RouterOS 7.14.1
+# 2024-07-03 09:40:45 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
 # serial number = HFD095R4B6E
 /interface bridge
 add admin-mac=78:9A:18:BD:BF:20 auto-mac=no comment=defconf name=bridge port-cost-mode=short
-add comment="bridges ports 7/8 to \"WAN\" (dtcnet/home LAN) on port 1" name=dtcnet_bridge
+add comment="bridges some ports to \"WAN\" (dtcnet/home LAN) on ether1" name=dtcnet_bridge
 add comment="Bridge for BF3 network behind Protectli" name=labnet_bridge
 /interface ethernet
 set [ find default-name=ether1 ] comment="dtcnet (eero)"
@@ -13,6 +13,7 @@ set [ find default-name=ether2 ] comment="Laptop docking station"
 set [ find default-name=ether3 ] comment="bastion RPi"
 set [ find default-name=ether4 ] comment=Protectli
 set [ find default-name=ether5 ] comment=NUC
+set [ find default-name=ether6 ] comment="RPi (rpi.local)"
 set [ find default-name=ether7 ] comment="Lutron hub (bridged to dtcnet)"
 set [ find default-name=ether8 ] comment="Lauren's office (bridged to dtcnet)"
 /interface list
@@ -30,9 +31,9 @@ add address-pool=dhcp interface=bridge lease-time=10m name=defconf
 add bridge=bridge comment=defconf interface=ether2 internal-path-cost=10 path-cost=10
 add bridge=bridge comment=defconf interface=ether3 internal-path-cost=10 path-cost=10
 add bridge=bridge comment=defconf interface=ether5 internal-path-cost=10 path-cost=10
-add bridge=bridge comment=defconf interface=ether6 internal-path-cost=10 path-cost=10
-add bridge=dtcnet_bridge comment=defconf interface=ether7 internal-path-cost=10 path-cost=10
-add bridge=dtcnet_bridge comment=defconf interface=ether8 internal-path-cost=10 path-cost=10
+add bridge=dtcnet_bridge interface=ether6 internal-path-cost=10 path-cost=10
+add bridge=dtcnet_bridge interface=ether7 internal-path-cost=10 path-cost=10
+add bridge=dtcnet_bridge interface=ether8 internal-path-cost=10 path-cost=10
 add bridge=bridge comment=defconf interface=sfp-sfpplus1 internal-path-cost=10 path-cost=10
 add bridge=labnet_bridge interface=ether4
 add bridge=dtcnet_bridge interface=ether1
@@ -61,7 +62,7 @@ add address=10.255.1.0/30 comment="Link to Protectli" dns-server=8.8.8.8,8.8.4.4
 set allow-remote-requests=yes servers=8.8.8.8,8.8.4.4
 /ip dns static
 add address=10.42.42.1 comment=defconf name=router.lan
-add address=192.168.4.221 name=rpi
+add address=192.168.5.227 name=rpi
 add address=10.255.0.1 name=dpu-dev
 add address=10.42.42.2 name=dpu-host
 add address=10.255.2.3 name=dpu
