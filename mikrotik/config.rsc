@@ -1,4 +1,4 @@
-# 2024-07-03 09:40:45 by RouterOS 7.14.1
+# 2024-07-06 11:36:42 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -80,7 +80,7 @@ add action=drop chain=forward comment="defconf: drop invalid" connection-state=i
 add action=drop chain=forward comment="defconf: drop all from WAN not DSTNATed" connection-nat-state=!dstnat connection-state=new in-interface-list=WAN
 /ip firewall nat
 add action=masquerade chain=srcnat comment="defconf: masquerade" ipsec-policy=out,none out-interface-list=WAN
-add action=dst-nat chain=dstnat comment="allow SSH to lab bastion (but only from RPi)" dst-port=4242 in-interface=dtcnet_bridge protocol=tcp src-address=192.168.4.221 to-addresses=10.42.42.42 to-ports=22
+add action=dst-nat chain=dstnat comment="allow SSH to lab bastion (but only from RPi)" dst-port=4242 in-interface=dtcnet_bridge protocol=tcp src-address=192.168.5.227 to-addresses=10.42.42.42 to-ports=22
 /ip route
 add disabled=no distance=1 dst-address=10.255.0.0/16 gateway=10.255.1.1 pref-src="" routing-table=main suppress-hw-offload=no
 /ipv6 firewall address-list
