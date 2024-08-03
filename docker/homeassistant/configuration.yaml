@@ -65,6 +65,7 @@ mqtt:
 binary_sensor:
   - platform: flic
     host: 172.17.0.1
+    discovery: false
     ignored_click_types: [double, hold]
 emulated_hue:
   listen_port: 80
