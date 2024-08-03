@@ -11,7 +11,7 @@ services:
     privileged: true
     network_mode: host
   mosquitto:
-    image: eclipse-mosquitto
+    image: "eclipse-mosquitto:2.0.18"
     container_name: mosquitto
     volumes:
       - /opt/mosquitto:/mosquitto
@@ -23,7 +23,7 @@ services:
   ring-mqtt:
     container_name: ring-mqtt
     restart: unless-stopped
-    image: tsightler/ring-mqtt
+    image: "tsightler/ring-mqtt:5.6.3"
     network_mode: host
     volumes:
       - ring-mqtt:/data
