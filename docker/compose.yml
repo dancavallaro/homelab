@@ -17,8 +17,8 @@ services:
       - /opt/mosquitto:/mosquitto
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
     ports:
-      - 1883:1883
-      - 9001:9001 
+      - "1883:1883"
+      - "9001:9001"
     restart: unless-stopped
   ring-mqtt:
     container_name: ring-mqtt
@@ -31,5 +31,15 @@ services:
       options:
         max-size: 10m
         max-file: "3"
+  flicd:
+    container_name: flicd
+    restart: unless-stopped
+    image: "ghcr.io/dancavallaro/rpi-config/flicd:latest"
+    command: ["-f", "/data/flic.sqlite3", "-s", "0.0.0.0", "-p", "5551"]
+    privileged: true
+    network_mode: host
+    volumes:
+      - flicd:/data
 volumes:
   ring-mqtt:
+  flicd:
