@@ -39,6 +39,13 @@ services:
     network_mode: host
     volumes:
       - flicd:/data
+  serial_logger:
+    container_name: serial_logger
+    restart: unless-stopped
+    image: "ghcr.io/dancavallaro/telemetry/serial_logger:latest"
+    command: ["-device", "/dev/ttyUSB0"]
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
 volumes:
   homeassistant:
   mosquitto:
