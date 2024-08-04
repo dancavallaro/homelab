@@ -4,7 +4,7 @@ services:
     container_name: homeassistant
     image: "homeassistant/home-assistant:2024.1.6"
     volumes:
-      - /home/pi/.homeassistant:/config
+      - homeassistant:/config
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
     restart: unless-stopped
@@ -14,8 +14,7 @@ services:
     image: "eclipse-mosquitto:2.0.18"
     container_name: mosquitto
     volumes:
-      - /opt/mosquitto:/mosquitto
-      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto:/mosquitto
     ports:
       - "1883:1883"
       - "9001:9001"
@@ -41,5 +40,7 @@ services:
     volumes:
       - flicd:/data
 volumes:
+  homeassistant:
+  mosquitto:
   ring-mqtt:
   flicd:
