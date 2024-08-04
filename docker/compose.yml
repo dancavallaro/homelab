@@ -46,6 +46,23 @@ services:
     command: ["-device", "/dev/ttyUSB0"]
     devices:
       - "/dev/ttyUSB0:/dev/ttyUSB0"
+  heartbeats:
+    container_name: heartbeats
+    restart: unless-stopped
+    image: "ghcr.io/dancavallaro/telemetry/heartbeats:latest"
+    command:
+      - "-region"
+      - "us-east-1"
+      - "-mqttAddress"
+      - "mosquitto:1883"
+      - "-mqttUsername"
+      - "rpi"
+      - "-mqttPassword"
+      - "DHV6x48uBtYI83Ppu0tEWBmH"
+      - "-metricNamespace"
+      - "RPiMonitoring"
+    volumes:
+      - /home/pi/.aws/credentials:/root/.aws/credentials:ro
 volumes:
   homeassistant:
   mosquitto:
