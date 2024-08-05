@@ -29,36 +29,27 @@
         dest: ~/.gitconfig
         state: link
         force: true
-    - name: Check out telemetry repo
-      ansible.builtin.git:
-        repo: git@github.com:dancavallaro/telemetry.git
-        dest: ~/telemetry
-        accept_newhostkey: true
-        version: main
     - name: Create virtual env
       become: true
       ansible.builtin.command: python3 -m venv /usr/local/rpi-config/.venv
     - name: Install dependencies for Python scripts
       become: true
       ansible.builtin.pip:
-        requirements: /home/dan/rpi-config/requirements.txt
+        requirements: "{{ ansible_user_dir }}/rpi-config/requirements.txt"
         executable: /usr/local/rpi-config/.venv/bin/pip
     - name: Copy scripts
       become: true
       ansible.builtin.copy:
         remote_src: true
-        src: /home/dan/rpi-config/bin
+        src: "{{ ansible_user_dir }}/rpi-config/bin"
         dest: /usr/local/rpi-config
         mode: '755'
     - name: Install AWS CLI
       become: true
-      ansible.builtin.command: /home/dan/rpi-config/ansible/install-aws-cli
+      ansible.builtin.command: "{{ ansible_user_dir }}/rpi-config/ansible/install-aws-cli"
     - name: Install Docker
       become: true
-      ansible.builtin.command: /home/dan/rpi-config/ansible/install-docker
-    - name: Install Go
-      become: true
-      ansible.builtin.command: /home/dan/rpi-config/ansible/install-go
+      ansible.builtin.command: "{{ ansible_user_dir }}/rpi-config/ansible/install-docker"
     - name: Create pi user
       become: true
       ansible.builtin.user:
