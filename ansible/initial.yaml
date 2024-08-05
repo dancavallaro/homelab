@@ -59,32 +59,28 @@
         name: "{{ ansible_user_id }}"
         groups: docker
         append: true
-    - name: Create pi user
+    - name: Create users
+      ansible.builtin.include_tasks:
+        file: create-user.yaml
+      loop:
+        - pi
+    - name: Add pi user to additional groups
       become: true
       ansible.builtin.user:
         name: pi
         groups: gpio,docker,dialout
         append: true
-    - name: Create user pi's .aws directory
+    - name: Copy credential-refresher configs
       become: true
-      ansible.builtin.file:
-        path: /home/pi/.aws
-        state: directory
-        owner: pi
-        group: pi
-    - name: Create user pi's AWS credentials file
-      become: true
-      ansible.builtin.file:
-        path: /home/pi/.aws/credentials
-        state: touch
-        owner: pi
-        group: pi
-        mode: '600'
+      ansible.builtin.copy:
+        src: ../etc/credential-refresher
+        dest: /etc/
+        owner: root
+        group: root
     - name: Install crontab
       become: true
       ansible.builtin.copy:
-        remote_src: true
-        src: /home/dan/rpi-config/etc/crontab
+        src: ../etc/crontab
         dest: /etc/cron.d/rpi
         owner: root
         group: root

@@ -62,6 +62,15 @@ services:
       - "RPiMonitoring"
     volumes:
       - /home/pi/.aws/credentials:/root/.aws/credentials:ro
+  credential-refresher:
+    container_name: credential-refresher
+    restart: unless-stopped
+    image: "ghcr.io/dancavallaro/rpi-config/credential-refresher:latest"
+    command: ["-configDir", "/etc/credential-refresher"]
+    volumes:
+      - /etc/credential-refresher:/etc/credential-refresher:ro
+      - /root/.aws/credentials:/root/.aws/credentials:ro
+      - /home/pi/.aws/credentials:/home/pi/.aws/credentials
 volumes:
   homeassistant:
   mosquitto:
