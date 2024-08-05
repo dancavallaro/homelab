@@ -1,4 +1,4 @@
-# 2024-07-06 11:36:42 by RouterOS 7.14.1
+# 2024-08-05 09:25:34 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -10,10 +10,10 @@ add comment="Bridge for BF3 network behind Protectli" name=labnet_bridge
 /interface ethernet
 set [ find default-name=ether1 ] comment="dtcnet (eero)"
 set [ find default-name=ether2 ] comment="Laptop docking station"
-set [ find default-name=ether3 ] comment="bastion RPi"
+set [ find default-name=ether3 ] comment="RPi5 (rpi.local)"
 set [ find default-name=ether4 ] comment=Protectli
 set [ find default-name=ether5 ] comment=NUC
-set [ find default-name=ether6 ] comment="RPi (rpi.local)"
+set [ find default-name=ether6 ] comment="RPi4 (bastion.local)"
 set [ find default-name=ether7 ] comment="Lutron hub (bridged to dtcnet)"
 set [ find default-name=ether8 ] comment="Lauren's office (bridged to dtcnet)"
 /interface list
@@ -29,9 +29,9 @@ add name=dhcp ranges=10.42.42.2-10.42.42.254
 add address-pool=dhcp interface=bridge lease-time=10m name=defconf
 /interface bridge port
 add bridge=bridge comment=defconf interface=ether2 internal-path-cost=10 path-cost=10
-add bridge=bridge comment=defconf interface=ether3 internal-path-cost=10 path-cost=10
+add bridge=dtcnet_bridge comment=defconf interface=ether3 internal-path-cost=10 path-cost=10
 add bridge=bridge comment=defconf interface=ether5 internal-path-cost=10 path-cost=10
-add bridge=dtcnet_bridge interface=ether6 internal-path-cost=10 path-cost=10
+add bridge=bridge interface=ether6 internal-path-cost=10 path-cost=10
 add bridge=dtcnet_bridge interface=ether7 internal-path-cost=10 path-cost=10
 add bridge=dtcnet_bridge interface=ether8 internal-path-cost=10 path-cost=10
 add bridge=bridge comment=defconf interface=sfp-sfpplus1 internal-path-cost=10 path-cost=10
@@ -51,10 +51,10 @@ add address=10.255.1.2/24 interface=labnet_bridge network=10.255.1.0
 add interface=dtcnet_bridge
 /ip dhcp-server lease
 add address=10.42.42.10 client-id=work-laptop comment="Work MBP" mac-address=AC:1A:3D:34:5E:F0 server=defconf
-add address=10.42.42.42 client-id=1:d8:3a:dd:c8:db:3c comment="bastion RPi" mac-address=D8:3A:DD:C8:DB:3C server=defconf
 add address=10.255.1.1 comment="dpu-dev Protectli" mac-address=00:E0:67:30:D6:DE server=labnet
 add address=10.42.42.2 client-id=ff:64:4:95:7c:0:2:0:0:ab:11:8f:7f:dc:5f:f4:a5:eb:d5 comment="NUC (Ubuntu)" mac-address=88:AE:DD:0E:7D:23 server=defconf
 add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-address=AC:1A:3D:34:5E:F0 server=defconf
+add address=10.42.42.42 client-id=1:e4:5f:1:ef:d7:10 comment="bastion RPi" mac-address=E4:5F:01:EF:D7:10 server=defconf
 /ip dhcp-server network
 add address=10.42.0.0/16 comment=defconf dns-server=10.42.42.1 gateway=10.42.42.1 netmask=16
 add address=10.255.1.0/30 comment="Link to Protectli" dns-server=8.8.8.8,8.8.4.4 gateway=10.255.1.2
@@ -62,7 +62,7 @@ add address=10.255.1.0/30 comment="Link to Protectli" dns-server=8.8.8.8,8.8.4.4
 set allow-remote-requests=yes servers=8.8.8.8,8.8.4.4
 /ip dns static
 add address=10.42.42.1 comment=defconf name=router.lan
-add address=192.168.5.227 name=rpi
+add address=192.168.5.238 name=rpi
 add address=10.255.0.1 name=dpu-dev
 add address=10.42.42.2 name=dpu-host
 add address=10.255.2.3 name=dpu
@@ -80,7 +80,7 @@ add action=drop chain=forward comment="defconf: drop invalid" connection-state=i
 add action=drop chain=forward comment="defconf: drop all from WAN not DSTNATed" connection-nat-state=!dstnat connection-state=new in-interface-list=WAN
 /ip firewall nat
 add action=masquerade chain=srcnat comment="defconf: masquerade" ipsec-policy=out,none out-interface-list=WAN
-add action=dst-nat chain=dstnat comment="allow SSH to lab bastion (but only from RPi)" dst-port=4242 in-interface=dtcnet_bridge protocol=tcp src-address=192.168.5.227 to-addresses=10.42.42.42 to-ports=22
+add action=dst-nat chain=dstnat comment="allow SSH to lab bastion (but only from RPi)" dst-port=4242 in-interface=dtcnet_bridge protocol=tcp src-address=192.168.5.238 to-addresses=10.42.42.42 to-ports=22
 /ip route
 add disabled=no distance=1 dst-address=10.255.0.0/16 gateway=10.255.1.1 pref-src="" routing-table=main suppress-hw-offload=no
 /ipv6 firewall address-list
