@@ -77,6 +77,14 @@
         owner: pi
         group: pi
         mode: '600'
+    - name: Install crontab
+      become: true
+      ansible.builtin.copy:
+        remote_src: true
+        src: /home/dan/rpi-config/etc/crontab
+        dest: /etc/cron.d/rpi
+        owner: root
+        group: root
     - name: Print completion message
       ansible.builtin.debug:
-        msg: Done with initial provisioning! Run SSM activation, then run post-ssm playbook.
+        msg: Done with initial provisioning! Run SSM activation next.
