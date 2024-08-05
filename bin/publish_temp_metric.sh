@@ -3,9 +3,7 @@
 METRIC_NAMESPACE="RPiMonitoring"
 METRIC_NAME="Temperature"
 
-# Fetch the latest temp from the DHT22. The library prints a message when calling exit(),
-# so only take the first line.
-temperature=$(${0%/*}/temp.py | head -n 1)
+temperature=$(sensors -jf | jq '."cpu_thermal-virtual-0".temp1.temp1_input')
 
 /usr/local/bin/aws --region us-east-1 \
 	cloudwatch put-metric-data \
