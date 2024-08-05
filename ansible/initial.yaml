@@ -13,7 +13,8 @@
           - ca-certificates
           - lm-sensors
           - jq
-    - name: Check out rpi-config repo
+          - sqlite3
+    - name: Clone rpi-config repo
       ansible.builtin.git:
         repo: git@github.com:dancavallaro/rpi-config.git
         dest: ~/rpi-config

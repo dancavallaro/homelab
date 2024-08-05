@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-sudo tailscale up --advertise-routes=10.255.0.0/16,10.42.42.0/24
+sudo tailscale up --advertise-routes=10.255.0.0/16,10.42.42.0/24 --ssh
