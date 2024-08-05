@@ -50,6 +50,12 @@
     - name: Install Docker
       become: true
       ansible.builtin.command: "{{ ansible_user_dir }}/rpi-config/ansible/install-docker"
+    - name: Add my user to docker group
+      become: true
+      ansible.builtin.user:
+        name: "{{ ansible_user_id }}"
+        groups: docker
+        append: true
     - name: Create pi user
       become: true
       ansible.builtin.user:

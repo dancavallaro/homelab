@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if command -v aws ; then
+  echo "aws CLI is already installed, nothing to do"
+  exit 0
+fi
+
 DIR=$(mktemp -d)
 
 cd "$DIR"
