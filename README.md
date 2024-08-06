@@ -44,11 +44,3 @@ Fix it by putting the following line in `/boot/firmware/config.txt` and rebootin
 ```
 kernel=kernel8.img
 ```
-
-## Add Mosquitto user
-
-1. ssh into RPi
-2. Open shell in Mosquitto Docker container: `docker exec -it $(docker ps -f name=mosquitto -q) "/bin/sh"`
-3. Create new user: `mosquitto_passwd -b -c /tmp/mosquitto.passwd USER PASSWORD`
-4. Verify the new password entry in `/tmp/mosquitto.passwd`, then copy it into `/mosquitto/config/password.txt`.
-5. Restart Mosquitto container: `docker container restart mosquitto`

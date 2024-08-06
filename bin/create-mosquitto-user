@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -eu
+
+USERNAME=$1
+PASSWORD=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24)
+
+docker exec mosquitto mosquitto_passwd -b /mosquitto/config/password.txt "$USERNAME" "$PASSWORD"
+docker restart mosquitto
+
+echo "$PASSWORD"
