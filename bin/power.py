@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import json
+import os
 import requests
 import sys
 
-TOKEN = "<REPLACE ME>"
+TOKEN = os.environ["HASS_TOKEN"]
 HA_API_ENDPOINT = "http://rpi.local:8123"
 VALID_STATES = ["on", "off"]
 SOCKET_IDS = {
