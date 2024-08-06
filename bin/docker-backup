@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -eu
+
+BACKUP_USER=s3backups
+BACKUP_BUCKET=dancavallaro-rpi-backups
+BACKUP_PREFIX=rpi-docker-volumes
+
+UPLOAD=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -u|--upload)
+      UPLOAD=true
+      shift
+      ;;
+    *)
+      echo "Invalid argument"
+      exit 1
+      ;;
+  esac
+done
+
+workdir=$(mktemp -d)
+volumes=$(docker volume ls --format json | jq -r .Name | grep "^docker_")
+
+for v in $volumes; do
+  data_dir=$(docker inspect "$v" | jq -r .[0].Mountpoint)
+  name="${v#docker_}"
+  cd "$data_dir"
+  tar czf "$workdir/$name.tar.gz" .
+done
+
+cd "$workdir"
+tar cvf "$(date +"%Y-%m-%d_%H-%M-%S").tar" ./*.tar.gz
+backup_path=$(readlink -f ./*.tar)
+chown -R "$BACKUP_USER":"$BACKUP_USER" "$workdir"
+
+if [[ "$UPLOAD" == "true" ]] ; then
+  sudo -u "$BACKUP_USER" aws s3 cp "$backup_path" \
+      "s3://$BACKUP_BUCKET/$BACKUP_PREFIX/$(basename "$backup_path")"
+else
+  echo "Skipping upload. Backup is at $backup_path"
+fi

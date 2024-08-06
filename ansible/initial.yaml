@@ -64,6 +64,7 @@
         file: create-user.yaml
       loop:
         - pi
+        - s3backups
     - name: Add pi user to additional groups
       become: true
       ansible.builtin.user:

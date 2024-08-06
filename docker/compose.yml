@@ -71,6 +71,7 @@ services:
       - /etc/credential-refresher:/etc/credential-refresher:ro
       - /root/.aws/credentials:/root/.aws/credentials:ro
       - /home/pi/.aws/credentials:/home/pi/.aws/credentials
+      - /home/s3backups/.aws/credentials:/home/s3backups/.aws/credentials
 volumes:
   homeassistant:
   mosquitto:
