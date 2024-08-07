@@ -16,7 +16,6 @@ services:
       - mosquitto:/mosquitto
     ports:
       - "1883:1883"
-      - "9001:9001"
     restart: unless-stopped
   ring-mqtt:
     container_name: ring-mqtt
