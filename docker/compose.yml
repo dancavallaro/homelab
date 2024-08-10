@@ -75,23 +75,59 @@ services:
     container_name: telegraf
     restart: unless-stopped
     image: "telegraf:1.31.2"
+    networks:
+      - telemetry
     # docker group gid, from: stat -c '%g' /var/run/docker.sock
     user: "telegraf:991"
     hostname: rpi
     environment:
-      - HOST_ETC=/hostfs/etc
-      - HOST_PROC=/hostfs/proc
-      - HOST_SYS=/hostfs/sys
-      - HOST_VAR=/hostfs/var
-      - HOST_RUN=/hostfs/run
+      HOST_ETC: /hostfs/etc
+      HOST_PROC: /hostfs/proc
+      HOST_SYS: /hostfs/sys
+      HOST_VAR: /hostfs/var
+      HOST_RUN: /hostfs/run
     command: ["telegraf", "--config", "/telegraf/config/telegraf.conf"]
     volumes:
       - /:/hostfs:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/utmp:/var/run/utmp:ro
       - telegraf:/telegraf
+  grafana:
+    container_name: grafana
+    restart: unless-stopped
+    image: "grafana/grafana-enterprise:11.0.2-ubuntu"
+    networks:
+      - telemetry
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana:/var/lib/grafana
+  influxdb:
+    container_name: influxdb
+    restart: unless-stopped
+    image: "influxdb:2.7.9"
+    networks:
+      - telemetry
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: adminpassword
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: "admin=="
+      DOCKER_INFLUXDB_INIT_ORG: home
+      DOCKER_INFLUXDB_INIT_BUCKET: home
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
 volumes:
   homeassistant:
   mosquitto:
   ring-mqtt:
   flicd:
   telegraf:
+  grafana:
+  influxdb-data:
+  influxdb-config:
+networks:
+  telemetry:
