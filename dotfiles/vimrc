@@ -4,3 +4,6 @@ filetype indent on      " activates indenting for files
 set autoindent          " auto indenting
 set number              " line numbers
 set nobackup            " get rid of anoying ~file
+
+autocmd FileType python setlocal shiftwidth=2 softtabstop=2 expandtab
+autocmd FileType yaml setlocal shiftwidth=2 softtabstop=2 expandtab
