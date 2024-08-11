@@ -86,7 +86,7 @@ services:
       HOST_SYS: /hostfs/sys
       HOST_VAR: /hostfs/var
       HOST_RUN: /hostfs/run
-    command: ["telegraf", "--config", "/telegraf/config/telegraf.conf"]
+    command: ["telegraf", "--config", "/telegraf/config/telegraf.conf", "--config-directory", "/telegraf/config/telegraf.d"]
     volumes:
       - /:/hostfs:ro
       - /var/run/docker.sock:/var/run/docker.sock
