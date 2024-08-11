@@ -60,6 +60,17 @@
         name: "{{ ansible_user_id }}"
         groups: docker
         append: true
+    # This didn't actually work until I compiled the Loki driver myself:
+    # https://github.com/grafana/loki/issues/974#issuecomment-1684801986
+    - name: Install Loki Docker driver
+      ansible.builtin.command: "docker plugin install grafana/loki-docker-driver:2.9.10 --alias loki --grant-all-permissions"
+    - name: Install Docker daemon config with Loki logging
+      become: true
+      ansible.builtin.copy:
+        src: files/etc/docker/daemon.json
+        dest: /etc/docker/daemon.json
+        owner: root
+        group: root
     - name: Create users
       ansible.builtin.include_tasks:
         file: create-user.yaml
