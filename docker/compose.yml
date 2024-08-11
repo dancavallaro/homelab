@@ -128,8 +128,10 @@ services:
       - telemetry
     ports:
       - "3100:3100"
+    command: ["-config.file=/etc/loki/config.yml"]
     volumes:
-      - loki:/loki
+      - loki-data:/loki
+      - loki-config:/etc/loki
   promtail:
     container_name: promtail
     restart: unless-stopped
@@ -149,7 +151,8 @@ volumes:
   grafana:
   influxdb-data:
   influxdb-config:
-  loki:
+  loki-data:
+  loki-config:
   promtail:
 networks:
   telemetry:
