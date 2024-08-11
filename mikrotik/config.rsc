@@ -1,4 +1,4 @@
-# 2024-08-05 09:25:34 by RouterOS 7.14.1
+# 2024-08-11 14:31:16 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -71,6 +71,7 @@ add action=accept chain=input comment="defconf: accept established,related,untra
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
 add action=accept chain=input comment="defconf: accept ICMP" protocol=icmp
 add action=accept chain=input comment="defconf: accept to local loopback (for CAPsMAN)" dst-address=127.0.0.1
+add action=accept chain=input comment="Allow SNMP from RPi for monitoring" dst-port=161 protocol=udp src-address=192.168.5.238
 add action=drop chain=input comment="defconf: drop all not coming from LAN" in-interface-list=!LAN
 add action=accept chain=forward comment="defconf: accept in ipsec policy" ipsec-policy=in,ipsec
 add action=accept chain=forward comment="defconf: accept out ipsec policy" ipsec-policy=out,ipsec
@@ -116,6 +117,8 @@ add action=accept chain=forward comment="defconf: accept ipsec AH" protocol=ipse
 add action=accept chain=forward comment="defconf: accept ipsec ESP" protocol=ipsec-esp
 add action=accept chain=forward comment="defconf: accept all that matches ipsec policy" ipsec-policy=in,ipsec
 add action=drop chain=forward comment="defconf: drop everything else not coming from LAN" in-interface-list=!LAN
+/snmp
+set enabled=yes
 /system clock
 set time-zone-name=America/New_York
 /system note
