@@ -120,6 +120,22 @@ services:
     volumes:
       - influxdb-data:/var/lib/influxdb2
       - influxdb-config:/etc/influxdb2
+  loki:
+    container_name: loki
+    restart: unless-stopped
+    image: "grafana/loki:2.9.10"
+    networks:
+      - telemetry
+  promtail:
+    container_name: promtail
+    restart: unless-stopped
+    image: "grafana/promtail:2.9.10"
+    networks:
+      - telemetry
+    ports:
+      - "1514:1514"
+    volumes:
+      - promtail:/etc/promtail
 volumes:
   homeassistant:
   mosquitto:
@@ -129,5 +145,6 @@ volumes:
   grafana:
   influxdb-data:
   influxdb-config:
+  promtail:
 networks:
   telemetry:
