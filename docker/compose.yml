@@ -126,6 +126,8 @@ services:
     image: "grafana/loki:2.9.10"
     networks:
       - telemetry
+    ports:
+      - "3100:3100"
   promtail:
     container_name: promtail
     restart: unless-stopped
