@@ -106,6 +106,14 @@
         group: root
       notify: Restart rsyslog
       changed_when: true
+    - name: Install avahi config
+      become: true
+      ansible.builtin.copy:
+        src: files/etc/avahi/avahi-daemon.conf
+        dest: /etc/avahi/avahi-daemon.conf
+        owner: root
+        group: root
+      notify: Restart avahi
     - name: Print completion message
       ansible.builtin.debug:
         msg: Done with initial provisioning! Run SSM activation next.
@@ -114,4 +122,8 @@
     - name: Restart rsyslog
       ansible.builtin.systemd_service:
         name: rsyslog
+        state: restarted
+    - name: Restart avahi
+      ansible.builtin.systemd_service:
+        name: avahi-daemon
         state: restarted
