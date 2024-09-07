@@ -1,4 +1,4 @@
-# 2024-08-11 14:31:16 by RouterOS 7.14.1
+# 2024-09-07 14:05:53 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -55,6 +55,7 @@ add address=10.255.1.1 comment="dpu-dev Protectli" mac-address=00:E0:67:30:D6:DE
 add address=10.42.42.2 client-id=ff:64:4:95:7c:0:2:0:0:ab:11:8f:7f:dc:5f:f4:a5:eb:d5 comment="NUC (Ubuntu)" mac-address=88:AE:DD:0E:7D:23 server=defconf
 add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-address=AC:1A:3D:34:5E:F0 server=defconf
 add address=10.42.42.42 client-id=1:e4:5f:1:ef:d7:10 comment="bastion RPi" mac-address=E4:5F:01:EF:D7:10 server=defconf
+add address=10.42.42.20 client-id=ff:66:18:dd:42:0:2:0:0:ab:11:42:d3:30:89:9a:c2:9f:38 comment="Talos proxy" mac-address=52:54:00:EA:89:58 server=defconf
 /ip dhcp-server network
 add address=10.42.0.0/16 comment=defconf dns-server=10.42.42.1 gateway=10.42.42.1 netmask=16
 add address=10.255.1.0/30 comment="Link to Protectli" dns-server=8.8.8.8,8.8.4.4 gateway=10.255.1.2
