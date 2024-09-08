@@ -15,11 +15,31 @@ script: !include scripts.yaml
 scene: !include scenes.yaml
 
 mqtt:
+  button:
+    - name: "Time to start reading"
+      unique_id: "s6y81wnv"
+      command_topic: "nursery/hatch"
+      payload_press: "SP01"
+    - name: "Time for cuddling or quiet"
+      unique_id: "ltp9qyb1"
+      command_topic: "nursery/hatch"
+      payload_press: "SP02"
+    - name: "Time to sleep"
+      unique_id: "uqk06f9f"
+      command_topic: "nursery/hatch"
+      payload_press: "SP03"
+    - name: "OK to get up"
+      unique_id: "y583niia"
+      command_topic: "nursery/hatch"
+      payload_press: "SP04"
+    - name: "Hatch off"
+      unique_id: "cxp3crc7"
+      command_topic: "nursery/hatch"
+      payload_press: "SP05"
   light:
     - name: "Hatch"
       unique_id: "gytv2z8w"
       command_topic: "nursery/hatch"
-      state_topic: "nursery/hatch/state"
     - name: "Stars"
       unique_id: "rj29d8zx"
       command_topic: "nursery/stars"
