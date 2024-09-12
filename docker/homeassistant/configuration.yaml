@@ -110,6 +110,14 @@ emulated_hue:
 
 ios:
   actions:
+    - name: cuddle_time
+      background_color: "#07699e"
+      label:
+        text: 5 minutes of cuddling
+        color: "#ffffff"
+      icon:
+        icon: sleep
+        color: "#ffffff"
     - name: goodnight_penny
       background_color: "#07699e"
       label:
