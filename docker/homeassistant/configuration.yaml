@@ -36,6 +36,10 @@ mqtt:
       unique_id: "cxp3crc7"
       command_topic: "nursery/hatch"
       payload_press: "SP05"
+    - name: "Hatch power on"
+      unique_id: "wm7o91mv"
+      command_topic: "nursery/hatch"
+      payload_press: "SI01"
   light:
     - name: "Hatch"
       unique_id: "gytv2z8w"
