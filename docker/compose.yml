@@ -12,6 +12,8 @@ services:
   mosquitto:
     image: "eclipse-mosquitto:2.0.18"
     container_name: mosquitto
+    networks:
+      - mqtt
     volumes:
       - mosquitto:/mosquitto
     ports:
@@ -48,6 +50,8 @@ services:
     container_name: heartbeats
     restart: unless-stopped
     image: "ghcr.io/dancavallaro/telemetry/heartbeats:latest"
+    networks:
+      - mqtt
     command:
       - "-region"
       - "us-east-1"
@@ -77,6 +81,7 @@ services:
     image: "telegraf:1.31.2"
     networks:
       - telemetry
+      - mqtt
     # docker group gid, from: stat -c '%g' /var/run/docker.sock
     user: "telegraf:991"
     hostname: rpi
@@ -156,3 +161,4 @@ volumes:
   promtail:
 networks:
   telemetry:
+  mqtt:
