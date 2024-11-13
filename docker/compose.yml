@@ -1,7 +1,7 @@
 services:
   homeassistant:
     container_name: homeassistant
-    image: "homeassistant/home-assistant:2024.8"
+    image: "homeassistant/home-assistant:2024.11"
     volumes:
       - homeassistant:/config
       - /etc/localtime:/etc/localtime:ro
