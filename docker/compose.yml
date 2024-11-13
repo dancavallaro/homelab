@@ -107,6 +107,8 @@ services:
       - "3000:3000"
     volumes:
       - grafana:/var/lib/grafana
+    environment:
+      GF_PATHS_CONFIG: "/var/lib/grafana/grafana.ini"
   influxdb:
     container_name: influxdb
     restart: unless-stopped
