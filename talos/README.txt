@@ -93,8 +93,3 @@ virsh console talos-worker1
 
 talosctl machineconfig patch worker.yaml --patch @worker.patch.yaml -o worker.yaml
 talosctl apply-config --insecure -n 192.168.100.100 --file worker.yaml
-
-====================================================================================
-
-# Forward MetalLB subnet towards cluster
-dpu-host> sudo ip r add 172.16.42.0/24 dev virbr2

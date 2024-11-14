@@ -1,4 +1,4 @@
-# 2024-09-07 14:05:53 by RouterOS 7.14.1
+# 2024-11-13 22:13:45 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -52,10 +52,9 @@ add interface=dtcnet_bridge
 /ip dhcp-server lease
 add address=10.42.42.10 client-id=work-laptop comment="Work MBP" mac-address=AC:1A:3D:34:5E:F0 server=defconf
 add address=10.255.1.1 comment="dpu-dev Protectli" mac-address=00:E0:67:30:D6:DE server=labnet
-add address=10.42.42.2 client-id=ff:64:4:95:7c:0:2:0:0:ab:11:8f:7f:dc:5f:f4:a5:eb:d5 comment="NUC (Ubuntu)" mac-address=88:AE:DD:0E:7D:23 server=defconf
 add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-address=AC:1A:3D:34:5E:F0 server=defconf
 add address=10.42.42.42 client-id=1:e4:5f:1:ef:d7:10 comment="bastion RPi" mac-address=E4:5F:01:EF:D7:10 server=defconf
-add address=10.42.42.20 client-id=ff:66:18:dd:42:0:2:0:0:ab:11:42:d3:30:89:9a:c2:9f:38 comment="Talos proxy" mac-address=52:54:00:EA:89:58 server=defconf
+add address=10.42.42.2 comment="NUC br0" mac-address=92:B9:36:6D:7F:97 server=defconf
 /ip dhcp-server network
 add address=10.42.0.0/16 comment=defconf dns-server=10.42.42.1 gateway=10.42.42.1 netmask=16
 add address=10.255.1.0/30 comment="Link to Protectli" dns-server=8.8.8.8,8.8.4.4 gateway=10.255.1.2
@@ -67,6 +66,7 @@ add address=192.168.5.238 name=rpi
 add address=10.255.0.1 name=dpu-dev
 add address=10.42.42.2 name=dpu-host
 add address=10.255.2.3 name=dpu
+add address=10.42.42.100 comment="Talos cluster" name=cavnet.cloud
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
@@ -83,8 +83,13 @@ add action=drop chain=forward comment="defconf: drop all from WAN not DSTNATed" 
 /ip firewall nat
 add action=masquerade chain=srcnat comment="defconf: masquerade" ipsec-policy=out,none out-interface-list=WAN
 add action=dst-nat chain=dstnat comment="allow SSH to lab bastion (but only from RPi)" dst-port=4242 in-interface=dtcnet_bridge protocol=tcp src-address=192.168.5.238 to-addresses=10.42.42.42 to-ports=22
+/ip firewall raw
+add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and k8s subnet" dst-address=10.96.0.0/12 src-address=10.42.0.0/16
+add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and MetalLB subnet" dst-address=172.16.42.0/24 src-address=10.42.0.0/16
 /ip route
 add disabled=no distance=1 dst-address=10.255.0.0/16 gateway=10.255.1.1 pref-src="" routing-table=main suppress-hw-offload=no
+add comment="Route for MetalLB" disabled=no distance=1 dst-address=172.16.42.0/24 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
+add comment="Route for k8s cluster" disabled=no distance=1 dst-address=10.96.0.0/12 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
 /ipv6 firewall address-list
 add address=::/128 comment="defconf: unspecified address" list=bad_ipv6
 add address=::1/128 comment="defconf: lo" list=bad_ipv6
