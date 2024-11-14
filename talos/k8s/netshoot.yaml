@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: netshoot
+    labels:
+        app: netshoot
+spec:
+  replicas: 1
+  selector:
+      matchLabels:
+          app: netshoot
+  template:
+      metadata:
+        labels:
+          app: netshoot
+      spec:
+          containers:
+          - name: netshoot
+            image: nicolaka/netshoot
+            command: ["/bin/bash"]
+            args: ["-c", "while true; do ping localhost; sleep 60;done"]
+            volumeMounts:
+            - name: hostfs
+              mountPath: /hostfs
+              readOnly: true
+          # Needed to run `kubectl label ns default pod-security.kubernetes.io/enforce=privileged` first
+          volumes:
+          - name: hostfs
+            hostPath:
+              path: /
+

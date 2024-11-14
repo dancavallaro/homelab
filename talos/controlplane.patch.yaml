@@ -1,0 +1,20 @@
+machine:
+  certSANs:
+    - cavnet.cloud
+  install:
+    disk: /dev/vda
+  network:
+    interfaces:
+      - deviceSelector:
+          hardwareAddr: '02:7f:50:1e:b0:55'
+        dhcp: false
+        addresses:
+          - 10.42.42.100/16
+        routes:
+          - network: 10.42.0.0/16
+cluster:
+  apiServer:
+    certSANs:
+      - cavnet.cloud
+  controlPlane:
+    endpoint: https://cavnet.cloud:6443

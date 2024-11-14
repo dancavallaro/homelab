@@ -1,0 +1,15 @@
+<network>
+  <name>talos-net</name>
+  <forward mode="nat">
+    <nat>
+      <port start="1024" end="65535"/>
+    </nat>
+  </forward>
+  <bridge name="virbr2" />
+  <ip address="192.168.100.1" netmask="255.255.255.0">
+    <dhcp>
+      <host mac="02:C0:77:B4:28:80" ip="192.168.100.10" name="talos-cp1" />
+      <host mac="02:52:A7:0B:1D:89" ip="192.168.100.100" name="talos-worker1" />
+    </dhcp>
+  </ip>
+</network>

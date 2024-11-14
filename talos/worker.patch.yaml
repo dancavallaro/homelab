@@ -1,0 +1,7 @@
+machine:
+  install:
+    disk: /dev/vda
+  disks:
+    - device: /dev/vdb
+      partitions:
+        - mountpoint: /var/mnt/data

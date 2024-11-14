@@ -1,0 +1,2 @@
+helm repo add metallb https://metallb.github.io/metallb
+helm install -n metallb-system metallb metallb/metallb
