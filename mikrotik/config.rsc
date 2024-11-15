@@ -1,4 +1,4 @@
-# 2024-11-13 22:13:45 by RouterOS 7.14.1
+# 2024-11-14 20:51:13 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -66,7 +66,6 @@ add address=192.168.5.238 name=rpi
 add address=10.255.0.1 name=dpu-dev
 add address=10.42.42.2 name=dpu-host
 add address=10.255.2.3 name=dpu
-add address=10.42.42.100 comment="Talos cluster" name=cavnet.cloud
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"

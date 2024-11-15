@@ -1,6 +1,6 @@
 machine:
   certSANs:
-    - cavnet.cloud
+    - k8s.cavnet.cloud
   install:
     disk: /dev/vda
   network:
@@ -15,6 +15,6 @@ machine:
 cluster:
   apiServer:
     certSANs:
-      - cavnet.cloud
+      - k8s.cavnet.cloud
   controlPlane:
-    endpoint: https://cavnet.cloud:6443
+    endpoint: https://k8s.cavnet.cloud:6443

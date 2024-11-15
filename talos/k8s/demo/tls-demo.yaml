@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx
+  name: tls-demo
   labels:
-    app: nginx
+    app: tls-demo
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: nginx
+      app: tls-demo
   template:
     metadata:
       labels:
-        app: nginx
+        app: tls-demo
     spec:
       containers:
-        - name: nginx
+        - name: tls-demo
           image: nginx:latest
           ports:
             - containerPort: 80
@@ -23,30 +23,32 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx
-  annotations:
-    "coredns.io/hostname": "demo-lb.cavnet.cloud"
+  name: tls-demo
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
-    app: nginx
+    app: tls-demo
   ports:
     - port: 80
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nginx
+  name: tls-demo
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - tls.o.cavnet.cloud
+      secretName: tls.o.cavnet-cert
   rules:
-    - host: demo.cavnet.cloud
+    - host: tls.o.cavnet.cloud
       http:
         paths:
           - pathType: Prefix
             path: "/"
             backend:
               service:
-                name: nginx
+                name: tls-demo
                 port:
                   number: 80
