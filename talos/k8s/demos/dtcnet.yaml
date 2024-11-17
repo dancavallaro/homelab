@@ -1,0 +1,27 @@
+# This runs Nginx with host networking, and with a node selector + toleration
+# to run it on worker2 which is on dtcnet. Then, I can access Nginx from dtcnet
+# at http://192.168.6.100:80.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dtcnet-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtcnet-demo
+  template:
+    metadata:
+      labels:
+        app: dtcnet-demo
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        network: dtcnet
+      containers:
+        - name: dtcnet-demo
+          image: nginx:latest
+      tolerations:
+        - key: dtcnet
+          operator: Exists
+          effect: NoSchedule

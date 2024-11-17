@@ -1,4 +1,4 @@
-# 2024-11-14 20:51:13 by RouterOS 7.14.1
+# 2024-11-19 21:24:29 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -16,6 +16,8 @@ set [ find default-name=ether5 ] comment=NUC
 set [ find default-name=ether6 ] comment="RPi4 (bastion.local)"
 set [ find default-name=ether7 ] comment="Lutron hub (bridged to dtcnet)"
 set [ find default-name=ether8 ] comment="Lauren's office (bridged to dtcnet)"
+/interface vlan
+add comment="Bridges dpu-host to dtcnet" interface=ether5 name=vlan192 vlan-id=192
 /interface list
 add comment=defconf name=WAN
 add comment=defconf name=LAN
@@ -30,13 +32,14 @@ add address-pool=dhcp interface=bridge lease-time=10m name=defconf
 /interface bridge port
 add bridge=bridge comment=defconf interface=ether2 internal-path-cost=10 path-cost=10
 add bridge=dtcnet_bridge comment=defconf interface=ether3 internal-path-cost=10 path-cost=10
-add bridge=bridge comment=defconf interface=ether5 internal-path-cost=10 path-cost=10
 add bridge=bridge interface=ether6 internal-path-cost=10 path-cost=10
 add bridge=dtcnet_bridge interface=ether7 internal-path-cost=10 path-cost=10
 add bridge=dtcnet_bridge interface=ether8 internal-path-cost=10 path-cost=10
 add bridge=bridge comment=defconf interface=sfp-sfpplus1 internal-path-cost=10 path-cost=10
 add bridge=labnet_bridge interface=ether4
 add bridge=dtcnet_bridge interface=ether1
+add bridge=bridge interface=ether5
+add bridge=dtcnet_bridge comment="Bridges dpu-host to dtcnet" interface=vlan192
 /ip firewall connection tracking
 set udp-timeout=10s
 /ip neighbor discovery-settings

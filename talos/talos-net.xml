@@ -10,6 +10,7 @@
     <dhcp>
       <host mac="02:C0:77:B4:28:80" ip="192.168.100.10" name="talos-cp1" />
       <host mac="02:52:A7:0B:1D:89" ip="192.168.100.100" name="talos-worker1" />
+      <host mac="de:6f:9f:0d:15:96" ip="192.168.100.101" name="talos-worker2" />
     </dhcp>
   </ip>
 </network>
