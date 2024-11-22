@@ -17,4 +17,48 @@ spec:
           imagePullPolicy: Always
           name: kuard
           ports:
-            - containerPort: 80
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuard
+spec:
+  selector:
+    app: kuard
+  ports:
+    - port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kuard
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: kuard.o.cavnet.cloud
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: kuard
+                port:
+                  number: 8080
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kuard
+spec:
+  secretName: kuard-tls
+  isCA: false
+  usages:
+    - client auth
+  dnsNames:
+    - kuard.o.cavnet.cloud
+    - kuard.default.pod.cluster.local
+  issuerRef:
+    name: cluster-ca-issuer
+    kind: ClusterIssuer

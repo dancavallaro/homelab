@@ -15,12 +15,12 @@ spec:
       labels:
         app: dtcnet-demo
     spec:
-      hostNetwork: true
-      nodeSelector:
-        network: dtcnet
       containers:
         - name: dtcnet-demo
           image: nginx:latest
+      hostNetwork: true
+      nodeSelector:
+        network: dtcnet
       tolerations:
         - key: dtcnet
           operator: Exists

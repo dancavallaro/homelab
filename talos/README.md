@@ -180,14 +180,14 @@ default_md = sha256
 distinguished_name = kube-apiserver-client
 req_extensions = v3_req
 [ kube-apiserver-client ]
-CN = iam-ra-test.default.svc.cluster.local
+CN = iam-ra-test.default.pod.cluster.local
 [ v3_req ]
 basicConstraints = CA:FALSE
 keyUsage = nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment
 extendedKeyUsage = serverAuth, clientAuth
 subjectAltName = @alt_names
 [alt_names]
-DNS.1 = iam-ra-test.default.svc
+DNS.1 = iam-ra-test.default.pod
 EOF
 
 openssl req -new -key iam-ra-test.key -out iam-ra-test.csr -config csr.conf
@@ -219,24 +219,31 @@ kubectl get csr iam-ra-test \
 openssl storeutl -text -noout -certs iam-ra-test.crt
 ```
 
+### Issuing certs using cert-manager and self-signed CA
+
+Get the self-signed CA cert and upload that as the trust anchor:
+
+```shell
+kubectl -n cert-manager get secret self-signed-issuer-ca -o jsonpath='{.data}' | jq -r '.["tls.crt"]' | base64 -d
+```
+
+Issuing a test cert:
+
+```shell
+kubectl get secret kuard-tls -o jsonpath='{.data}' | jq -r '.["tls.crt"]' | base64 -d > kuard.crt
+kubectl get secret kuard-tls -o jsonpath='{.data}' | jq -r '.["tls.key"]' | base64 -d > kuard.key
+openssl storeutl -text -noout -certs kuard.crt
+```
+
 ### Use k8s cert to get AWS creds
 
 ```shell
 aws_signing_helper credential-process --region us-east-1 \
-    --certificate iam-ra-test.crt --private-key iam-ra-test.key \
+    --certificate kuard.crt --private-key kuard.key \
     --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a \
     --profile-arn arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02 \
     --role-arn arn:aws:iam::484396241422:role/S3BackupsRole
 ```
-
-TODO: that's failing with:
-```
-2024/11/17 14:47:41 AccessDeniedException: Unable to assume role for arn:aws:iam::484396241422:role/S3BackupsRole.
-```
-
-TODO: manually, by issuing CSR and saving cert as k8s secret
-
-TODO: can i automatically or at least declaratively get k8s certs? or do i need SPIFFE or something?
 
 ## Multi-homing with homenet
 
@@ -254,6 +261,9 @@ $ ip a show dev dtcnet0
 206: dtcnet0@br0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
     inet 192.168.6.9/22 brd 192.168.7.255 scope global dynamic dtcnet0
 ```
+
+NOTE: This interface isn't actually necessary! The Talos worker has its own VLAN 
+interface, and this one winds up having no use in the end.
 
 ### Set up dtcnet worker node
 
@@ -305,4 +315,50 @@ First, need to allow pods to run with host networking:
 kubectl label ns default pod-security.kubernetes.io/enforce=privileged
 ```
 
-TODO: should put privileged stuff in a separate namespace
+Then, run a pod with host networking, the dtcnet node selector, and toleration:
+
+```yaml
+  hostNetwork: true
+  nodeSelector:
+    network: dtcnet
+  tolerations:
+    - key: dtcnet
+      operator: Exists
+      effect: NoSchedule
+```
+
+## Cluster backups
+
+### Machine config
+
+```shell
+for node in 192.168.100.10 192.168.100.100 192.168.100.101; do 
+    talosctl get -n $node mc v1alpha1 -o yaml | yq eval '.spec' - > $node.yaml
+done
+```
+
+### etcd database
+
+```shell
+talosctl etcd snapshot ./etcd.snapshot.db
+```
+
+## Upgrading Talos
+
+### Worker nodes
+
+```shell
+for node in 192.168.100.100 192.168.100.101; do
+    talosctl upgrade -n $node \
+      --image ghcr.io/siderolabs/installer:v1.8.0
+done
+```
+
+### Control plane nodes
+
+NOTE: Make sure to upgrade CP node with --preserve=true, while I only have one CP node.
+
+```shell
+talosctl upgrade --preserve=true -n 192.168.100.10 \
+    --image ghcr.io/siderolabs/installer:v1.8.0
+```
