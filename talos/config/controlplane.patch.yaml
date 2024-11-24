@@ -14,6 +14,11 @@ machine:
           - network: 10.42.0.0/16
 cluster:
   apiServer:
+    admissionControl:
+      - name: PodSecurity
+        configuration:
+          defaults:
+            warn: baseline
     certSANs:
       - k8s.cavnet.cloud
   controlPlane:
