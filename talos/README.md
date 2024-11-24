@@ -273,6 +273,17 @@ aws_signing_helper credential-process --region us-east-1 \
     --role-arn arn:aws:iam::484396241422:role/S3BackupsRole
 ```
 
+### POC for operator
+
+```shell
+kubectl exec -it deployment/aws-cli -c aws-iamra-manager -- \
+    /iamram/aws_signing_helper credential-process --region us-east-1 \
+    --certificate /iamram/certs/tls.crt --private-key /iamram/certs/tls.key \
+    --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a \
+    --profile-arn arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02 \
+    --role-arn arn:aws:iam::484396241422:role/S3BackupsRole | /parse-credentials > /root/.aws/credentials
+```
+
 ## Multi-homing with homenet
 
 On the Mikrotik I created a new VLAN interface on the port connected to dpu-host, tagged
