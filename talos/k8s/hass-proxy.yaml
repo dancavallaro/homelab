@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hass-proxy
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: hass-proxy
+  template:
+    metadata:
+      labels:
+        app: hass-proxy
+    spec:
+      containers:
+        - name: hass-proxy
+          image: nginx:latest
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: hass-proxy-nginx-conf
+            optional: false
+      nodeSelector:
+        network: dtcnet
+      tolerations:
+        - key: dtcnet
+          operator: Exists
+          effect: NoSchedule
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hass-proxy-nginx-conf
+data:
+  default.conf: |-
+    server {
+        listen       32768;
+        server_name  _;
+    
+        location / {
+            proxy_pass http://192.168.5.100:8123;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+            proxy_set_header Host $host;
+        }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hass-proxy
+spec:
+  selector:
+    app: hass-proxy
+  ports:
+    - port: 80
+      targetPort: 32768
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hass-proxy
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: ha.o.cavnet.cloud
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: hass-proxy
+                port:
+                  number: 80
