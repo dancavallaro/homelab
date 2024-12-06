@@ -62,20 +62,22 @@ spec:
     - port: 80
       targetPort: 32768
 ---
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
 metadata:
   name: hass-proxy
 spec:
-  ingressClassName: nginx
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: kong
+  hostnames:
+    - ha.o.cavnet.cloud
   rules:
-    - host: ha.o.cavnet.cloud
-      http:
-        paths:
-          - pathType: Prefix
-            path: "/"
-            backend:
-              service:
-                name: hass-proxy
-                port:
-                  number: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: hass-proxy
+          port: 80
