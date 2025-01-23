@@ -57,7 +57,8 @@ kind: Ingress
 metadata:
   name: nginx-demo
 spec:
-  ingressClassName: kong
+  ingressClassName: nginx
+  # This is now handled automatically via --default-ssl-certificate on the nginx controller
   tls:
     - hosts:
         - tls.o.cavnet.cloud

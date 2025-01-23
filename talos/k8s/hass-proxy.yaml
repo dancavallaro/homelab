@@ -66,6 +66,9 @@ kind: HTTPRoute
 apiVersion: gateway.networking.k8s.io/v1
 metadata:
   name: hass-proxy
+  annotations:
+    konghq.com/protocols: https
+    konghq.com/https-redirect-status-code: "301"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

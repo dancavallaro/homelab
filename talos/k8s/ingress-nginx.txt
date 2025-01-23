@@ -1,3 +1,7 @@
 helm upgrade --install ingress-nginx ingress-nginx \
   --repo https://kubernetes.github.io/ingress-nginx \
   --namespace ingress-nginx --create-namespace
+
+# This can be done via a Helm chart arg as well, that might be better
+kubectl -n ingress-nginx patch deployment/ingress-nginx-controller --type "json" \
+    --patch '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--default-ssl-certificate=default/o.cavnet-wildcard-cert"}]'
