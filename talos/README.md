@@ -39,7 +39,7 @@ virsh net-autostart talos-net
 
 ```shell
 virt-install --name talos-cp1 \
-     --ram 2048 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
+     --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=20,format=qcow2 \
      --location /usr/local/images/metal-amd64.iso,kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
@@ -62,7 +62,7 @@ talosctl kubeconfig -n $BOOTSTRAP_IP
 
 ```shell
 virt-install --name talos-worker1 \
-     --ram 2048 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
+     --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=20,format=qcow2 --disk size=100,format=qcow2 \
      --location /usr/local/images/metal-amd64.iso,kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
@@ -297,7 +297,7 @@ interface, and this one winds up having no use in the end.
 
 ```shell
 virt-install --name talos-worker2 \
-     --ram 2048 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
+     --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=20,format=qcow2 --disk size=100,format=qcow2 \
      --location /usr/local/images/metal-amd64.iso,kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \

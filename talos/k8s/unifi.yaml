@@ -1,0 +1,182 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unifi-db-data
+spec:
+  storageClassName: local-path
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: unifi-app-config
+spec:
+  storageClassName: local-path
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unifi-app
+spec:
+  selector:
+    matchLabels:
+      app: unifi-app
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: unifi-app
+    spec:
+      nodeSelector:
+        network: dtcnet
+      tolerations:
+        - key: dtcnet
+          operator: Exists
+          effect: NoSchedule
+      hostNetwork: true
+      containers:
+        - name: unifi-db
+          image: mongo:8.0.4
+          imagePullPolicy: Always
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: root
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: root
+            - name: MONGO_DBNAME
+              value: unifi
+            - name: MONGO_AUTHSOURCE
+              value: admin
+            - name: MONGO_USER
+              value: unifi
+            - name: MONGO_PASS
+              value: unifi
+          volumeMounts:
+            - name: mongodb-init
+              mountPath: /docker-entrypoint-initdb.d/
+            - name: unifi-db-data
+              mountPath: /data/db
+          resources:
+            requests:
+              memory: "512M"
+              cpu: "0.25"
+            limits:
+              memory: "512M"
+              cpu: "0.25"
+        - name: unifi-network-app
+          image: lscr.io/linuxserver/unifi-network-application:9.0.108
+          imagePullPolicy: Always
+          env:
+            - name: TZ
+              value: America/New_York
+            - name: MONGO_HOST
+              value: localhost
+            - name: MONGO_PORT
+              value: "27017"
+            - name: MONGO_DBNAME
+              value: unifi
+            - name: MONGO_AUTHSOURCE
+              value: admin
+            - name: MONGO_USER
+              value: unifi
+            - name: MONGO_PASS
+              value: unifi
+          volumeMounts:
+            - name: unifi-app-config
+              mountPath: /config
+          ports:
+            - containerPort: 8080
+            - containerPort: 8443
+            - containerPort: 8843
+            - containerPort: 8880
+            - containerPort: 6789
+            - containerPort: 3478
+              protocol: UDP
+            - containerPort: 10001
+              protocol: UDP
+            - containerPort: 1900
+              protocol: UDP
+            - containerPort: 5514
+              protocol: UDP
+          resources:
+            requests:
+              memory: "1G"
+              cpu: "0.25"
+            limits:
+              memory: "1G"
+              cpu: "0.25"
+      volumes:
+        - name: mongodb-init
+          configMap:
+            name: unifi-mongo-config
+            optional: false
+        - name: unifi-db-data
+          persistentVolumeClaim:
+            claimName: unifi-db-data
+        - name: unifi-app-config
+          persistentVolumeClaim:
+            claimName: unifi-app-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unifi-mongo-config
+data:
+  init-mongo.sh: |-
+    #!/bin/bash
+    mongosh <<EOF
+    use ${MONGO_AUTHSOURCE}
+    db.auth("${MONGO_INITDB_ROOT_USERNAME}", "${MONGO_INITDB_ROOT_PASSWORD}")
+    db.createUser({
+      user: "${MONGO_USER}",
+      pwd: "${MONGO_PASS}",
+      roles: [
+        { db: "${MONGO_DBNAME}", role: "dbOwner" },
+        { db: "${MONGO_DBNAME}_stat", role: "dbOwner" }
+      ]
+    })
+    EOF
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: unifi-app
+  annotations:
+    konghq.com/protocol: https
+spec:
+  selector:
+    app: unifi-app
+  ports:
+    - name: http
+      port: 8080
+    - name: https
+      port: 8443
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: unifi-app
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: kong
+  hostnames:
+    - unifi.o.cavnet.cloud
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: unifi-app
+          port: 8443
