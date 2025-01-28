@@ -136,6 +136,7 @@ certbot-dns-updater-role with certbot-dns-updater-policy:
 ```shell
 aws sts assume-role --role-arn arn:aws:iam::484396241422:role/certbot-dns-updater-role --role-session-name certbot-cert-request
 
+// TODO: try running this with --manual?
 docker run -it --rm --name certbot \
     -v "/etc/letsencrypt:/etc/letsencrypt" \
     -e "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" \
