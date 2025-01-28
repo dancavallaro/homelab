@@ -1,4 +1,4 @@
-# 2024-11-19 21:24:29 by RouterOS 7.14.1
+# 2025-01-28 13:53:59 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -53,9 +53,9 @@ add address=10.255.1.2/24 interface=labnet_bridge network=10.255.1.0
 /ip dhcp-client
 add interface=dtcnet_bridge
 /ip dhcp-server lease
-add address=10.42.42.10 client-id=work-laptop comment="Work MBP" mac-address=AC:1A:3D:34:5E:F0 server=defconf
+add address=10.42.42.10 client-id=work-laptop comment="Work MBP" mac-address=90:8D:6E:35:11:38 server=defconf
 add address=10.255.1.1 comment="dpu-dev Protectli" mac-address=00:E0:67:30:D6:DE server=labnet
-add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-address=AC:1A:3D:34:5E:F0 server=defconf
+add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-address=90:8D:6E:35:11:38 server=defconf
 add address=10.42.42.42 client-id=1:e4:5f:1:ef:d7:10 comment="bastion RPi" mac-address=E4:5F:01:EF:D7:10 server=defconf
 add address=10.42.42.2 comment="NUC br0" mac-address=92:B9:36:6D:7F:97 server=defconf
 /ip dhcp-server network
