@@ -2,14 +2,27 @@
 
 ### Set up bridge
 
+Edit `/etc/netplan/50-cloud-init.yaml` to disable DHCP on enp89s0:
+
+```yaml
+network:
+    ethernets:
+        enp89s0:
+            dhcp4: false
+    version: 2
+    wifis: {}
+```
+
+Then (NOTE: this will kill SSH): `sudo netplan apply`
+
+Then:
+
 ```shell
 sudo ip link add br0 addr 92:B9:36:6D:7F:97 type bridge
 sudo ip link set br0 up
 # This will kill your SSH connection dummy
 sudo ip link set enp89s0 master br0
 sudo dhclient br0
-# TODO: For some reason the address seemed to stick around on this until I down-upped it.
-sudo dhclient -r enp89s0
 ```
 
 ## Talos cluster setup
