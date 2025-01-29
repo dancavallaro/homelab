@@ -1,4 +1,4 @@
-# 2025-01-28 13:53:59 by RouterOS 7.14.1
+# 2025-01-29 15:54:25 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -8,16 +8,14 @@ add admin-mac=78:9A:18:BD:BF:20 auto-mac=no comment=defconf name=bridge port-cos
 add comment="bridges some ports to \"WAN\" (dtcnet/home LAN) on ether1" name=dtcnet_bridge
 add comment="Bridge for BF3 network behind Protectli" name=labnet_bridge
 /interface ethernet
-set [ find default-name=ether1 ] comment="dtcnet (eero)"
+set [ find default-name=ether1 ] comment="Uplink to dtcnet LAN (via Netgear switch)"
 set [ find default-name=ether2 ] comment="Laptop docking station"
-set [ find default-name=ether3 ] comment="RPi5 (rpi.local)"
+set [ find default-name=ether3 ] comment="PoE switch to Ubiquiti APs"
 set [ find default-name=ether4 ] comment=Protectli
 set [ find default-name=ether5 ] comment=NUC
 set [ find default-name=ether6 ] comment="RPi4 (bastion.local)"
-set [ find default-name=ether7 ] comment="Lutron hub (bridged to dtcnet)"
-set [ find default-name=ether8 ] comment="Lauren's office (bridged to dtcnet)"
 /interface vlan
-add comment="Bridges dpu-host to dtcnet" interface=ether5 name=vlan192 vlan-id=192
+add comment="Allows NUC to connect to dtcnet bridge" interface=ether5 name=vlan192 vlan-id=192
 /interface list
 add comment=defconf name=WAN
 add comment=defconf name=LAN
@@ -31,15 +29,13 @@ add name=dhcp ranges=10.42.42.2-10.42.42.254
 add address-pool=dhcp interface=bridge lease-time=10m name=defconf
 /interface bridge port
 add bridge=bridge comment=defconf interface=ether2 internal-path-cost=10 path-cost=10
-add bridge=dtcnet_bridge comment=defconf interface=ether3 internal-path-cost=10 path-cost=10
 add bridge=bridge interface=ether6 internal-path-cost=10 path-cost=10
-add bridge=dtcnet_bridge interface=ether7 internal-path-cost=10 path-cost=10
-add bridge=dtcnet_bridge interface=ether8 internal-path-cost=10 path-cost=10
 add bridge=bridge comment=defconf interface=sfp-sfpplus1 internal-path-cost=10 path-cost=10
 add bridge=labnet_bridge interface=ether4
 add bridge=dtcnet_bridge interface=ether1
 add bridge=bridge interface=ether5
 add bridge=dtcnet_bridge comment="Bridges dpu-host to dtcnet" interface=vlan192
+add bridge=dtcnet_bridge comment="Bridging wifi APs to dtcnet" interface=ether3
 /ip firewall connection tracking
 set udp-timeout=10s
 /ip neighbor discovery-settings
@@ -69,6 +65,7 @@ add address=192.168.5.238 name=rpi
 add address=10.255.0.1 name=dpu-dev
 add address=10.42.42.2 name=dpu-host
 add address=10.255.2.3 name=dpu
+add address=192.168.6.40 name=dtcnet-netgear
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
