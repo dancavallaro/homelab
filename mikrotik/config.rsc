@@ -1,4 +1,4 @@
-# 2025-01-29 15:54:25 by RouterOS 7.14.1
+# 2025-01-30 09:50:27 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -8,12 +8,13 @@ add admin-mac=78:9A:18:BD:BF:20 auto-mac=no comment=defconf name=bridge port-cos
 add comment="bridges some ports to \"WAN\" (dtcnet/home LAN) on ether1" name=dtcnet_bridge
 add comment="Bridge for BF3 network behind Protectli" name=labnet_bridge
 /interface ethernet
-set [ find default-name=ether1 ] comment="Uplink to dtcnet LAN (via Netgear switch)"
+set [ find default-name=ether1 ] comment="eero (uplink to dtcnet LAN)"
 set [ find default-name=ether2 ] comment="Laptop docking station"
 set [ find default-name=ether3 ] comment="PoE switch to Ubiquiti APs"
 set [ find default-name=ether4 ] comment=Protectli
 set [ find default-name=ether5 ] comment=NUC
 set [ find default-name=ether6 ] comment="RPi4 (bastion.local)"
+set [ find default-name=ether7 ] comment="dtcnet Netgear switch"
 /interface vlan
 add comment="Allows NUC to connect to dtcnet bridge" interface=ether5 name=vlan192 vlan-id=192
 /interface list
@@ -35,7 +36,8 @@ add bridge=labnet_bridge interface=ether4
 add bridge=dtcnet_bridge interface=ether1
 add bridge=bridge interface=ether5
 add bridge=dtcnet_bridge comment="Bridges dpu-host to dtcnet" interface=vlan192
-add bridge=dtcnet_bridge comment="Bridging wifi APs to dtcnet" interface=ether3
+add bridge=dtcnet_bridge interface=ether3
+add bridge=dtcnet_bridge interface=ether7
 /ip firewall connection tracking
 set udp-timeout=10s
 /ip neighbor discovery-settings
