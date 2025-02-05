@@ -1,4 +1,4 @@
-# 2025-01-30 09:50:27 by RouterOS 7.14.1
+# 2025-02-05 11:13:33 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -16,6 +16,7 @@ set [ find default-name=ether5 ] comment=NUC
 set [ find default-name=ether6 ] comment="RPi4 (bastion.local)"
 set [ find default-name=ether7 ] comment="dtcnet Netgear switch"
 /interface vlan
+add comment="Allows WiFi SSID for labnet" interface=ether3 name=vlan10 vlan-id=10
 add comment="Allows NUC to connect to dtcnet bridge" interface=ether5 name=vlan192 vlan-id=192
 /interface list
 add comment=defconf name=WAN
@@ -38,6 +39,7 @@ add bridge=bridge interface=ether5
 add bridge=dtcnet_bridge comment="Bridges dpu-host to dtcnet" interface=vlan192
 add bridge=dtcnet_bridge interface=ether3
 add bridge=dtcnet_bridge interface=ether7
+add bridge=bridge comment="Bridges WiFi APs to office network" interface=vlan10
 /ip firewall connection tracking
 set udp-timeout=10s
 /ip neighbor discovery-settings
