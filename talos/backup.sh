@@ -17,6 +17,8 @@ talosctl etcd snapshot "$workdir/etcd.snapshot.db" > /dev/null
 # Copy talosctl config
 cp ~/.talos/config "$workdir/talos.config"
 
+# TODO: Automate backups of persistent volumes under /var/mnt/data
+
 tar czvf "${workdir_root}/$timestamp.tar.gz" -C "$workdir_root" "$timestamp" 2> /dev/null
 
 aws s3 cp "${workdir_root}/$timestamp.tar.gz" "s3://nuc-talos-backups/cluster/$timestamp.tar.gz"

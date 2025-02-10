@@ -371,6 +371,18 @@ done
 talosctl etcd snapshot ./etcd.snapshot.db
 ```
 
+### local-path-provisioner volumes
+
+TODO: This is still manual, need to finish scripting this
+
+```shell
+for node in node/talos-worker1 node/talos-worker2; do
+    kubectl debug -n kube-system -it --image alpine "$node"
+    tar -czv -C /host/var/mnt/data -f local-path-provisioner.tar.gz local-path-provisioner
+    kubectl cp -n kube-system node-debugger-talos-worker2-7pst7:/local-path-provisioner.tar.gz ./local-path-provisioner.tar.gz
+done
+```
+
 ## Upgrading Talos
 
 ### Worker nodes
