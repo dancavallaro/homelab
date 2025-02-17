@@ -11,6 +11,8 @@ metadata:
   name: self-signed-issuer-ca
   namespace: cert-manager
 spec:
+  duration: 8766h # 1 year
+  renewBeforePercentage: 99
   isCA: true
   commonName: self-signed-issuer-ca
   secretName: self-signed-issuer-ca
