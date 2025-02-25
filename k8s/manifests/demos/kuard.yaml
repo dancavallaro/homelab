@@ -46,19 +46,19 @@ spec:
                 name: kuard
                 port:
                   number: 8080
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: kuard
-spec:
-  secretName: kuard-tls
-  isCA: false
-  usages:
-    - client auth
-  dnsNames:
-    - kuard.o.cavnet.cloud
-    - kuard.default.pod.cluster.local
-  issuerRef:
-    name: cluster-ca-issuer
-    kind: ClusterIssuer
+#---
+#apiVersion: cert-manager.io/v1
+#kind: Certificate
+#metadata:
+#  name: kuard
+#spec:
+#  secretName: kuard-tls
+#  isCA: false
+#  usages:
+#    - client auth
+#  dnsNames:
+#    - kuard.o.cavnet.cloud
+#    - kuard.default.pod.cluster.local
+#  issuerRef:
+#    name: cluster-ca-issuer
+#    kind: ClusterIssuer
