@@ -150,29 +150,23 @@ apiVersion: v1
 kind: Service
 metadata:
   name: unifi-app
-  annotations:
-    konghq.com/protocol: https
 spec:
   selector:
     app: unifi-app
   ports:
-    - name: http
-      port: 8080
     - name: https
-      port: 8443
+      targetPort: 8443
+      port: 443
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: unifi-app
-  annotations:
-    konghq.com/protocols: https
-    konghq.com/https-redirect-status-code: "301"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      name: kong
+      name: traefik
   hostnames:
     - unifi.o.cavnet.cloud
   rules:
@@ -182,4 +176,4 @@ spec:
             value: /
       backendRefs:
         - name: unifi-app
-          port: 8443
+          port: 443

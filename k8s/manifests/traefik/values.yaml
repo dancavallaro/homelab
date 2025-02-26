@@ -1,8 +1,14 @@
-providers:
-  kubernetesGateway:
-    enabled: true
-# Let Traefik create the GatewayClass, but I'll create the Gateway
-gateway:
-  enabled: false
 additionalArguments:
   - "--entrypoints.web.http.redirections.entryPoint.to=:443"
+  # This is really only needed for the Unifi controller, since it insists on
+  # doing a port 80 -> 443 redirect and serves a self-signed cert. But it's
+  # easier to just do this for everything, and there's no real risk.
+  - "--serverstransport.insecureskipverify=true"
+providers:
+  kubernetesGateway:
+    enabled: true # Let Traefik create the GatewayClass
+gateway:
+  enabled: false # But I'll create a Gateway
+#logs:
+#  general:
+#    level: DEBUG
