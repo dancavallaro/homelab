@@ -1,2 +1,5 @@
 helm repo add k8s_gateway https://ori-edge.github.io/k8s_gateway/
-helm install -f values.yaml exdns --set domain=o.cavnet.cloud k8s_gateway/k8s-gateway --namespace dns-gateway --create-namespace
+helm install -f values.yaml exdns k8s_gateway/k8s-gateway --namespace dns-gateway --create-namespace
+
+# To update:
+helm upgrade --namespace=dns-gateway --values=manifests/k8s_gateway/values.yaml --version 2.4.0 exdns k8s_gateway/k8s-gateway

@@ -1,3 +1,4 @@
+domain: o.cavnet.cloud
 watchedResources:
   - Ingress
   - Service
@@ -7,3 +8,15 @@ watchedResources:
 service:
   annotations:
     metallb.universe.tf/loadBalancerIPs: 172.16.42.53
+# Unfortunately it looks like k8s_gateway is no longer maintained, and it has a hardcoded
+# reference to an older alpha version of the GRPCRoute CRD, which is no longer installed.
+# This is an image built which includes a fix for this issue, that I found here:
+# https://github.com/ori-edge/k8s_gateway/pull/306#issuecomment-2465889466.
+# For posterity I've forked that contributor's repo:
+# https://github.com/dancavallaro/k8s_gateway/tree/feature/grpc-update-gw-apis
+# (I haven't tried building the image myself yet, the GH issue alluded to some issue
+# with the Dockerfile).
+image:
+  registry: ghcr.io
+  repository: soliddowant/k8s_gateway
+  tag: v0.4.0-37-g9b0bbe7
