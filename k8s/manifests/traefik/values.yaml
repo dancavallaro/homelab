@@ -1,0 +1,8 @@
+providers:
+  kubernetesGateway:
+    enabled: true
+# Let Traefik create the GatewayClass, but I'll create the Gateway
+gateway:
+  enabled: false
+additionalArguments:
+  - "--entrypoints.web.http.redirections.entryPoint.to=:443"

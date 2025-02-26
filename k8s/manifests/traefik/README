@@ -1,0 +1,7 @@
+helm repo add traefik https://traefik.github.io/charts
+helm repo update
+helm install --namespace=traefik --create-namespace --values=manifests/traefik/values.yaml traefik traefik/traefik
+kubectl apply -f manifests/traefik/traefik.yaml
+
+# To update:
+helm upgrade --namespace=traefik --create-namespace --values=manifests/traefik/values.yaml --version 34.4.0 traefik traefik/traefik
