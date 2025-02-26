@@ -36,7 +36,7 @@ metadata:
   name: aws-cli
 spec:
   secretName: aws-cli-cert
-  duration: 8766h # 1 year
+  duration: 24h
   renewBeforePercentage: 99
   isCA: false
   usages:
