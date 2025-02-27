@@ -3,6 +3,15 @@ machine:
     - k8s.cavnet.cloud
   install:
     disk: /dev/vda
+  features:
+    kubernetesTalosAPIAccess:
+      enabled: true
+      allowedRoles:
+        - os:reader
+        - os:operator
+        - os:admin
+      allowedKubernetesNamespaces:
+        - default
   network:
     interfaces:
       - deviceSelector:
