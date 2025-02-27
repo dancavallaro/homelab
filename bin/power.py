@@ -5,7 +5,7 @@ import requests
 import sys
 
 TOKEN = os.environ["HASS_TOKEN"]
-HA_API_ENDPOINT = "http://rpi.local:8123"
+HA_API_ENDPOINT = "https://ha.o.cavnet.cloud"
 VALID_STATES = ["on", "off"]
 SOCKET_IDS = {
     "bf3": "1",
