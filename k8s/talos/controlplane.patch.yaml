@@ -22,6 +22,9 @@ machine:
           - 10.42.42.100/16
         routes:
           - network: 10.42.0.0/16
+    nameservers:
+      - 1.1.1.1
+      - 8.8.8.8
 cluster:
   apiServer:
     admissionControl:

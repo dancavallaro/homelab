@@ -1,3 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cluster-archiver
+---
 apiVersion: talos.dev/v1alpha1
 kind: ServiceAccount
 metadata:
@@ -9,7 +14,7 @@ spec:
 apiVersion: cloud.dancav.io/v1
 kind: AwsIamRaSession
 metadata:
-  name: cluster-archiver-creds
+  name: cluster-archiver-role
 spec:
   trustAnchorArn: arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a
   profileArn: arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02
@@ -18,7 +23,7 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: cluster-archiver
+  name: cluster-archiver-cert
 spec:
   secretName: cluster-archiver-cert
   duration: 24h
@@ -27,7 +32,7 @@ spec:
   usages:
     - client auth
   dnsNames:
-    - cluster-archiver.default.svc.cluster.local
+    - cluster-archiver
   issuerRef:
     name: cluster-ca-issuer
     kind: ClusterIssuer

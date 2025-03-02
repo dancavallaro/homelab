@@ -1,0 +1,43 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-issuer
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: dan.t.cavallaro@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-issuer-key
+    solvers:
+      - dns01:
+          route53:
+            region: us-east-1
+            hostedZoneID: Z05015042OJX42009787V
+---
+apiVersion: cloud.dancav.io/v1
+kind: AwsIamRaSession
+metadata:
+  namespace: cert-manager
+  name: letsencrypt-issuer-role
+spec:
+  trustAnchorArn: arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a
+  profileArn: arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02
+  roleArn: arn:aws:iam::484396241422:role/certbot-dns-updater-role
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: cert-manager
+  name: letsencrypt-issuer-cert
+spec:
+  secretName: letsencrypt-issuer-cert
+  duration: 24h
+  renewBeforePercentage: 99
+  isCA: false
+  usages:
+    - client auth
+  dnsNames:
+    - letsencrypt-issuer
+  issuerRef:
+    name: cluster-ca-issuer
+    kind: ClusterIssuer

@@ -4,4 +4,14 @@ helm install \
   --namespace cert-manager \
   --create-namespace \
   --version v1.16.2 \
+  --values=manifests/cert-manager/values.yaml \
+  --set crds.enabled=true
+
+---
+
+helm upgrade \
+  cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --version v1.16.2 \
+  --values=manifests/cert-manager/values.yaml \
   --set crds.enabled=true

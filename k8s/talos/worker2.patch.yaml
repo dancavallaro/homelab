@@ -6,6 +6,9 @@ machine:
       partitions:
         - mountpoint: /var/mnt/data
   network:
+    nameservers:
+      - 1.1.1.1
+      - 8.8.8.8
     interfaces:
       - deviceSelector:
           hardwareAddr: '1e:03:e4:b3:4f:47'

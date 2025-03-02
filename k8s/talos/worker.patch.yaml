@@ -5,3 +5,7 @@ machine:
     - device: /dev/vdb
       partitions:
         - mountpoint: /var/mnt/data
+  network:
+    nameservers:
+      - 1.1.1.1
+      - 8.8.8.8

@@ -10,7 +10,8 @@ spec:
         metadata:
           labels:
             app: cluster-archiver
-            cloud.dancav.io/aws-iamra-session-name: cluster-archiver-creds
+          annotations:
+            cloud.dancav.io/aws-iamra-session-name: cluster-archiver-role
             cloud.dancav.io/aws-iamra-cert-secret: cluster-archiver-cert
         spec:
           restartPolicy: OnFailure

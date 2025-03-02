@@ -13,7 +13,8 @@ spec:
       name: aws-cli
       labels:
         app: aws-cli
-        cloud.dancav.io/aws-iamra-session-name: s3-backup-creds
+      annotations:
+        cloud.dancav.io/aws-iamra-session-name: s3-backup-role
         cloud.dancav.io/aws-iamra-cert-secret: aws-cli-cert
     spec:
       containers:
@@ -24,7 +25,7 @@ spec:
 apiVersion: cloud.dancav.io/v1
 kind: AwsIamRaSession
 metadata:
-  name: s3-backup-creds
+  name: s3-backup-role
 spec:
   trustAnchorArn: arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a
   profileArn: arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02
