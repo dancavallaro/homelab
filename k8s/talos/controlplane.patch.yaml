@@ -12,6 +12,7 @@ machine:
         - os:admin
       allowedKubernetesNamespaces:
         - default
+        - cluster-archiver
   network:
     interfaces:
       - deviceSelector:
