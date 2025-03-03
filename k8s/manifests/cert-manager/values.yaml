@@ -1,8 +1,8 @@
 crds:
   enabled: true
-#podAnnotations:
-#  cloud.dancav.io/aws-iamra-session-name: letsencrypt-issuer-role
-#  cloud.dancav.io/aws-iamra-cert-secret: letsencrypt-issuer-cert
+podAnnotations:
+  cloud.dancav.io/aws-iamra-session-name: letsencrypt-issuer-role
+  cloud.dancav.io/aws-iamra-cert-secret: letsencrypt-issuer-cert
 securityContext:
   runAsNonRoot: false
 #global:
