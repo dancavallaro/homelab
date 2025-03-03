@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: cluster-archiver
 spec:
-  schedule: "0 17 * * *"
+  schedule: "0 5 * * *"
   jobTemplate:
     spec:
       template:
