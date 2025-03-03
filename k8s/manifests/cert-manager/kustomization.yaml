@@ -12,3 +12,4 @@ resources:
   - namespace.yaml
   - ca-issuer.yaml
   - letsencrypt-issuer.yaml
+  - wildcard-cert.yaml

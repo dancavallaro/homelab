@@ -1,12 +1,12 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: test-cert
+  name: any.o.cavnet.cloud-cert
 spec:
   renewBeforePercentage: 99
-  secretName: test-cert
+  secretName: any.o.cavnet.cloud-cert
   dnsNames:
-    - test-cert.o.cavnet.cloud
+    - "*.o.cavnet.cloud"
   issuerRef:
     name: letsencrypt-issuer
     kind: ClusterIssuer
