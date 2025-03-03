@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  namespace: argocd
+  name: cluster-archiver
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/dancavallaro/rpi-config
+    targetRevision: HEAD
+    path: k8s/manifests/cluster-archiver
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
