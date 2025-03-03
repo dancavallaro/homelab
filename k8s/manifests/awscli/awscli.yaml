@@ -38,7 +38,6 @@ metadata:
 spec:
   secretName: aws-cli-cert
   duration: 24h
-  renewBeforePercentage: 99
   isCA: false
   usages:
     - client auth

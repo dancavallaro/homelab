@@ -27,7 +27,6 @@ metadata:
 spec:
   secretName: cluster-archiver-cert
   duration: 24h
-  renewBeforePercentage: 99
   isCA: false
   usages:
     - client auth

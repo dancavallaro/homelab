@@ -32,7 +32,6 @@ metadata:
 spec:
   secretName: letsencrypt-issuer-cert
   duration: 24h
-  renewBeforePercentage: 99
   isCA: false
   usages:
     - client auth
