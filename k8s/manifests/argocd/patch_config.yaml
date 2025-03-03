@@ -1,2 +1,2 @@
 data:
-  server.insecure: "true"
+  kustomize.buildOptions: --enable-helm

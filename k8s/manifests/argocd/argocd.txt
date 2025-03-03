@@ -1,3 +1,4 @@
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl -n argocd patch configmap argocd-cmd-params-cm --patch-file k8s/manifests/argocd/patch_config.yaml
+kubectl -n argocd patch configmap argocd-cm --patch-file manifests/argocd/patch_config.yaml
+kubectl -n argocd patch configmap argocd-cmd-params-cm --patch-file manifests/argocd/patch_cmd_params_config.yaml
