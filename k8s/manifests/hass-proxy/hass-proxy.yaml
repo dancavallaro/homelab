@@ -70,7 +70,7 @@ spec:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      name: traefik
+      name: private-gateway
   hostnames:
     - ha.o.cavnet.cloud
   rules:
