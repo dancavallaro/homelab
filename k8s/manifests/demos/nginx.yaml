@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: internet
   name: nginx-demo
 spec:
   replicas: 1
@@ -21,6 +22,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  namespace: internet
   name: nginx-demo
 #  annotations:
 #    "coredns.io/hostname": lb.o.cavnet.cloud
@@ -31,40 +33,43 @@ spec:
     app: nginx-demo
   ports:
     - port: 80
-#---
-#kind: HTTPRoute
-#apiVersion: gateway.networking.k8s.io/v1
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  namespace: internet
+  name: nginx-demo
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: public-gateway
+      #name: private-gateway
+  hostnames:
+    - nginx.cavnet.io
+    #- nginx.o.cavnet.cloud
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: nginx-demo
+          port: 80
+---
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
 #metadata:
 #  name: nginx-demo
 #spec:
-#  parentRefs:
-#    - group: gateway.networking.k8s.io
-#      kind: Gateway
-#      name: kong
-#  hostnames:
-#    - gw.o.cavnet.cloud
 #  rules:
-#    - matches:
-#        - path:
-#            type: PathPrefix
-#            value: /
-#      backendRefs:
-#        - name: nginx-demo
-#          port: 80
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: nginx-demo
-spec:
-  rules:
-    - host: nginx.o.cavnet.cloud
-      http:
-        paths:
-          - pathType: Prefix
-            path: "/"
-            backend:
-              service:
-                name: nginx-demo
-                port:
-                  number: 80
+#    - host: nginx.o.cavnet.cloud
+#      http:
+#        paths:
+#          - pathType: Prefix
+#            path: "/"
+#            backend:
+#              service:
+#                name: nginx-demo
+#                port:
+#                  number: 80

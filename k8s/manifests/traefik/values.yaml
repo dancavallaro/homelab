@@ -5,10 +5,24 @@ additionalArguments:
   # easier to just do this for everything, and there's no real risk.
   - "--serverstransport.insecureskipverify=true"
 providers:
+  kubernetesCRD:
+    ingressClass: traefik
+  kubernetesIngress:
+    ingressClass: traefik
   kubernetesGateway:
     enabled: true # Let Traefik create the GatewayClass
 gateway:
   enabled: false # But I'll create a Gateway
+ports:
+  # This tells Traefik to trust the X-Forwarded-Host header that cloudflared includes
+  # with the original hostname of the request. cloudflared proxies the original request
+  # to https://traefik.traefik, and Traefik needs the original hostname for route matching.
+  web:
+    forwardedHeaders:
+      insecure: true
+  websecure:
+    forwardedHeaders:
+      insecure: true
 #logs:
 #  general:
 #    level: DEBUG

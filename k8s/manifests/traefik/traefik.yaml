@@ -14,13 +14,14 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   namespace: default
-  name: traefik
+  name: private-gateway
 spec:
   gatewayClassName: traefik
   listeners:
     - name: web
       protocol: HTTP
       port: 8000
+      hostname: "*.o.cavnet.cloud"
     - name: websecure
       protocol: HTTPS
       port: 8443
@@ -29,3 +30,31 @@ spec:
         certificateRefs:
           - kind: Secret
             name: any.o.cavnet.cloud-cert
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  namespace: internet
+  name: public-gateway
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: web
+      protocol: HTTP
+      port: 8000
+      hostname: "*.cavnet.io"
+    - name: websecure
+      protocol: HTTPS
+      port: 8443
+      hostname: "*.cavnet.io"
+      tls:
+        certificateRefs:
+          - kind: Secret
+            # Cloudflare origin certificate for *.cavnet.io. This isn't really used in reality
+            # though -- when cloudflared makes a connection to https://traefik.traefik, Traefik
+            # seems to present the default cert instead of this one. To get around that, I have
+            # noTLSVerify=true in the cloudflared config, since "traefik.traefik" fails validation
+            # against "*.o.cavnet.cloud". This could all be avoided by just letting Cloudflare
+            # terminate TLS and forward plain HTTP to Traefik, but that doesn't work because I
+            # have Traefik configured to always forward port 80 to 443. Le sigh...
+            name: any.cavnet.io-cert
