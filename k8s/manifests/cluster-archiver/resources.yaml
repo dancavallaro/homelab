@@ -12,7 +12,7 @@ spec:
     - os:admin
 ---
 apiVersion: cloud.dancav.io/v1
-kind: AwsIamRaSession
+kind: AwsIamRaRoleProfile
 metadata:
   name: cluster-archiver-role
 spec:
@@ -25,6 +25,7 @@ kind: Certificate
 metadata:
   name: cluster-archiver-cert
 spec:
+  revisionHistoryLimit: 1
   secretName: cluster-archiver-cert
   duration: 24h
   isCA: false

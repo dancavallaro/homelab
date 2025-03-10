@@ -15,7 +15,7 @@ spec:
             hostedZoneID: Z05015042OJX42009787V
 ---
 apiVersion: cloud.dancav.io/v1
-kind: AwsIamRaSession
+kind: AwsIamRaRoleProfile
 metadata:
   namespace: cert-manager
   name: letsencrypt-issuer-role
@@ -30,6 +30,7 @@ metadata:
   namespace: cert-manager
   name: letsencrypt-issuer-cert
 spec:
+  revisionHistoryLimit: 1
   secretName: letsencrypt-issuer-cert
   duration: 24h
   isCA: false

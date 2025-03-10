@@ -6,7 +6,7 @@ podAnnotations:
   # time this is installed, so the cert-manager pod will fail to start. Either it needs to be
   # installed first with these annotations disabled and then installed again with them enabled,
   # or need to use 2 cert-manager instances.
-  cloud.dancav.io/aws-iamra-session-name: letsencrypt-issuer-role
+  cloud.dancav.io/aws-iamra-role-profile: letsencrypt-issuer-role
   cloud.dancav.io/aws-iamra-cert-secret: letsencrypt-issuer-cert
 securityContext:
   runAsNonRoot: false

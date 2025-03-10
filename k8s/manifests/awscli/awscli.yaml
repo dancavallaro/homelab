@@ -14,7 +14,7 @@ spec:
       labels:
         app: aws-cli
       annotations:
-        cloud.dancav.io/aws-iamra-session-name: s3-backup-role
+        cloud.dancav.io/aws-iamra-role-profile: s3-backup-role
         cloud.dancav.io/aws-iamra-cert-secret: aws-cli-cert
     spec:
       containers:
@@ -23,7 +23,7 @@ spec:
           command: [ "sleep", "infinity" ]
 ---
 apiVersion: cloud.dancav.io/v1
-kind: AwsIamRaSession
+kind: AwsIamRaRoleProfile
 metadata:
   name: s3-backup-role
 spec:
@@ -36,6 +36,7 @@ kind: Certificate
 metadata:
   name: aws-cli
 spec:
+  revisionHistoryLimit: 1
   secretName: aws-cli-cert
   duration: 24h
   isCA: false
