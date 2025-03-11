@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ssh-server
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: ssh-server
+  template:
+    metadata:
+      name: ssh-server
+      labels:
+        app: ssh-server
+    spec:
+      containers:
+        - name: ssh-server
+          image: lscr.io/linuxserver/openssh-server:latest
+          env:
+            - name: USER_NAME
+              value: dan
+            - name: PUBLIC_KEY
+              value: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOKMK18//WT6QCgpOTgl3+xeEldBravNCxHBOUj6RZa dan.t.cavallaro@gmail.com
+            - name: SUDO_ACCESS
+              value: "true"
+            - name: LOG_STDOUT
+              value: "true"
+          ports:
+            - containerPort: 2222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssh-server
+  annotations:
+    "coredns.io/hostname": ssh.o.cavnet.cloud
+spec:
+  type: LoadBalancer
+  selector:
+    app: ssh-server
+  ports:
+    - port: 22
+      targetPort: 2222
