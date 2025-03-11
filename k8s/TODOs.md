@@ -1,5 +1,5 @@
 * Test restoring a brand new cluster from a cluster backup
-* Use ArgoCD to fully automate cluster bootstrapping and deployments
+* Migrate all apps to ArgoCD w/ Helm/Kustomize
 * Automatic reboot recovery: make br0 persistent, restart VMs (in order?)
 * Try using Cilium instead of Flannel, consider using it instead of:
   * kube-proxy (Cilium can do kube-proxy's job)
