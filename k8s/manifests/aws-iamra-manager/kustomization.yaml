@@ -1,14 +1,10 @@
+# kustomize build --enable-helm manifests/aws-iamra-manager | kubectl apply -f -
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources:
-  - https://raw.githubusercontent.com/dancavio/aws-iamra-manager/v0.99.0/dist/install.yaml
-#patches:
-#  - patch: |-
-#      - op: replace
-#        path: "/spec/template/spec/containers/0/env/0"
-#        value:
-#          name: AWS_IAMRA_MANAGER_SIDECAR_IMAGE
-#          value: "ghcr.io/dancavio/aws-iamra-manager/sidecar:0.3.2"
-#    target:
-#      kind: Deployment
-#      name: aws-iamram-controller-manager
+helmCharts:
+  - name: aws-iamra-manager
+    namespace: aws-iamram-system
+    releaseName: aws-iamra-manager
+    repo: https://charts.o.cavnet.cloud
+    version: 1.0.0
+    valuesFile: values.yaml
