@@ -22,10 +22,16 @@ spec:
       protocol: HTTP
       port: 8000
       hostname: "*.o.cavnet.cloud"
+      allowedRoutes:
+        namespaces:
+          from: All
     - name: websecure
       protocol: HTTPS
       port: 8443
       hostname: "*.o.cavnet.cloud"
+      allowedRoutes:
+        namespaces:
+          from: All
       tls:
         certificateRefs:
           - kind: Secret
@@ -43,10 +49,16 @@ spec:
       protocol: HTTP
       port: 8000
       hostname: "*.cavnet.io"
+      allowedRoutes:
+        namespaces:
+          from: All
     - name: websecure
       protocol: HTTPS
       port: 8443
       hostname: "*.cavnet.io"
+      allowedRoutes:
+        namespaces:
+          from: All
       tls:
         certificateRefs:
           - kind: Secret

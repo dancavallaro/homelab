@@ -7,3 +7,5 @@
   * Traefik (Cilium does ingresses and gateways)
 * Check out [OpenFaaS](https://github.com/openfaas/faas), consider migrating Terhune Updates to it
 * Set up notifications for backup job failures (and any other health events)
+* Avoid using Traefik TLS gateway for cloudflare tunnel backend, either disable the HTTP->HTTPS redirect or
+  use a different ingress controller for the public gateway or something.
