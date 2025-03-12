@@ -103,10 +103,8 @@ data:
       #- hostname: demo.cavnet.io
       #  service: hello-world
       - hostname: '*.cavnet.io'
-        # This would all be a lot easier if cloudflared proxied to traefik:80 instead, but
-        # that port 80->443 redirect prevents that from working for now.
-        service: https://traefik.traefik:443
-        originRequest:
-          noTLSVerify: true
+        # This is a separate entrypoint from the default web/websecure entrypoints used by
+        # the private gateway, and avoids the HTTPS redirect configured on the port 80 entrypoint.
+        service: http://traefik.traefik:81
       # This rule matches any traffic which didn't match a previous rule, and responds with HTTP 404.
       - service: http_status:404

@@ -1,5 +1,4 @@
 additionalArguments:
-  - "--entrypoints.web.http.redirections.entryPoint.to=:443"
   # This is really only needed for the Unifi controller, since it insists on
   # doing a port 80 -> 443 redirect and serves a self-signed cert. But it's
   # easier to just do this for everything, and there's no real risk.
@@ -14,13 +13,19 @@ providers:
 gateway:
   enabled: false # But I'll create a Gateway
 ports:
-  # This tells Traefik to trust the X-Forwarded-Host header that cloudflared includes
-  # with the original hostname of the request. cloudflared proxies the original request
-  # to https://traefik.traefik, and Traefik needs the original hostname for route matching.
   web:
-    forwardedHeaders:
-      insecure: true
-  websecure:
+    redirections:
+      entryPoint:
+        to: websecure
+        scheme: https
+  webpublic:
+    port: 8001
+    exposedPort: 81
+    expose:
+      default: true
+    # This tells Traefik to trust the X-Forwarded-Host header that cloudflared includes
+    # with the original hostname of the request. cloudflared proxies the original request
+    # to http://traefik.traefik, and Traefik needs the original hostname for route matching.
     forwardedHeaders:
       insecure: true
 #logs:
