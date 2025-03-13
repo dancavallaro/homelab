@@ -413,3 +413,21 @@ NOTE: Make sure to upgrade CP node with --preserve=true, while I only have one C
 talosctl upgrade --preserve=true -n 192.168.100.10 \
     --image ghcr.io/siderolabs/installer:v1.8.0
 ```
+
+## Post-reboot automation
+
+This netplan config handles setting up the bridge with the expected MAC address:
+
+```
+network:
+    ethernets:
+        enp89s0:
+            dhcp4: false
+    bridges:
+        br0:
+            dhcp4: true
+            macaddress: "92:B9:36:6D:7F:97"
+            interfaces:
+              - enp89s0
+    version: 2
+```

@@ -1,0 +1,34 @@
+machine:
+  certSANs:
+    - k8s.cavnet.cloud
+  features:
+    # Enable Talos API access for the cluster backup job
+    kubernetesTalosAPIAccess:
+      enabled: true
+      allowedRoles:
+        - os:reader
+        - os:operator
+        - os:admin
+      allowedKubernetesNamespaces:
+        - default
+        - cluster-archiver
+  network:
+    interfaces:
+      - deviceSelector:
+          hardwareAddr: '02:7f:50:1e:b0:55'
+        dhcp: false
+        addresses:
+          - 10.42.42.100/16
+        routes:
+          - network: 10.42.0.0/16
+cluster:
+  apiServer:
+    admissionControl:
+      - name: PodSecurity
+        configuration:
+          defaults:
+            warn: baseline
+    certSANs:
+      - k8s.cavnet.cloud
+  controlPlane:
+    endpoint: https://k8s.cavnet.cloud:6443

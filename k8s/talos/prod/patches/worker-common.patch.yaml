@@ -1,0 +1,5 @@
+machine:
+  disks:
+    - device: /dev/vdb
+      partitions:
+        - mountpoint: /var/mnt/data

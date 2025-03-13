@@ -1,0 +1,66 @@
+apiVersion: "cilium.io/v2alpha1"
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: lb-pool
+spec:
+  allowFirstLastIPs: "No"
+  blocks:
+    - cidr: "172.16.42.0/24"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: internet
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  namespace: default
+  name: private-gateway
+spec:
+  gatewayClassName: cilium
+  listeners:
+    - name: web
+      protocol: HTTP
+      port: 80
+      hostname: "*.o.cavnet.cloud"
+    - name: websecure
+      protocol: HTTPS
+      port: 443
+      hostname: "*.o.cavnet.cloud"
+      tls:
+        certificateRefs:
+          - kind: Secret
+            name: any.o.cavnet.cloud-cert
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: private-gateway-https-redirect
+spec:
+  parentRefs:
+    - name: private-gateway
+      # Only attach to the HTTP listener to avoid a redirect loop
+      sectionName: web
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  namespace: internet
+  name: public-gateway
+spec:
+  gatewayClassName: cilium
+  listeners:
+    - name: webpublic
+      protocol: HTTP
+      port: 80
+      hostname: "*.cavnet.io"
+      allowedRoutes:
+        namespaces:
+          from: All

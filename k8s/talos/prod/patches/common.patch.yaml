@@ -1,0 +1,14 @@
+machine:
+  install:
+    disk: /dev/vda
+  network:
+    nameservers:
+      - 1.1.1.1
+      - 8.8.8.8
+# Use Cilium as CNI and kube-proxy replacement
+cluster:
+  network:
+    cni:
+      name: none
+  proxy:
+    disabled: true

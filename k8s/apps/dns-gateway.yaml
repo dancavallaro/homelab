@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  namespace: argocd
+  name: dns-gateway
+spec:
+  project: default
+  sources:
+    - repoURL: https://ori-edge.github.io/k8s_gateway
+      chart: k8s-gateway
+      targetRevision: 2.4.0
+      helm:
+        valueFiles:
+          - $values/k8s/manifests/k8s_gateway/values.yaml
+    - repoURL: https://github.com/dancavallaro/rpi-config
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dns-gateway
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

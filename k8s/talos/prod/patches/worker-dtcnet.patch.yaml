@@ -1,0 +1,24 @@
+machine:
+  network:
+    interfaces:
+      - deviceSelector:
+          hardwareAddr: '1e:03:e4:b3:4f:47'
+          physical: true
+        dhcp: false
+        vlans:
+          - vlanId: 192
+            dhcp: false
+            dhcpOptions:
+              ipv4: false
+              ipv6: false
+            addresses:
+              - 192.168.6.100/22
+            routes:
+              - network: 192.168.4.0/22
+  kubelet:
+    nodeIP:
+      validSubnets:
+        # Make sure the kubelet gets assigned an IP from the VM subnet
+        - 192.168.42.0/24
+  nodeLabels:
+    network: dtcnet
