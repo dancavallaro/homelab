@@ -11,7 +11,10 @@ spec:
     path: k8s/manifests/cert-manager
   destination:
     server: https://kubernetes.default.svc
+    namespace: cert-manager
   syncPolicy:
     automated:
       selfHeal: true
       prune: true
+    syncOptions:
+      - CreateNamespace=true

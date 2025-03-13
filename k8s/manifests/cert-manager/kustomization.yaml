@@ -9,7 +9,4 @@ helmCharts:
     includeCRDs: true
     valuesFile: values.yaml
 resources:
-  - namespace.yaml
   - ca-issuer.yaml
-  - letsencrypt-issuer.yaml
-  - wildcard-cert.yaml

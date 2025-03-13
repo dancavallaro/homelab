@@ -8,6 +8,7 @@ podAnnotations:
   # or need to use 2 cert-manager instances.
   cloud.dancav.io/aws-iamra-role-profile: letsencrypt-issuer-role
   cloud.dancav.io/aws-iamra-cert-secret: letsencrypt-issuer-cert
+# Needed for aws-iamram for some reason I haven't bothered looking into yet
 securityContext:
   runAsNonRoot: false
 #global:
