@@ -7,7 +7,7 @@ watchedResources:
   - GRPCRoute
 service:
   annotations:
-    metallb.universe.tf/loadBalancerIPs: 172.16.42.53
+    "lbipam.cilium.io/ips": 172.16.42.53
 # Unfortunately it looks like k8s_gateway is no longer maintained, and it has a hardcoded
 # reference to an older alpha version of the GRPCRoute CRD, which is no longer installed.
 # This is an image built which includes a fix for this issue, that I found here:
