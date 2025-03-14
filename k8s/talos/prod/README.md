@@ -180,8 +180,8 @@ $ kubectl apply -f infra/cluster-archiver.yaml
 $ kubectl apply -f infra/aws-iamra-manager.yaml
 $ kubectl apply -f infra/letsencrypt.yaml
 
-# Restart cert-manager -- aws-iamram should inject sidecar, and should be able
-# to talk to Route53 and issue wildcard cert.
+# Restart cert-manager -- aws-iamram should inject sidecar, and cert-manager should
+# be able to talk to Route53 and issue certs.
 $ kubectl -n cert-manager rollout restart deployment cert-manager
 ```
 
