@@ -64,7 +64,8 @@ metadata:
   name: hass-proxy
 spec:
   parentRefs:
-    - name: private-gateway
+    - namespace: default
+      name: private-gateway
       sectionName: websecure
   hostnames:
     - ha.o.cavnet.cloud

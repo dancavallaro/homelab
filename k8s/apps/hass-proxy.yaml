@@ -10,9 +10,11 @@ spec:
     targetRevision: HEAD
     path: k8s/manifests/hass-proxy
   destination:
-    namespace: default
+    namespace: hass-proxy
     server: https://kubernetes.default.svc
   syncPolicy:
     automated:
       selfHeal: true
       prune: true
+    syncOptions:
+      - CreateNamespace=true

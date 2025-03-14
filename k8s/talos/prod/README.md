@@ -178,7 +178,6 @@ $ kubectl -n cert-manager rollout restart deployment cert-manager
 
 ```shell
 $ kubectl apply -f apps/hass-proxy.yaml
-# TODO: apply argo app
 $ kubectl apply -f apps/unifi.yaml
 ```
 
@@ -186,10 +185,8 @@ $ kubectl apply -f apps/unifi.yaml
 
 * Set up cloudflared and test public gateway, test SSH server
 * Make sure everything works after reboot (what about routes for LBs?)
-* Get Unifi working
-  * install argo app
-* Move HASS proxy to new namespace
 * Figure out why private IP range isn't accessible anymore
+* Make sure I installed all apps from old cluster
 * Set up uber-apps for infra and apps
 * Set up TLS endpoint for Hubble
 * Figure out why some nodes have primary IPs outside of the private subnet
