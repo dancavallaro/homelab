@@ -53,6 +53,27 @@ spec:
             statusCode: 301
 ---
 apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  namespace: kube-system
+  name: hubble-ui
+spec:
+  parentRefs:
+    - namespace: default
+      name: private-gateway
+      sectionName: websecure
+  hostnames:
+    - hubble.o.cavnet.cloud
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: hubble-ui
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   namespace: internet

@@ -41,13 +41,15 @@ metadata:
   name: nginx-demo
 spec:
   parentRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: public-gateway
-      #name: private-gateway
+    - name: private-gateway
+      namespace: default
+      sectionName: websecure
+    - name: public-gateway
+      namespace: internet
+      sectionName: webpublic
   hostnames:
     - nginx.cavnet.io
-    #- nginx.o.cavnet.cloud
+    - nginx.o.cavnet.cloud
   rules:
     - matches:
         - path:

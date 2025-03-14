@@ -158,6 +158,16 @@ $ kubectl create namespace argocd
 $ kubectl apply -k talos/prod/argocd
 ```
 
+### Set up Cloudflare tunnel
+
+```shell
+$ cloudflared tunnel create talos-prod-tunnel
+$ cloudflared tunnel route dns talos-prod-tunnel '*.cavnet.io'
+$ kubectl -n internet create secret generic cloudflare-tunnel-creds \
+    --from-file=credentials.json=/Users/dan/.cloudflared/cd7bbf2e-5242-4d0b-be03-42ed10007196.json
+```
+
+
 ### Install infra apps
 
 ```shell
@@ -165,6 +175,7 @@ $ kubectl apply -f infra/dns-gateway.yaml
 $ kubectl apply -f infra/cert-manager.yaml
 $ kubectl apply -f infra/metrics-server.yaml
 $ kubectl apply -f infra/local-storage.yaml
+$ kubectl apply -f infra/cloudflare-tunnel.yaml
 $ kubectl apply -f infra/cluster-archiver.yaml
 $ kubectl apply -f infra/aws-iamra-manager.yaml
 $ kubectl apply -f infra/letsencrypt.yaml
@@ -183,11 +194,9 @@ $ kubectl apply -f apps/unifi.yaml
 
 ## TODOs
 
-* Set up cloudflared and test public gateway, test SSH server
 * Make sure everything works after reboot (what about routes for LBs?)
 * Figure out why private IP range isn't accessible anymore
 * Make sure I installed all apps from old cluster
 * Set up uber-apps for infra and apps
-* Set up TLS endpoint for Hubble
 * Figure out why some nodes have primary IPs outside of the private subnet
 * Split up Unifi app + DB into separate pods

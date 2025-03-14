@@ -45,7 +45,3 @@ hubble:
     enabled: true
   ui:
     enabled: true
-    service:
-      type: LoadBalancer
-      annotations:
-        "coredns.io/hostname": hubble.o.cavnet.cloud
