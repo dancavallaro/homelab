@@ -93,6 +93,7 @@ $ talosctl kubeconfig -n $BOOTSTRAP_IP --force-context-name talos-prod
 #### Install Cilium
 
 ```shell
+$ kubectl apply -k cilium # Install GatewayClass CRD before Cilium
 $ helm repo add cilium https://helm.cilium.io/
 $ helm repo update
 $ helm install cilium cilium/cilium --version 1.17.1 --namespace kube-system --values=cilium/values.yaml
@@ -147,7 +148,6 @@ $ talosctl apply-config --insecure -n 192.168.42.101 --file worker2.final.yaml
 Configure LB pool and gateways:
 
 ```shell
-$ kubectl apply -k cilium
 $ kubectl apply -f cilium/resources.yaml
 ```
 
@@ -165,12 +165,15 @@ $ kubectl apply -f ../../apps/dns-gateway.yaml
 $ kubectl apply -f ../../apps/cert-manager.yaml
 $ kubectl apply -f ../../apps/aws-iamra-manager.yaml
 $ kubectl apply -f ../../apps/letsencrypt.yaml
+
+# Restart cert-manager -- aws-iamram should inject sidecar, and should be able
+# to talk to Route53 and issue wildcard cert.
+$ kubectl -n cert-manager rollout restart deployment cert-manager
 ```
 
 ## TODOs
 
 * Make sure dtcnet stuff works
-* Set up cert-manager + aws-iamram
 * Set up and test Argo cert
 * Make sure gateways work
 * Test metrics server
