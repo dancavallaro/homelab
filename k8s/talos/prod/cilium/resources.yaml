@@ -28,6 +28,9 @@ spec:
       protocol: HTTPS
       port: 443
       hostname: "*.o.cavnet.cloud"
+      allowedRoutes:
+        namespaces:
+          from: All
       tls:
         certificateRefs:
           - kind: Secret

@@ -1,0 +1,90 @@
+# After replacing everything I could with Cilium I realized the ONE thing it can't do
+# is talk to a backend service over TLS: https://github.com/cilium/cilium/issues/20960, https://github.com/cilium/cilium/issues/31352.
+# And maddeningly, the Unifi app insists on using TLS and doing its own port 80->443
+# redirect, with no way to disable the redirect or even configure a cert that I can find.
+# (see e.g. https://community.ui.com/questions/Need-to-disable-HTTPS-for-Web-interface-on-Unifi-Controller/aab7d2d7-7ae6-4300-9fcb-4d685359176c)
+# So I use this stupid Nginx proxy to sit in between the Unifi app and the Cilium gateway,
+# connecting to Unifi via port 443 (and ignoring its self-signed cert), and exposing
+# plain HTTP to the gateway (and the gateway handles external TLS termination).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: unifi
+  name: unifi-proxy
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: unifi-proxy
+  template:
+    metadata:
+      labels:
+        app: unifi-proxy
+    spec:
+      containers:
+        - name: unifi-proxy
+          image: nginx:latest
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: unifi-proxy-nginx-conf
+            optional: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: unifi
+  name: unifi-proxy-nginx-conf
+data:
+  default.conf: |-
+    server {
+        listen       8080;
+        server_name  _;
+    
+        location / {
+            proxy_pass https://unifi-app.unifi;
+    
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+            proxy_set_header Host $host;
+        }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: unifi
+  name: unifi-proxy
+spec:
+  selector:
+    app: unifi-proxy
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  namespace: unifi
+  name: unifi-proxy
+spec:
+  parentRefs:
+    - namespace: default
+      name: private-gateway
+      sectionName: websecure
+  hostnames:
+    - unifi.o.cavnet.cloud
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: unifi-proxy
+          port: 80

@@ -93,7 +93,7 @@ $ talosctl kubeconfig -n $BOOTSTRAP_IP --force-context-name talos-prod
 #### Install Cilium
 
 ```shell
-$ kubectl apply -k cilium # Install GatewayClass CRD before Cilium
+$ kubectl apply -k talos/prod/cilium # Install GatewayClass CRD before Cilium
 $ helm repo add cilium https://helm.cilium.io/
 $ helm repo update
 $ helm install cilium cilium/cilium --version 1.17.1 --namespace kube-system --values=cilium/values.yaml
@@ -148,26 +148,26 @@ $ talosctl apply-config --insecure -n 192.168.42.101 --file worker2.final.yaml
 Configure LB pool and gateways:
 
 ```shell
-$ kubectl apply -f cilium/resources.yaml
+$ kubectl apply -f talos/prod/cilium/resources.yaml
 ```
 
 ### Set up ArgoCD
 
 ```shell
 $ kubectl create namespace argocd
-$ kubectl apply -k argocd
+$ kubectl apply -k talos/prod/argocd
 ```
 
 ### Install infra apps
 
 ```shell
-$ kubectl apply -f ../../infra/dns-gateway.yaml
-$ kubectl apply -f ../../infra/cert-manager.yaml
-$ kubectl apply -f ../../infra/metrics-server.yaml
-$ kubectl apply -f ../../infra/local-storage.yaml
-$ kubectl apply -f ../../infra/cluster-archiver.yaml
-$ kubectl apply -f ../../infra/aws-iamra-manager.yaml
-$ kubectl apply -f ../../infra/letsencrypt.yaml
+$ kubectl apply -f infra/dns-gateway.yaml
+$ kubectl apply -f infra/cert-manager.yaml
+$ kubectl apply -f infra/metrics-server.yaml
+$ kubectl apply -f infra/local-storage.yaml
+$ kubectl apply -f infra/cluster-archiver.yaml
+$ kubectl apply -f infra/aws-iamra-manager.yaml
+$ kubectl apply -f infra/letsencrypt.yaml
 
 # Restart cert-manager -- aws-iamram should inject sidecar, and should be able
 # to talk to Route53 and issue wildcard cert.
@@ -177,21 +177,20 @@ $ kubectl -n cert-manager rollout restart deployment cert-manager
 ### Install apps
 
 ```shell
-$ kubectl apply -f ../../apps/hass-proxy.yaml
-$ kubectl apply -f ../../apps/unifi.yaml
+$ kubectl apply -f apps/hass-proxy.yaml
+# TODO: apply argo app
+$ kubectl apply -f apps/unifi.yaml
 ```
 
 ## TODOs
 
-* Set up cloudflared and test public gateway
+* Set up cloudflared and test public gateway, test SSH server
 * Make sure everything works after reboot (what about routes for LBs?)
 * Get Unifi working
-  * fix route (cross-namespace to gateway)
-  * test domain name
-  * restore PV backup
   * install argo app
-* Restore PV backups, install and test Unifi
 * Move HASS proxy to new namespace
-* Test backup job
 * Figure out why private IP range isn't accessible anymore
 * Set up uber-apps for infra and apps
+* Set up TLS endpoint for Hubble
+* Figure out why some nodes have primary IPs outside of the private subnet
+* Split up Unifi app + DB into separate pods

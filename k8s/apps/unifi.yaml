@@ -10,7 +10,7 @@ spec:
     targetRevision: HEAD
     path: k8s/manifests/unifi
   destination:
-    namespace: default
+    namespace: unifi
     server: https://kubernetes.default.svc
   syncPolicy:
     automated:

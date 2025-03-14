@@ -163,26 +163,9 @@ spec:
   selector:
     app: unifi-app
   ports:
+    # The Unifi app insists on using TLS and doing its own port 80->443 redirect, so
+    # only expose port 443, and then let the Nginx proxy expose plain HTTP on port
+    # 80 to the Cilium gateway.
     - name: https
       targetPort: 8443
       port: 443
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  namespace: unifi
-  name: unifi-app
-spec:
-  parentRefs:
-    - name: private-gateway
-      sectionName: websecure
-  hostnames:
-    - unifi.o.cavnet.cloud
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: unifi-app
-          port: 443
