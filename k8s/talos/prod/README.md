@@ -169,14 +169,15 @@ $ kubectl apply -f ../../apps/letsencrypt.yaml
 # Restart cert-manager -- aws-iamram should inject sidecar, and should be able
 # to talk to Route53 and issue wildcard cert.
 $ kubectl -n cert-manager rollout restart deployment cert-manager
+
+$ kubectl apply -f ../../apps/metrics-server.yaml
 ```
 
 ## TODOs
 
-* Make sure dtcnet stuff works
+* Install HA proxy, make sure dtcnet stuff works
 * Set up and test Argo cert
 * Make sure gateways work
-* Test metrics server
 * Make sure everything works after reboot (what about routes for LBs?)
-* Restore PV backups, test Unifi + Helm repo
+* Set up local path provisioner, restore PV backups, test Unifi
 * Figure out why private IP range isn't accessible anymore

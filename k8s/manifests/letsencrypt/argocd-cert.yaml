@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: argocd
+  name: argocd.o.cavnet.cloud-cert
+spec:
+  secretName: argocd-server-tls
+  dnsNames:
+    - "argocd.o.cavnet.cloud"
+  issuerRef:
+    name: letsencrypt-issuer
+    kind: ClusterIssuer
