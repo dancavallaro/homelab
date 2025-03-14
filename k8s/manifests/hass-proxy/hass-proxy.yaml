@@ -64,9 +64,8 @@ metadata:
   name: hass-proxy
 spec:
   parentRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: private-gateway
+    - name: private-gateway
+      sectionName: websecure
   hostnames:
     - ha.o.cavnet.cloud
   rules:

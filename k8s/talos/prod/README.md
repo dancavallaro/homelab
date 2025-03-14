@@ -173,10 +173,16 @@ $ kubectl -n cert-manager rollout restart deployment cert-manager
 $ kubectl apply -f ../../apps/metrics-server.yaml
 ```
 
+### Install apps
+
+```shell
+$ kubectl apply -f ../../apps/hass-proxy.yaml
+```
+
 ## TODOs
 
-* Install HA proxy, make sure dtcnet stuff works
-* Make sure gateways work
+* Fix HTTPS redirect on private gateway
+* Set up cloudflared and test public gateway
 * Make sure everything works after reboot (what about routes for LBs?)
 * Set up local path provisioner, restore PV backups, test Unifi
 * Test backup job

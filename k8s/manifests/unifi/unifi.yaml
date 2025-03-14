@@ -38,10 +38,6 @@ spec:
     spec:
       nodeSelector:
         network: dtcnet
-      tolerations:
-        - key: dtcnet
-          operator: Exists
-          effect: NoSchedule
       hostNetwork: true
       containers:
         - name: unifi-db
@@ -164,9 +160,8 @@ metadata:
   name: unifi-app
 spec:
   parentRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: private-gateway
+    - name: private-gateway
+      sectionName: websecure
   hostnames:
     - unifi.o.cavnet.cloud
   rules:
