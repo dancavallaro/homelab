@@ -15,10 +15,5 @@ machine:
               - 192.168.6.100/22
             routes:
               - network: 192.168.4.0/22
-  kubelet:
-    nodeIP:
-      validSubnets:
-        # Make sure the kubelet gets assigned an IP from the VM subnet
-        - 192.168.42.0/24
   nodeLabels:
     network: dtcnet

@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   namespace: argocd
-  name: all-the-apps
+  name: all-apps
 spec:
   project: default
   source:
@@ -10,7 +10,6 @@ spec:
     targetRevision: HEAD
     path: k8s/apps
   destination:
-    namespace: default
     server: https://kubernetes.default.svc
   syncPolicy:
     automated:

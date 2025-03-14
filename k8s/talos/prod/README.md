@@ -192,11 +192,9 @@ $ kubectl apply -f apps/hass-proxy.yaml
 $ kubectl apply -f apps/unifi.yaml
 ```
 
-## TODOs
+### Install top-level apps
 
-* Make sure everything works after reboot (what about routes for LBs?)
-* Figure out why private IP range isn't accessible anymore
-* Set up uber-apps for infra and apps
-* Clean up old debug pods, dnsutils pod
-* Fix unifi argo app
-* Figure out why some nodes have primary IPs outside of the private subnet
+```shell
+$ kubectl apply -f app-roots/all-apps.yaml
+$ kubectl apply -f app-roots/all-infra.yaml
+```

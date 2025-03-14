@@ -5,6 +5,13 @@ machine:
     nameservers:
       - 1.1.1.1
       - 8.8.8.8
+  kubelet:
+    nodeIP:
+      validSubnets:
+        # Make sure the kubelet gets assigned an IP from the VM subnet
+        - 192.168.42.0/24
+  features:
+    nodeAddressSortAlgorithm: v2
 # Use Cilium as CNI and kube-proxy replacement
 cluster:
   network:
