@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -eu
 
+VOLUME_PATH=/var/mnt/data/local-path-provisioner
+
 timestamp=$(date -u -Iseconds | sed 's/+.*$//' | sed 's/[-:]//g')
 workdir_root=$(mktemp -d)
 workdir="${workdir_root}/$timestamp"
@@ -22,7 +24,12 @@ talosctl -n "$CP_IP" etcd snapshot "$workdir/etcd.snapshot.db"
 # Take snapshots of local persistent volumes under /var/mnt/data/local-path-provisioner
 mkdir -p "$workdir/local-volumes"
 for node in $WORKER_IPS; do
-    talosctl -n "$node" copy /var/mnt/data/local-path-provisioner - > "$workdir/local-volumes/$node.tar.gz"
+    if ! talosctl -n "$node" ls "$VOLUME_PATH" > /dev/null ; then
+        echo "Skipping $node as $VOLUME_PATH doesn't exist"
+    else
+        echo "Copying backup from $node"
+        talosctl -n "$node" copy "$VOLUME_PATH" - > "$workdir/local-volumes/$node.tar.gz"
+    fi
 done
 
 tar czvf "${workdir_root}/$timestamp.tar.gz" -C "$workdir_root" "$timestamp"
