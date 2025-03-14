@@ -161,16 +161,16 @@ $ kubectl apply -k argocd
 ### Install infra apps
 
 ```shell
-$ kubectl apply -f ../../apps/dns-gateway.yaml
-$ kubectl apply -f ../../apps/cert-manager.yaml
-$ kubectl apply -f ../../apps/aws-iamra-manager.yaml
-$ kubectl apply -f ../../apps/letsencrypt.yaml
+$ kubectl apply -f ../../infra/dns-gateway.yaml
+$ kubectl apply -f ../../infra/cert-manager.yaml
+$ kubectl apply -f ../../infra/aws-iamra-manager.yaml
+$ kubectl apply -f ../../infra/letsencrypt.yaml
 
 # Restart cert-manager -- aws-iamram should inject sidecar, and should be able
 # to talk to Route53 and issue wildcard cert.
 $ kubectl -n cert-manager rollout restart deployment cert-manager
 
-$ kubectl apply -f ../../apps/metrics-server.yaml
+$ kubectl apply -f ../../infra/metrics-server.yaml
 ```
 
 ### Install apps
@@ -181,9 +181,9 @@ $ kubectl apply -f ../../apps/hass-proxy.yaml
 
 ## TODOs
 
-* Fix HTTPS redirect on private gateway
 * Set up cloudflared and test public gateway
 * Make sure everything works after reboot (what about routes for LBs?)
 * Set up local path provisioner, restore PV backups, test Unifi
-* Test backup job
+* Install cluster-archiver and test backup job
 * Figure out why private IP range isn't accessible anymore
+* Set up uber-apps for infra and apps

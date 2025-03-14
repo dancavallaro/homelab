@@ -1,8 +1,0 @@
-# https://www.talos.dev/v1.9/kubernetes-guides/configuration/local-storage/#local-path-provisioner
-# https://github.com/rancher/local-path-provisioner/blob/master/README.md
-
-kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.31/deploy/local-path-storage.yaml
-
-kubectl label ns local-path-storage pod-security.kubernetes.io/enforce=privileged
-
-kubectl -n local-path-storage patch configmap local-path-config --patch-file k8s/local-path-provisioner/patch.yaml
