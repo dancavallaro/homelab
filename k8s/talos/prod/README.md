@@ -176,8 +176,8 @@ $ kubectl apply -f ../../apps/metrics-server.yaml
 ## TODOs
 
 * Install HA proxy, make sure dtcnet stuff works
-* Set up and test Argo cert
 * Make sure gateways work
 * Make sure everything works after reboot (what about routes for LBs?)
 * Set up local path provisioner, restore PV backups, test Unifi
+* Test backup job
 * Figure out why private IP range isn't accessible anymore

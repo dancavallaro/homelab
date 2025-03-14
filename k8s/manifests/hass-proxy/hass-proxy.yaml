@@ -27,10 +27,6 @@ spec:
             optional: false
       nodeSelector:
         network: dtcnet
-      tolerations:
-        - key: dtcnet
-          operator: Exists
-          effect: NoSchedule
 ---
 apiVersion: v1
 kind: ConfigMap
