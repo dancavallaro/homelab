@@ -196,7 +196,7 @@ $ kubectl apply -f apps/unifi.yaml
 
 * Make sure everything works after reboot (what about routes for LBs?)
 * Figure out why private IP range isn't accessible anymore
-* Make sure I installed all apps from old cluster
 * Set up uber-apps for infra and apps
+* Clean up old debug pods, dnsutils pod
+* Fix unifi argo app
 * Figure out why some nodes have primary IPs outside of the private subnet
-* Split up Unifi app + DB into separate pods

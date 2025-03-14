@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: unifi
+  name: unifi-db-data
+spec:
+  storageClassName: local-path
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: unifi
+  name: unifi-db
+spec:
+  selector:
+    matchLabels:
+      app: unifi-db
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: unifi-db
+    spec:
+      containers:
+        - name: unifi-db
+          image: mongo:8.0.4
+          imagePullPolicy: Always
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: root
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: root
+            - name: MONGO_DBNAME
+              value: unifi
+            - name: MONGO_AUTHSOURCE
+              value: admin
+            - name: MONGO_USER
+              value: unifi
+            - name: MONGO_PASS
+              value: unifi
+          volumeMounts:
+            - name: mongodb-init
+              mountPath: /docker-entrypoint-initdb.d/
+            - name: unifi-db-data
+              mountPath: /data/db
+          ports:
+            - containerPort: 27017
+          resources:
+            requests:
+              memory: "512M"
+              cpu: "0.25"
+            limits:
+              memory: "512M"
+              cpu: "0.25"
+      volumes:
+        - name: mongodb-init
+          configMap:
+            name: unifi-mongo-config
+            optional: false
+        - name: unifi-db-data
+          persistentVolumeClaim:
+            claimName: unifi-db-data
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: unifi
+  name: unifi-mongo-config
+data:
+  init-mongo.sh: |-
+    #!/bin/bash
+    mongosh <<EOF
+    use ${MONGO_AUTHSOURCE}
+    db.auth("${MONGO_INITDB_ROOT_USERNAME}", "${MONGO_INITDB_ROOT_PASSWORD}")
+    db.createUser({
+      user: "${MONGO_USER}",
+      pwd: "${MONGO_PASS}",
+      roles: [
+        { db: "${MONGO_DBNAME}", role: "dbOwner" },
+        { db: "${MONGO_DBNAME}_stat", role: "dbOwner" }
+      ]
+    })
+    EOF
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: unifi
+  name: unifi-db
+spec:
+  selector:
+    app: unifi-db
+  ports:
+    - port: 27017
