@@ -1,4 +1,5 @@
 authentik:
+  # TODO: exposing these doesn't really matter but i should probably rotate them and get them out of github anyway.
   secret_key: "REDACTED"
   postgresql:
     password: "REDACTED"
@@ -10,14 +11,12 @@ server:
     enabled: true
     hosts:
       - authentik.o.cavnet.cloud
+    tls:
+      - hosts:
+          - authentik.o.cavnet.cloud
 postgresql:
   enabled: true
   auth:
     password: "REDACTED"
 redis:
   enabled: true
-server:
-  ingress:
-    tls:
-      - hosts:
-        - authentik.o.cavnet.cloud
