@@ -1,0 +1,18 @@
+authentik:
+  secret_key: "REDACTED"
+  postgresql:
+    password: "REDACTED"
+  error_reporting:
+    enabled: false
+server:
+  ingress:
+    ingressClassName: cilium
+    enabled: true
+    hosts:
+      - authentik.o.cavnet.cloud
+postgresql:
+  enabled: true
+  auth:
+    password: "REDACTED"
+redis:
+  enabled: true
