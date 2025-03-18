@@ -16,3 +16,8 @@ postgresql:
     password: "REDACTED"
 redis:
   enabled: true
+server:
+  ingress:
+    tls:
+      - hosts:
+        - authentik.o.cavnet.cloud
