@@ -198,3 +198,14 @@ $ kubectl apply -f apps/unifi.yaml
 $ kubectl apply -f app-roots/all-apps.yaml
 $ kubectl apply -f app-roots/all-infra.yaml
 ```
+
+## OIDC w/ Authentik
+
+Patch CoreDNS config to add internal DNS record for Authentik:
+
+```shell
+$ kubectl -n kube-system get configmap coredns -o yaml | \
+    sed 's/^    \}/\n        rewrite name authentik.o.cavnet.cloud cilium-ingress-authentik-server.authentik.svc.cluster.local\n    }/' | \
+    kubectl replace -f -
+$ kubectl -n kube-system rollout restart deployment/coredns
+```
