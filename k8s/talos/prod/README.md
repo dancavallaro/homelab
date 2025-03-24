@@ -15,6 +15,11 @@ network:
             macaddress: "92:B9:36:6D:7F:97"
             interfaces:
               - enp89s0
+            routes:
+              - to: 172.16.42.0/24
+                via: 10.42.42.100
+              - to: 10.96.0.0/12
+                via: 10.42.42.100
     version: 2
 ```
 
