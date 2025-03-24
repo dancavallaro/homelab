@@ -60,6 +60,10 @@ spec:
             - "-plugins-dir=/headlamp/plugins"
             - "-oidc-idp-issuer-url=https://keycloak.o.cavnet.cloud/realms/prod"
             - "-oidc-client-id=headlamp"
+            - "-oidc-scopes=profile,email,groups"
+            # I'm generally using public OIDC clients internally for simplicity (/laziness),
+            # but Headlamp doesn't seem to work without a client secret.
+            - "-oidc-client-secret=REDACTED"
           ports:
             - containerPort: 4466
           livenessProbe:
