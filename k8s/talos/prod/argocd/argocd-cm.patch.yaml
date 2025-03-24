@@ -13,8 +13,6 @@ data:
       - "*"
   kustomize.buildOptions: "--enable-helm"
   oidc.config: |
-    name: Authentik
-    issuer: https://authentik.o.cavnet.cloud/application/o/argocd/
-    clientID: i6E4gO2hYq9uhrLuuT0u2HMwDUZjzGTbgHQ85eHL
-    # TODO: this shouldn't be in source control lol
-    clientSecret: REDACTED
+    name: Keycloak
+    issuer: https://keycloak.o.cavnet.cloud/realms/prod
+    clientID: argocd

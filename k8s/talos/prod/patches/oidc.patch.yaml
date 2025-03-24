@@ -1,0 +1,7 @@
+cluster:
+  apiServer:
+    extraArgs:
+      oidc-issuer-url: https://keycloak.o.cavnet.cloud/realms/prod
+      oidc-client-id: headlamp
+      oidc-groups-claim: groups
+      oidc-username-claim: preferred_username

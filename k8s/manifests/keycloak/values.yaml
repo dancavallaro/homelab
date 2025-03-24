@@ -1,0 +1,34 @@
+proxy: edge
+auth:
+  adminUser: admin
+  adminPassword: admin
+postgresql:
+  auth:
+    # Not a huge deal since this isn't exposed outside the cluster, but I should really
+    # get these and other creds out of source control.
+    postgresPassword: "REDACTED"
+    password: "REDACTED"
+ingress:
+  enabled: true
+  pathType: Prefix
+  hostname: keycloak.o.cavnet.cloud
+  extraTls:
+    - hosts:
+        - keycloak.o.cavnet.cloud
+adminIngress:
+  enabled: true
+  pathType: Prefix
+  hostname: keycloak-admin.o.cavnet.cloud
+  extraTls:
+    - hosts:
+        - keycloak-admin.o.cavnet.cloud
+keycloakConfigCli:
+  enabled: true
+  configuration:
+    master.json: |
+      {
+        "realm" : "master",
+        "attributes": {
+          "frontendUrl": "https://keycloak-admin.o.cavnet.cloud"
+        }
+      }

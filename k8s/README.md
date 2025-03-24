@@ -431,3 +431,14 @@ network:
               - enp89s0
     version: 2
 ```
+
+## OIDC
+
+Manually get a token from Keycloak:
+
+```shell
+curl -d 'scope=openid' -d 'grant_type=password' \
+    -d 'client_id=REPLACEME' -d 'client_secret=REPLACEME' \
+    -d 'username=dan' -d 'password=REPLACEME' \
+    https://keycloak.o.cavnet.cloud/realms/prod/protocol/openid-connect/token
+```

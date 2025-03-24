@@ -199,13 +199,22 @@ $ kubectl apply -f app-roots/all-apps.yaml
 $ kubectl apply -f app-roots/all-infra.yaml
 ```
 
-## OIDC w/ Authentik
+## OIDC w/ Keycloak
 
-Patch CoreDNS config to add internal DNS record for Authentik:
+Install Keycloak:
 
 ```shell
-$ kubectl -n kube-system get configmap coredns -o yaml | \
-    sed 's/^    \}/\n        rewrite name authentik.o.cavnet.cloud cilium-ingress-authentik-server.authentik.svc.cluster.local\n    }/' | \
-    kubectl replace -f -
-$ kubectl -n kube-system rollout restart deployment/coredns
+$ kubectl apply -f infra/keycloak.yaml
+```
+
+Add public DNS record in Route53 pointing to Keycloak's ingress IP:
+
+```
+keycloak.o.cavnet.cloud. 300	IN	A	172.16.42.6
+```
+
+Patch apiserver to enable OIDC auth:
+
+```shell
+$ talosctl -n 192.168.42.10 patch mc -p @talos/prod/patches/oidc.patch.yaml
 ```
