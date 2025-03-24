@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# On the RPi, run this instead:
+# $ sudo tailscale up --ssh --accept-routes
+
 sudo tailscale up \
     --advertise-routes=10.255.0.0/16,10.42.0.0/16,10.96.0.0/12,172.16.42.0/24 \
     --ssh \
