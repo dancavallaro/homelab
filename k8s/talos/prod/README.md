@@ -43,6 +43,7 @@ Define VM network in `talos-prod-net.xml`:
       <host mac="02:C0:77:B4:28:80" ip="192.168.42.10" name="talos-prod-cp1" />
       <host mac="02:52:A7:0B:1D:89" ip="192.168.42.100" name="talos-prod-worker1" />
       <host mac="DE:6F:9F:0D:15:96" ip="192.168.42.101" name="talos-prod-worker2" />
+      <host mac="12:62:54:B1:2D:B0" ip="192.168.42.102" name="talos-prod-worker3" />
     </dhcp>
   </ip>
 </network>
@@ -123,6 +124,13 @@ $ virt-install --name talos-prod-worker2 \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=DE:6F:9F:0D:15:96 --network bridge=br0,mac=1e:03:e4:b3:4f:47
 $ virsh autostart talos-prod-worker2
+$ virt-install --name talos-prod-worker3 \
+     --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
+     --disk size=20,format=qcow2 --disk size=100,format=qcow2 \
+     --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
+     --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
+     --network bridge="$VM_BRIDGE",mac=12:62:54:B1:2D:B0
+$ virsh autostart talos-prod-worker3
 ```
 
 #### Prepare config
@@ -144,6 +152,7 @@ $ talosctl mc patch worker.yaml \
 ```shell
 $ talosctl apply-config --insecure -n 192.168.42.100 --file worker1.final.yaml
 $ talosctl apply-config --insecure -n 192.168.42.101 --file worker2.final.yaml
+$ talosctl apply-config --insecure -n 192.168.42.102 --file worker1.final.yaml # Shares config with worker1; only worker2 is special
 ```
 
 ## Final manual bootstrapping
