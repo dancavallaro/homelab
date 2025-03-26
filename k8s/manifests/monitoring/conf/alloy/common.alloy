@@ -1,0 +1,29 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+livedebugging {
+  enabled = true
+}
+
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "http://mimir-http/api/v1/push"
+  }
+}
+
+loki.write "loki" {
+  endpoint {
+    url = "http://loki-http/loki/api/v1/push"
+  }
+}
+
+loki.echo "echo" {}
+
+prometheus.exporter.self "default" {}
+
+prometheus.scrape "selfmonitor" {
+  targets    = prometheus.exporter.self.default.targets
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}

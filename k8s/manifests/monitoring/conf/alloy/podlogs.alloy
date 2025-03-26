@@ -1,0 +1,89 @@
+declare "pod_logs" {
+  argument "logs_destinations" {
+    comment = "Must be a list of log destinations where collected logs should be forwarded to"
+  }
+
+  discovery.relabel "filtered_pods" {
+    targets = discovery.kubernetes.pods.targets
+    // Drop logs from Alloy itself, useful when sending logs to loki.echo for debugging
+    // (to prevent a recursive explosion of logs).
+    rule {
+      source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+      separator = "/"
+      action = "drop"
+      regex = "monitoring/alloy"
+    }
+    rule {
+      source_labels = ["__meta_kubernetes_namespace"]
+      action = "replace"
+      target_label = "namespace"
+    }
+    rule {
+      source_labels = ["__meta_kubernetes_pod_name"]
+      action = "replace"
+      target_label = "pod"
+    }
+    rule {
+      source_labels = ["__meta_kubernetes_pod_container_name"]
+      action = "replace"
+      target_label = "container"
+    }
+    rule {
+      source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+      separator = "/"
+      action = "replace"
+      replacement = "$1"
+      target_label = "job"
+    }
+    // Loki uses service_name for the logs drilldown feature
+    // (https://grafana.com/docs/loki/latest/get-started/labels/#default-labels-for-all-users).
+    // Pod is a little too fine-grained, but namespace seems fine for Grafana browsing purposes.
+    rule {
+      source_labels = ["__meta_kubernetes_namespace"]
+      action = "replace"
+      target_label = "service_name"
+    }
+    rule {
+      source_labels = ["__meta_kubernetes_pod_controller_kind", "__meta_kubernetes_pod_controller_name"]
+      separator = "/"
+      action = "replace"
+      replacement = "$1"
+      target_label = "pod_controller"
+    }
+    rule {
+      source_labels = ["__meta_kubernetes_pod_phase"]
+      action = "replace"
+      target_label = "pod_phase"
+    }
+    rule {
+      source_labels = ["__meta_kubernetes_pod_node_name"]
+      action = "replace"
+      target_label = "node"
+    }
+  }
+
+  discovery.kubernetes "pods" {
+    role = "pod"
+  }
+
+  loki.source.kubernetes "pod_logs" {
+    targets = discovery.relabel.filtered_pods.output
+    forward_to = [loki.process.postprocess.receiver]
+  }
+
+  loki.process "postprocess" {
+    forward_to = argument.logs_destinations.value
+
+    stage.drop {
+      older_than = "15m"
+      drop_counter_reason = "too old"
+    }
+  }
+}
+
+pod_logs "feature" {
+  logs_destinations = [
+    //loki.echo.echo.receiver,
+    loki.write.loki.receiver,
+  ]
+}

@@ -3,3 +3,12 @@ machine:
     - device: /dev/vdb
       partitions:
         - mountpoint: /var/mnt/data
+  kubelet:
+    extraMounts:
+      - source: /var/mnt/data
+        destination: /var/mnt/data
+        type: bind
+        options:
+          - bind
+          - rshared
+          - rw

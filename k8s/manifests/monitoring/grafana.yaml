@@ -1,0 +1,172 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources-conf
+  namespace: monitoring
+data:
+  in-cluster.yaml: |-
+    apiVersion: 1
+    datasources:
+      - name: Mimir
+        type: prometheus
+        access: proxy
+        url: http://mimir-http.monitoring/prometheus
+        editable: false
+        isDefault: true
+        jsonData:
+          alertmanagerUid: promalertmanager
+          manageAlerts: true
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki-http.monitoring
+        editable: false
+        jsonData:
+          alertmanagerUid: promalertmanager
+          manageAlerts: true
+      - name: Alertmanager
+        type: alertmanager
+        uid: promalertmanager
+        url: http://alertmanager.monitoring
+        access: proxy
+        jsonData:
+          implementation: prometheus
+          handleGrafanaManagedAlerts: true
+  legacy.yaml: |-
+    apiVersion: 1
+    datasources:
+      - name: RPi InfluxDB
+        type: influxdb
+        url: http://192.168.5.100:8086
+        editable: false
+        jsonData:
+          dbName: home
+          httpHeaderName1: "Authorization"
+        secureJsonData:
+          httpHeaderValue1: "Token admin=="
+      - name: RPi Loki
+        type: loki
+        url: http://192.168.5.100:3100
+        editable: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-conf
+  namespace: monitoring
+data:
+  grafana.conf: |-
+    [server]
+    root_url = https://grafana.o.cavnet.cloud
+    
+    [log]
+    level = info
+    filters = tsdb.loki:warn
+    
+    [auth.generic_oauth]
+    enabled = true
+    name = Keycloak
+    auth_url = https://keycloak.o.cavnet.cloud/realms/prod/protocol/openid-connect/auth
+    token_url = https://keycloak.o.cavnet.cloud/realms/prod/protocol/openid-connect/token
+    client_id = grafana
+    scopes = openid email profile groups
+    role_attribute_path = contains(groups[*], 'admins') && 'Admin' || 'Viewer'
+
+    [feature_toggles]
+    alertmanagerRemoteOnly = true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  namespace: monitoring
+spec:
+  storageClassName: local-path-v2
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:11.6.0
+          env:
+            - name: GF_PATHS_DATA
+              value: /grafana
+          args:
+            - --config=/etc/grafana/config/grafana.conf
+          ports:
+            - name: http
+              containerPort: 3000
+          volumeMounts:
+            - name: grafana-conf
+              mountPath: /etc/grafana/config
+              readOnly: true
+            - name: grafana-datasources-conf
+              mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
+            - name: grafana-data
+              mountPath: /grafana
+              readOnly: false
+      volumes:
+        - name: grafana-conf
+          configMap:
+            name: grafana-conf
+            optional: false
+        - name: grafana-datasources-conf
+          configMap:
+            name: grafana-datasources-conf
+            optional: false
+        - name: grafana-data
+          persistentVolumeClaim:
+            claimName: grafana-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  selector:
+    app: grafana
+  ports:
+    - port: 80
+      targetPort: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  parentRefs:
+    - namespace: default
+      name: private-gateway
+      sectionName: websecure
+  hostnames:
+    - grafana.o.cavnet.cloud
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: grafana
+          port: 80

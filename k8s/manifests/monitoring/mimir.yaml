@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mimir-conf
+  namespace: monitoring
+data:
+  conf.yaml: |-
+    server:
+      log_level: info
+    target: all
+    multitenancy_enabled: false
+    ingester:
+      ring:
+        replication_factor: 1
+        kvstore:
+          store: inmemory
+    common:
+      storage:
+        backend: filesystem
+        filesystem:
+          dir: /mimir/data
+    blocks_storage:
+      tsdb:
+        dir: /mimir/tsdb
+    ruler:
+      alertmanager_url: http://alertmanager.monitoring
+    ruler_storage:
+      backend: filesystem
+      filesystem:
+        dir: /mimir/ruler
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mimir-data
+  namespace: monitoring
+spec:
+  storageClassName: local-path-v2
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mimir
+  namespace: monitoring
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: mimir
+  template:
+    metadata:
+      labels:
+        app: mimir
+    spec:
+      containers:
+        - name: mimir
+          image: grafana/mimir:2.16.0
+          args:
+            - -config.file=/etc/mimir/conf.yaml
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: mimir-conf
+              mountPath: /etc/mimir
+              readOnly: true
+            - name: mimir-data
+              mountPath: /mimir
+              readOnly: false
+      volumes:
+        - name: mimir-conf
+          configMap:
+            name: mimir-conf
+            optional: false
+        - name: mimir-data
+          persistentVolumeClaim:
+            claimName: mimir-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mimir-http
+  namespace: monitoring
+spec:
+  selector:
+    app: mimir
+  ports:
+    - port: 80
+      targetPort: http

@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-conf
+  namespace: monitoring
+data:
+  config.yaml: |-
+    target: all
+    auth_enabled: false
+    server:
+      log_level: info
+    schema_config:
+      configs:
+        - from: 2025-04-01
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+    common:
+      ring:
+        kvstore:
+          store: inmemory
+      replication_factor: 1
+      path_prefix: /loki
+      storage:
+        object_store:
+          filesystem:
+            dir: /loki/thanos
+    limits_config:
+      max_query_length: 0
+    storage_config:
+      use_thanos_objstore: true
+    ruler_storage:
+      backend: filesystem
+      filesystem:
+        dir: /loki/ruler
+    ruler:
+      enable_api: true
+      alertmanager_url: http://alertmanager.monitoring
+      # This block is ignored! The ruler_storage block above overrides this now that
+      # the Thanos client is enabled, but this block needs to still exist (and be valid)
+      # because of this stupid bug: https://github.com/grafana/loki/issues/16543
+      storage:
+        type: local
+        local:
+          directory: /tmp
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loki-data
+  namespace: monitoring
+spec:
+  storageClassName: local-path-v2
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+  namespace: monitoring
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      containers:
+        - name: loki
+          image: grafana/loki:3.4.2
+          args:
+            - -config.file=/etc/loki/config.yaml
+          ports:
+            - name: http
+              containerPort: 3100
+          volumeMounts:
+            - name: loki-conf
+              mountPath: /etc/loki
+              readOnly: true
+            - name: loki-data
+              mountPath: /loki
+              readOnly: false
+      volumes:
+        - name: loki-conf
+          configMap:
+            name: loki-conf
+            optional: false
+        - name: loki-data
+          persistentVolumeClaim:
+            claimName: loki-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-http
+  namespace: monitoring
+spec:
+  selector:
+    app: loki
+  ports:
+    - port: 80
+      targetPort: http
