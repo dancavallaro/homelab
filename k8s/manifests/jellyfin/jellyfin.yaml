@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jellyfin
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: jellyfin
+  name: jellyfin-config
+spec:
+  storageClassName: local-path-v2
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: jellyfin
+  name: jellyfin
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: jellyfin
+  template:
+    metadata:
+      labels:
+        app: jellyfin
+    spec:
+      nodeSelector:
+        storage: media
+      volumes:
+        - name: jellyfin-config
+          persistentVolumeClaim:
+            claimName: jellyfin-config
+        - name: jellyfin-media
+          hostPath:
+            path: /var/mnt/media/jellyfin
+      containers:
+        - name: jellyfin
+          image: jellyfin/jellyfin:2025032405
+          volumeMounts:
+            - mountPath: /config
+              name: jellyfin-config
+            - mountPath: /mnt/media
+              name: jellyfin-media
+          ports:
+            - containerPort: 8096
+              name: jellyfin
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: jellyfin
+  name: jellyfin
+spec:
+  type: NodePort # Expose to TVs on dtcnet
+  selector:
+    app: jellyfin
+  ports:
+    - port: 80
+      targetPort: jellyfin
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  namespace: jellyfin
+  name: jellyfin
+spec:
+  parentRefs:
+    - namespace: default
+      name: private-gateway
+      sectionName: websecure
+  hostnames:
+    - jellyfin.o.cavnet.cloud
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: jellyfin
+          port: 80

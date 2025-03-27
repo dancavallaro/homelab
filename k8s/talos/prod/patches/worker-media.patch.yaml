@@ -1,0 +1,7 @@
+machine:
+  disks:
+    - device: /dev/vdc
+      partitions:
+        - mountpoint: /var/mnt/media
+  nodeLabels:
+    storage: media

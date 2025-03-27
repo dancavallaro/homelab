@@ -44,6 +44,7 @@ Define VM network in `talos-prod-net.xml`:
       <host mac="02:52:A7:0B:1D:89" ip="192.168.42.100" name="talos-prod-worker1" />
       <host mac="DE:6F:9F:0D:15:96" ip="192.168.42.101" name="talos-prod-worker2" />
       <host mac="12:62:54:B1:2D:B0" ip="192.168.42.102" name="talos-prod-worker3" />
+      <host mac="06:31:E2:44:ED:4C" ip="192.168.42.103" name="talos-prod-worker4" />
     </dhcp>
   </ip>
 </network>
@@ -139,7 +140,7 @@ $ virsh autostart talos-prod-worker3
 $ talosctl mc patch worker.yaml \
     --patch @patches/common.patch.yaml \
     --patch @patches/worker-common.patch.yaml \
-    --output worker1.final.yaml
+    --output worker.final.yaml
 $ talosctl mc patch worker.yaml \
     --patch @patches/common.patch.yaml \
     --patch @patches/worker-common.patch.yaml \
@@ -150,9 +151,9 @@ $ talosctl mc patch worker.yaml \
 #### Apply config and join nodes to cluster
 
 ```shell
-$ talosctl apply-config --insecure -n 192.168.42.100 --file worker1.final.yaml
+$ talosctl apply-config --insecure -n 192.168.42.100 --file worker.final.yaml
 $ talosctl apply-config --insecure -n 192.168.42.101 --file worker2.final.yaml
-$ talosctl apply-config --insecure -n 192.168.42.102 --file worker1.final.yaml # Shares config with worker1; only worker2 is special
+$ talosctl apply-config --insecure -n 192.168.42.102 --file worker.final.yaml # Shares config with worker1; only worker2 is special
 ```
 
 ## Final manual bootstrapping
@@ -221,7 +222,7 @@ Install Keycloak:
 $ kubectl apply -f infra/keycloak.yaml
 ```
 
-Add public DNS record in Route53 pointing to Keycloak's ingress IP:
+Add public DNS record in Route53 pointing to Keycloak's ingress IP (needed for OIDC in apiserver):
 
 ```
 keycloak.o.cavnet.cloud. 300	IN	A	172.16.42.6
@@ -231,4 +232,24 @@ Patch apiserver to enable OIDC auth:
 
 ```shell
 $ talosctl -n 192.168.42.10 patch mc -p @talos/prod/patches/oidc.patch.yaml
+```
+
+## Media server
+
+Add a 4th worker node with an additional large disk for media storage:
+
+```shell
+$ virt-install --name talos-prod-worker4 \
+     --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
+     --disk size=20,format=qcow2 --disk size=100,format=qcow2 --disk size=384,format=qcow2 \
+     --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
+     --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
+     --network bridge="$VM_BRIDGE",mac=06:31:E2:44:ED:4C
+$ virsh autostart talos-prod-worker4
+$ talosctl mc patch worker.yaml \
+    --patch @patches/common.patch.yaml \
+    --patch @patches/worker-common.patch.yaml \
+    --patch @patches/worker-media.patch.yaml \
+    --output worker4.final.yaml
+$ talosctl apply-config --insecure -n 192.168.42.103 --file worker4.final.yaml
 ```
