@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ssh-server
+  namespace: jellyfin
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: ssh-server
+  template:
+    metadata:
+      labels:
+        app: ssh-server
+    spec:
+      nodeSelector:
+        storage: media
+      volumes:
+        - name: jellyfin-media
+          hostPath:
+            path: /var/mnt/media
+      containers:
+        - name: ssh-server
+          image: lscr.io/linuxserver/openssh-server:latest
+          env:
+            - name: USER_NAME
+              value: dan
+            - name: PUBLIC_KEY
+              value: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILLB7g8dfwUFBdiDqZuNZB+NmGPyIhOI+ev2dlz2wW56 dan@dpu-host
+              #value: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOKMK18//WT6QCgpOTgl3+xeEldBravNCxHBOUj6RZa dan.t.cavallaro@gmail.com
+            - name: SUDO_ACCESS
+              value: "true"
+            - name: LOG_STDOUT
+              value: "true"
+          volumeMounts:
+            - mountPath: /mnt/media
+              name: jellyfin-media
+          ports:
+            - containerPort: 2222
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssh-server
+  namespace: jellyfin
+spec:
+  selector:
+    app: ssh-server
+  ports:
+    - port: 22
+      targetPort: 2222
