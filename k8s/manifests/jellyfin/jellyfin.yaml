@@ -42,7 +42,7 @@ spec:
             claimName: jellyfin-config
         - name: jellyfin-media
           hostPath:
-            path: /var/mnt/media/jellyfin
+            path: /var/mnt/media
       containers:
         - name: jellyfin
           image: jellyfin/jellyfin:2025032405
