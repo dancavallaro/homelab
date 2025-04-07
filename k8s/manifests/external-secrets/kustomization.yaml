@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: external-secrets
+helmCharts:
+  - name: external-secrets
+    repo: https://charts.external-secrets.io
+    namespace: external-secrets
+    releaseName: eso
+    version: 0.15.0
+    includeCRDs: true
+    valuesInline:
+      podAnnotations:
+        cloud.dancav.io/aws-iamra-role-profile: eso-role
+        cloud.dancav.io/aws-iamra-cert-secret: eso-cert
+resources:
+  - aws-param-store.yaml

@@ -1,0 +1,35 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: eso-cert
+spec:
+  revisionHistoryLimit: 1
+  secretName: eso-cert
+  duration: 24h
+  isCA: false
+  usages:
+    - client auth
+  dnsNames:
+    - external-secrets-operator
+  issuerRef:
+    name: cluster-ca-issuer
+    kind: ClusterIssuer
+---
+apiVersion: cloud.dancav.io/v1
+kind: AwsIamRaRoleProfile
+metadata:
+  name: eso-role
+spec:
+  trustAnchorArn: arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a
+  profileArn: arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02
+  roleArn: arn:aws:iam::484396241422:role/external-secrets-operator
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterSecretStore
+metadata:
+  name: aws-parameter-store
+spec:
+  provider:
+    aws:
+      service: ParameterStore
+      region: us-east-1

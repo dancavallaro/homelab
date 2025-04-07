@@ -1,0 +1,16 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: demo-secret
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-parameter-store
+#  data:
+#    - secretKey: secret-key-to-be-managed
+#      remoteRef:
+#        key: /talos-prod/testparam1
+  # This requires the value to be JSON
+#  dataFrom:
+#    - extract:
+#        key: /talos-prod/testparam1
