@@ -21,6 +21,12 @@ machine:
           - 10.42.42.100/16
         routes:
           - network: 10.42.0.0/16
+          # Add a high-priority default route towards the Mikrotik, so return traffic
+          # (from external inbound traffic) takes the same path instead of trying to
+          # egress through the NATed 192.168.42.0/24 private network.
+          - network: 0.0.0.0/0
+            gateway: 10.42.42.1
+            metric: 1
 cluster:
   apiServer:
     admissionControl:

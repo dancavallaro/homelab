@@ -1,4 +1,4 @@
-# 2025-03-24 19:17:52 by RouterOS 7.14.1
+# 2025-04-08 10:46:42 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -77,6 +77,7 @@ add action=accept chain=input comment="defconf: accept ICMP" protocol=icmp
 add action=accept chain=input comment="defconf: accept to local loopback (for CAPsMAN)" dst-address=127.0.0.1
 add action=accept chain=input comment="Allow SNMP from RPi for monitoring" dst-port=161 protocol=udp src-address=192.168.5.238
 add action=drop chain=input comment="defconf: drop all not coming from LAN" in-interface-list=!LAN
+add action=accept chain=forward comment="Accept traffic from RPi towards k8s LB IPs" dst-address=172.16.42.0/24 src-address=192.168.5.100
 add action=accept chain=forward comment="defconf: accept in ipsec policy" ipsec-policy=in,ipsec
 add action=accept chain=forward comment="defconf: accept out ipsec policy" ipsec-policy=out,ipsec
 add action=fasttrack-connection chain=forward comment="defconf: fasttrack" connection-state=established,related hw-offload=yes
@@ -88,14 +89,10 @@ add action=masquerade chain=srcnat comment="defconf: masquerade" ipsec-policy=ou
 /ip firewall raw
 add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and k8s subnet" dst-address=10.96.0.0/12 src-address=10.42.0.0/16
 add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and MetalLB subnet" dst-address=172.16.42.0/24 src-address=10.42.0.0/16
-add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and Cillium POC cluster" dst-address=192.168.200.0/24 src-address=10.42.0.0/16
-add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and test cluster LBs" dst-address=172.16.200.0/24 src-address=10.42.0.0/16
 /ip route
 add disabled=no distance=1 dst-address=10.255.0.0/16 gateway=10.255.1.1 pref-src="" routing-table=main suppress-hw-offload=no
 add comment="Route for MetalLB" disabled=no distance=1 dst-address=172.16.42.0/24 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
 add comment="Route for k8s cluster" disabled=no distance=1 dst-address=10.96.0.0/12 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
-add comment="Route for tallos-cillium test cluster" disabled=no distance=1 dst-address=192.168.200.0/24 gateway=10.42.42.2 pref-src="" routing-table=main suppress-hw-offload=no
-add comment="Route for test cluster LBs" disabled=no distance=1 dst-address=172.16.200.0/24 gateway=10.42.42.2 pref-src="" routing-table=main suppress-hw-offload=no
 /ipv6 firewall address-list
 add address=::/128 comment="defconf: unspecified address" list=bad_ipv6
 add address=::1/128 comment="defconf: lo" list=bad_ipv6
