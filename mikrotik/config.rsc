@@ -1,4 +1,4 @@
-# 2025-04-08 10:46:42 by RouterOS 7.14.1
+# 2025-04-09 19:58:36 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -6,6 +6,7 @@
 /interface bridge
 add admin-mac=78:9A:18:BD:BF:20 auto-mac=no comment=defconf name=bridge port-cost-mode=short
 add comment="bridges some ports to \"WAN\" (dtcnet/home LAN) on ether1" name=dtcnet_bridge
+add comment="Private IoT network for ESP32 devices" name=iotnet_bridge
 add comment="Bridge for BF3 network behind Protectli" name=labnet_bridge
 /interface ethernet
 set [ find default-name=ether1 ] comment="eero (uplink to dtcnet LAN)"
@@ -16,8 +17,9 @@ set [ find default-name=ether5 ] comment=NUC
 set [ find default-name=ether6 ] comment="RPi4 (bastion.local)"
 set [ find default-name=ether7 ] comment="dtcnet Netgear switch"
 /interface vlan
-add comment="Allows WiFi SSID for labnet" interface=ether3 name=vlan10 vlan-id=10
-add comment="Allows NUC to connect to dtcnet bridge" interface=ether5 name=vlan192 vlan-id=192
+add comment="WiFi SSID for labnet" interface=ether3 name=vlan10 vlan-id=10
+add comment="WiFi SSID for IoT network" interface=ether3 name=vlan20 vlan-id=20
+add comment="NUC -> dtcnet bridge" interface=ether5 name=vlan192 vlan-id=192
 /interface list
 add comment=defconf name=WAN
 add comment=defconf name=LAN
@@ -26,9 +28,11 @@ set [ find default=yes ] supplicant-identity=MikroTik
 /ip dhcp-server
 add interface=labnet_bridge name=labnet
 /ip pool
-add name=dhcp ranges=10.42.42.2-10.42.42.254
+add comment="Address pool for office network" name=dhcp ranges=10.42.42.2-10.42.42.254
+add comment="Address pool for private IoT network" name=iotnet ranges=192.168.20.2-192.168.20.254
 /ip dhcp-server
 add address-pool=dhcp interface=bridge lease-time=10m name=defconf
+add address-pool=iotnet comment="DHCP for private IoT network" interface=iotnet_bridge name=iotnet
 /interface bridge port
 add bridge=bridge comment=defconf interface=ether2 internal-path-cost=10 path-cost=10
 add bridge=bridge interface=ether6 internal-path-cost=10 path-cost=10
@@ -40,6 +44,7 @@ add bridge=dtcnet_bridge comment="Bridges dpu-host to dtcnet" interface=vlan192
 add bridge=dtcnet_bridge interface=ether3
 add bridge=dtcnet_bridge interface=ether7
 add bridge=bridge comment="Bridges WiFi APs to office network" interface=vlan10
+add bridge=iotnet_bridge interface=vlan20
 /ip firewall connection tracking
 set udp-timeout=10s
 /ip neighbor discovery-settings
@@ -50,6 +55,7 @@ add comment=defconf interface=dtcnet_bridge list=WAN
 /ip address
 add address=10.42.42.1/16 comment=defconf interface=bridge network=10.42.0.0
 add address=10.255.1.2/24 interface=labnet_bridge network=10.255.1.0
+add address=192.168.20.1/24 interface=iotnet_bridge network=192.168.20.0
 /ip dhcp-client
 add interface=dtcnet_bridge
 /ip dhcp-server lease
@@ -59,8 +65,9 @@ add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-add
 add address=10.42.42.42 client-id=1:e4:5f:1:ef:d7:10 comment="bastion RPi" mac-address=E4:5F:01:EF:D7:10 server=defconf
 add address=10.42.42.2 comment="NUC br0" mac-address=92:B9:36:6D:7F:97 server=defconf
 /ip dhcp-server network
-add address=10.42.0.0/16 comment=defconf dns-server=10.42.42.1 gateway=10.42.42.1 netmask=16
+add address=10.42.0.0/16 comment="Office network" dns-server=10.42.42.1 gateway=10.42.42.1 netmask=16
 add address=10.255.1.0/30 comment="Link to Protectli" dns-server=8.8.8.8,8.8.4.4 gateway=10.255.1.2
+add address=192.168.20.0/24 comment="Private IoT network" dns-server=172.16.42.53 gateway=192.168.20.1
 /ip dns
 set allow-remote-requests=yes servers=8.8.8.8,8.8.4.4
 /ip dns static
