@@ -15,8 +15,13 @@ scene: !include scenes.yaml
 
 http:
   use_x_forwarded_for: true
-  # talos-worker2 VM on NUC
-  trusted_proxies: 192.168.6.100
+  trusted_proxies:
+    # talos-worker2 VM, which is the source when requests are from pods running on
+    # worker2 using the host network.
+    - 192.168.6.100
+    # IP of the Mikrotik router, which is the source when requests from k8s
+    # are NAT'ed onto dtcnet.
+    - 192.168.5.198
 
 mqtt:
   button:
