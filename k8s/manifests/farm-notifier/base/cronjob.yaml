@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  namespace: farm-notifier
+  name: farm-notifier
+spec:
+  schedule: "- - - - -"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: farm-notifier
+          annotations:
+            cloud.dancav.io/aws-iamra-role-profile: farm-notifier-role
+            cloud.dancav.io/aws-iamra-cert-secret: farm-notifier-cert
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: farm-notifier
+              image: ghcr.io/dancavallaro/farm-notifier/farm-notifier:0.2.0
+              args:
+                - REPLACEME
+              env:
+                - name: AWS_DEFAULT_REGION
+                  value: us-east-1
+                - name: SOURCE_BUCKET_NAME
+                  value: producenotifier-websitesourcebucket6c807763-iflffq88rj4x
+                - name: EMAIL_TEMPLATE_NAME
+                  value: FarmNotifierTemplate
+                - name: DATA_PATH_PREFIX
+                  value: /farm-notifier/data
+              volumeMounts:
+                - mountPath: /farm-notifier/data
+                  name: farm-notifier-data
+          volumes:
+            - name: farm-notifier-data
+              persistentVolumeClaim:
+                claimName: farm-notifier-data

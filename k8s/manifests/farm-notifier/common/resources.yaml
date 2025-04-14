@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: farm-notifier
+---
+apiVersion: cloud.dancav.io/v1
+kind: AwsIamRaRoleProfile
+metadata:
+  namespace: farm-notifier
+  name: farm-notifier-role
+spec:
+  trustAnchorArn: arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a
+  profileArn: arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02
+  roleArn: arn:aws:iam::484396241422:role/produce-notifier-role
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: farm-notifier
+  name: farm-notifier-cert
+spec:
+  revisionHistoryLimit: 1
+  secretName: farm-notifier-cert
+  duration: 24h
+  isCA: false
+  usages:
+    - client auth
+  dnsNames:
+    - farm-notifier
+  issuerRef:
+    name: cluster-ca-issuer
+    kind: ClusterIssuer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: farm-notifier
+  name: farm-notifier-data
+spec:
+  storageClassName: local-path-v2
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

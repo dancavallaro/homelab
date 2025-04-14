@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+nameSuffix: -stults
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/schedule
+        value: "0 14 * * *"
+      - op: replace
+        path: /spec/jobTemplate/spec/template/metadata/labels/app
+        value: farm-notifier-stults
+      - op: replace
+        path: /spec/jobTemplate/spec/template/spec/containers/0/args/0
+        value: STULTS
+    target:
+      kind: CronJob

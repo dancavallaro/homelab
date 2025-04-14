@@ -1,0 +1,46 @@
+apiVersion: cloud.dancav.io/v1
+kind: AwsIamRaRoleProfile
+metadata:
+  namespace: farm-notifier
+  name: farm-notifier-backfill-role
+spec:
+  trustAnchorArn: arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a
+  profileArn: arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02
+  roleArn: arn:aws:iam::484396241422:role/produce-notifier-backfill-role
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: farm-notifier
+  name: farm-notifier-debug
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: farm-notifier-debug
+  template:
+    metadata:
+      labels:
+        app: farm-notifier-debug
+      annotations:
+        cloud.dancav.io/aws-iamra-role-profile: farm-notifier-backfill-role
+        cloud.dancav.io/aws-iamra-cert-secret: farm-notifier-cert
+    spec:
+      containers:
+        - name: farm-notifier-debug
+          image: ghcr.io/dancavallaro/farm-notifier/debugger:0.2.1
+          env:
+            - name: AWS_DEFAULT_REGION
+              value: us-east-1
+            - name: AWS_PAGER
+              value: ""
+            - name: DATA_PATH_PREFIX
+              value: /farm-notifier/data
+          volumeMounts:
+            - mountPath: /farm-notifier/data
+              name: farm-notifier-data
+      volumes:
+        - name: farm-notifier-data
+          persistentVolumeClaim:
+            claimName: farm-notifier-data
