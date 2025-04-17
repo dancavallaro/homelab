@@ -5,7 +5,6 @@
   * Pod metrics
   * Node(VM) metrics
   * Host(NUC) metrics/logs
-* Set up notifications for backup job failures (and any other health events)
+* Set up notifications for cron/job failures (and any other health events)
 * Add support for skipping PVs for backup
-* Migrate Produce Updates to k8s
 * Test restoring a brand new cluster from a cluster etcd backup

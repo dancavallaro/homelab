@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: farm-notifier-debug
-          image: ghcr.io/dancavallaro/farm-notifier/debugger:0.2.1
+          image: ghcr.io/dancavallaro/farm-notifier/debugger:0.2.2
           env:
             - name: AWS_DEFAULT_REGION
               value: us-east-1
