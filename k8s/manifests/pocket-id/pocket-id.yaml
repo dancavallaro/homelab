@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pocket-id
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: pocket-id
+  name: pocket-id-data
+spec:
+  storageClassName: local-path-v2
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: pocket-id
+  name: pocket-id
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: pocket-id
+  template:
+    metadata:
+      labels:
+        app: pocket-id
+    spec:
+      containers:
+        - name: pocket-id
+          image: ghcr.io/pocket-id/pocket-id:v0.46
+          env:
+            - name: PUBLIC_APP_URL
+              value: https://pocket-id.o.cavnet.cloud
+            - name: TRUST_PROXY
+              value: "true"
+            - name: UPDATE_CHECK_DISABLED
+              value: "true"
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: pocket-id-data
+              mountPath: /app/backend/data
+      volumes:
+        - name: pocket-id-data
+          persistentVolumeClaim:
+            claimName: pocket-id-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: pocket-id
+  name: pocket-id
+spec:
+  selector:
+    app: pocket-id
+  ports:
+    - port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  namespace: pocket-id
+  name: pocket-id
+spec:
+  parentRefs:
+    - namespace: default
+      name: private-gateway
+      sectionName: websecure
+  hostnames:
+    - pocket-id.o.cavnet.cloud
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: pocket-id
+          port: 80
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pocketid-superusers-binding
+subjects:
+  - kind: Group
+    name: superusers # Pocket ID group
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io

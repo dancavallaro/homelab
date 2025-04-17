@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  namespace: argocd
+  name: pocket-id
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/dancavallaro/rpi-config
+    targetRevision: HEAD
+    path: k8s/manifests/pocket-id
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pocket-id
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
