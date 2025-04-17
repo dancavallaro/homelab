@@ -14,7 +14,7 @@ spec:
     namespace: monitoring
   syncPolicy:
     automated:
-      selfHeal: true
+      selfHeal: false # TODO: re-enable
       prune: true
     syncOptions:
       - CreateNamespace=true
