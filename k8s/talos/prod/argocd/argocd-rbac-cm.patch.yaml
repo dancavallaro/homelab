@@ -3,5 +3,5 @@ kind: ConfigMap
 metadata:
   name: argocd-rbac-cm
 data:
-  # Default role for OIDC auth
-  policy.default: "role:admin"
+  policy.csv: |
+    g, superusers, role:admin

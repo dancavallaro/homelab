@@ -65,12 +65,12 @@ data:
     
     [auth.generic_oauth]
     enabled = true
-    name = Keycloak
-    auth_url = https://keycloak.o.cavnet.cloud/realms/prod/protocol/openid-connect/auth
-    token_url = https://keycloak.o.cavnet.cloud/realms/prod/protocol/openid-connect/token
-    client_id = grafana
+    name = Pocket ID
+    auth_url = https://pocket-id.o.cavnet.cloud/authorize
+    token_url = https://pocket-id.o.cavnet.cloud/api/oidc/token
+    client_id = 538f8e7f-2679-446c-8d72-38ec9d3a7410
     scopes = openid email profile groups
-    role_attribute_path = contains(groups[*], 'admins') && 'Admin' || 'Viewer'
+    role_attribute_path = contains(groups[*], 'superusers') && 'Admin' || 'None'
 
     [feature_toggles]
     alertmanagerRemoteOnly = true
@@ -110,6 +110,11 @@ spec:
           env:
             - name: GF_PATHS_DATA
               value: /grafana
+            - name: GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-oidc
+                  key: client-secret
           args:
             - --config=/etc/grafana/config/grafana.conf
           ports:

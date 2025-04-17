@@ -222,10 +222,10 @@ Install Keycloak:
 $ kubectl apply -f infra/keycloak.yaml
 ```
 
-Add public DNS record in Route53 pointing to Keycloak's ingress IP (needed for OIDC in apiserver):
+Add public DNS record in Route53 pointing to Pocket ID's ingress IP (needed for OIDC in apiserver):
 
 ```
-keycloak.o.cavnet.cloud. 300	IN	A	172.16.42.6
+pocket-id.o.cavnet.cloud. 300	IN	A	172.16.42.4
 ```
 
 Patch apiserver to enable OIDC auth:

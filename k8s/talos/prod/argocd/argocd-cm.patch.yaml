@@ -13,6 +13,7 @@ data:
       - "*"
   kustomize.buildOptions: "--enable-helm"
   oidc.config: |
-    name: Keycloak
-    issuer: https://keycloak.o.cavnet.cloud/realms/prod
-    clientID: argocd
+    name: Pocket ID
+    issuer: https://pocket-id.o.cavnet.cloud
+    clientID: 16dcff1b-d35e-4395-9791-c2fac0d0eb08
+    clientSecret: $argocd-oidc:client-secret
