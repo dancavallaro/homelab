@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: minio
+helmCharts:
+  - name: minio
+    repo: https://charts.min.io
+    releaseName: minio
+    version: 5.4.0
+    namespace: minio
+    valuesInline:
+      mode: standalone
+      replicas: 1
+      persistence:
+        size: 10Gi
+      resources:
+        requests:
+          memory: 500Mi
+      ingress:
+        enabled: true
+        hosts:
+          - s3.o.cavnet.cloud
+        tls:
+          - hosts:
+              - s3.o.cavnet.cloud
+      consoleIngress:
+        enabled: true
+        hosts:
+          - minio.o.cavnet.cloud
+        tls:
+          - hosts:
+              - minio.o.cavnet.cloud
+      oidc:
+        enabled: true
+        displayName: Pocket ID
+        configUrl: https://pocket-id.o.cavnet.cloud/.well-known/openid-configuration
+        clientId: 875d8377-b842-4c24-9790-104bc1502135
+        existingClientSecretName: minio-oidc
+        existingClientSecretKey: client-secret
+        redirectUri: "https://minio.o.cavnet.cloud/oauth_callback"
+        scopes: "openid,profile,email,groups"
