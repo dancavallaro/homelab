@@ -11,7 +11,7 @@ declare "cluster_events" {
   loki.process "cluster_events" {
     stage.static_labels {
       values = {
-        "service_name" = "loki.source.kubernetes_events",
+        "service_name" = "kubernetes.cluster_events",
       }
     }
 

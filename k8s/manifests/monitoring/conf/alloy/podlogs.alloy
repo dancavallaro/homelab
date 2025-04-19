@@ -42,6 +42,7 @@ declare "pod_logs" {
       source_labels = ["__meta_kubernetes_namespace"]
       action = "replace"
       target_label = "service_name"
+      replacement = "kubernetes.pod_logs.$1"
     }
     rule {
       source_labels = ["__meta_kubernetes_pod_controller_kind", "__meta_kubernetes_pod_controller_name"]
