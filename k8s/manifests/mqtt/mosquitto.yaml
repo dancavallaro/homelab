@@ -1,0 +1,124 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mosquitto
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: mosquitto
+  name: mosquitto-data
+spec:
+  storageClassName: local-path
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mosquitto-conf
+  namespace: mosquitto
+data:
+  mosquitto.conf: |-
+    persistence true
+    persistence_location /mosquitto/data/
+    
+    log_dest stdout
+    log_timestamp true
+    connection_messages true
+    
+    listener 1883
+    
+    password_file /mosquitto/config/password.txt
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: mosquitto-users
+  namespace: mosquitto
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-parameter-store
+  dataFrom:
+    - extract:
+        key: /talos-prod/mosquitto-users
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: mosquitto
+  name: mosquitto
+spec:
+  selector:
+    matchLabels:
+      app: mosquitto
+  replicas: 1
+  revisionHistoryLimit: 0
+  template:
+    metadata:
+      labels:
+        app: mosquitto
+    spec:
+      initContainers:
+        - name: init-passwords
+          image: eclipse-mosquitto:2.0.21
+          command:
+            - sh
+            - -c
+          args:
+            - |-
+              >/mosquitto/config/password.txt
+              for u in /var/mosquitto/users/* ; do
+                echo "$(basename $u):$(cat $u)" >> /mosquitto/config/password.txt
+              done
+              mosquitto_passwd -U /mosquitto/config/password.txt
+          volumeMounts:
+            - name: mosquitto-data
+              mountPath: /mosquitto
+            - name: mosquitto-users
+              mountPath: /var/mosquitto/users
+      containers:
+        - name: mosquitto
+          image: eclipse-mosquitto:2.0.21
+          command:
+            - /docker-entrypoint.sh
+            - /usr/sbin/mosquitto
+          args:
+            - -c
+            - /var/mosquitto/config/mosquitto.conf
+          volumeMounts:
+            - name: mosquitto-data
+              mountPath: /mosquitto
+            - name: mosquitto-conf
+              mountPath: /var/mosquitto/config
+          ports:
+            - containerPort: 1883
+      volumes:
+        - name: mosquitto-data
+          persistentVolumeClaim:
+            claimName: mosquitto-data
+        - name: mosquitto-conf
+          configMap:
+            name: mosquitto-conf
+        - name: mosquitto-users
+          secret:
+            secretName: mosquitto-users
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: mosquitto
+  name: mqtt
+  annotations:
+    "coredns.io/hostname": mqtt.o.cavnet.cloud
+spec:
+  type: LoadBalancer
+  selector:
+    app: mosquitto
+  ports:
+    - targetPort: 1883
+      port: 1883
