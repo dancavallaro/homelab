@@ -22,23 +22,12 @@ spec:
                     fieldRef:
                       fieldPath:
                         status.hostIP
-              command:
-                - sh
-                - -c
-                - time /scripts/init.sh && time /scripts/backup.sh
-              image: alpine:3
+              image: ghcr.io/dancavallaro/rpi-config/cluster-archiver:0.1.1
               name: cluster-archiver
               volumeMounts:
-                - name: backup-scripts
-                  mountPath: /scripts/
                 - mountPath: /var/run/secrets/talos.dev
                   name: talos-secrets
           volumes:
-            - name: backup-scripts
-              configMap:
-                name: backup-scripts
-                optional: false
-                defaultMode: 0744
             - name: talos-secrets
               secret:
                 secretName: cluster-archiver-talos-secrets

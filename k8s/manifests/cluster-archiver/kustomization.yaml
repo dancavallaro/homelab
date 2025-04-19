@@ -4,8 +4,3 @@ namespace: cluster-archiver
 resources:
   - resources.yaml
   - job.yaml
-configMapGenerator:
-  - name: backup-scripts
-    files:
-      - init.sh
-      - backup.sh

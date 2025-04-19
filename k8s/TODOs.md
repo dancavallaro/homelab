@@ -1,5 +1,6 @@
 * Get creds out of source to ESO (see https://dashboard.gitguardian.com/workspace/668916/incidents)
 * More monitoring:
+  * Add prefix to namespace used for pod logs service_name (e.g. "kubernetes.podlogs.")
   * Cluster metrics
   * Talos logs
   * Pod metrics
