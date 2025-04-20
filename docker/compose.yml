@@ -19,17 +19,6 @@ services:
     ports:
       - "1883:1883"
     restart: unless-stopped
-  ring-mqtt:
-    container_name: ring-mqtt
-    restart: unless-stopped
-    image: "tsightler/ring-mqtt:5.6.7"
-    network_mode: host
-    volumes:
-      - ring-mqtt:/data
-    logging:
-      options:
-        max-size: 10m
-        max-file: "3"
   flicd:
     container_name: flicd
     restart: unless-stopped

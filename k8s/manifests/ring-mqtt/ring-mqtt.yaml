@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ring-mqtt
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: ring-mqtt
+  name: ring-mqtt-data
+spec:
+  storageClassName: local-path
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Mi
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: mqtt-creds
+  namespace: ring-mqtt
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-parameter-store
+  dataFrom:
+    - extract:
+        key: /talos-prod/ring-mqtt-creds
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ring-mqtt-conf
+  namespace: ring-mqtt
+data:
+  config.json.template: |
+    {
+      "mqtt_url": "http://${MQTT_USERNAME}:${MQTT_PASSWORD}@mqtt.mosquitto:1883",
+      "enable_cameras": false
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: ring-mqtt
+  name: ring-mqtt
+spec:
+  selector:
+    matchLabels:
+      app: ring-mqtt
+  replicas: 1
+  revisionHistoryLimit: 0
+  template:
+    metadata:
+      labels:
+        app: ring-mqtt
+    spec:
+      initContainers:
+        - name: config-init
+          image: bhgedigital/envsubst:v1.0-alpine3.6
+          command:
+            - sh
+            - -c
+          args:
+            - envsubst < /config/config.json.template > /data/config.json
+          env:
+            - name: MQTT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mqtt-creds
+                  key: username
+            - name: MQTT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mqtt-creds
+                  key: password
+          volumeMounts:
+            - name: config-template
+              mountPath: /config
+            - name: ring-mqtt-data
+              mountPath: /data
+      containers:
+        - name: ring-mqtt
+          image: tsightler/ring-mqtt:5.6.7
+          volumeMounts:
+            - name: ring-mqtt-data
+              mountPath: /data
+      volumes:
+        - name: ring-mqtt-data
+          persistentVolumeClaim:
+            claimName: ring-mqtt-data
+        - name: config-template
+          configMap:
+            name: ring-mqtt-conf
