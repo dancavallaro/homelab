@@ -9,16 +9,6 @@ services:
     restart: unless-stopped
     privileged: true
     network_mode: host
-  mosquitto:
-    image: "eclipse-mosquitto:2.0.18"
-    container_name: mosquitto
-    networks:
-      - mqtt
-    volumes:
-      - mosquitto:/mosquitto
-    ports:
-      - "1883:1883"
-    restart: unless-stopped
   flicd:
     container_name: flicd
     restart: unless-stopped
@@ -39,15 +29,13 @@ services:
     container_name: heartbeats
     restart: unless-stopped
     image: "ghcr.io/dancavallaro/telemetry/heartbeats:latest"
-    networks:
-      - mqtt
     command:
       - "-region"
       - "us-east-1"
       - "-mqttAddress"
-      - "mosquitto:1883"
+      - "172.16.42.12:1883"
       - "-mqttUsername"
-      - "rpi"
+      - "heartbeats"
       - "-mqttPassword"
       - "DHV6x48uBtYI83Ppu0tEWBmH"
       - "-metricNamespace"
@@ -70,7 +58,6 @@ services:
     image: "telegraf:1.31.2"
     networks:
       - telemetry
-      - mqtt
     # docker group gid, from: stat -c '%g' /var/run/docker.sock
     user: "telegraf:991"
     hostname: rpi
@@ -140,8 +127,6 @@ services:
       - promtail:/etc/promtail
 volumes:
   homeassistant:
-  mosquitto:
-  ring-mqtt:
   flicd:
   telegraf:
   grafana:
@@ -152,4 +137,3 @@ volumes:
   promtail:
 networks:
   telemetry:
-  mqtt:
