@@ -1,6 +1,7 @@
 machine:
   install:
     disk: /dev/vda
+    image: ghcr.io/dancavallaro/talos/installer:v1.9.5
   network:
     nameservers:
       - 1.1.1.1

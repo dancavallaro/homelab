@@ -25,6 +25,31 @@ network:
 
 Then `sudo netplan apply` (will kill SSH session)
 
+### Bluetooth
+
+Create `/etc/modprobe.d/blacklist-bluetooth.conf` to blacklist the Bluetooth-related
+kernel modules from being loaded by the host:
+
+```
+blacklist bluetooth
+blacklist btrtl
+blacklist btmtk
+blacklist btintel
+blacklist btbcm
+blacklist bnep
+blacklist btusb
+```
+
+Create `/etc/modprobe.d/bluetooth-vfio.conf` to assign the Bluetooth PCI device to the
+vfio-pci driver:
+
+```
+alias pci:v00008086d0000A0F0sv00008086sd00000074bc02sc80i00 vfio-pci
+options vfio-pci ids=8086:a0f0
+```
+
+Then reboot the host.
+
 ## Provision VMs and bootstrap cluster
 
 Define VM network in `talos-prod-net.xml`:
@@ -118,12 +143,14 @@ $ virt-install --name talos-prod-worker1 \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=02:52:A7:0B:1D:89
 $ virsh autostart talos-prod-worker1
+# Create worker2k, attached to dtcnet and pass through the Bluetooth PCI+USB devices
 $ virt-install --name talos-prod-worker2 \
      --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=20,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
-     --network bridge="$VM_BRIDGE",mac=DE:6F:9F:0D:15:96 --network bridge=br0,mac=1e:03:e4:b3:4f:47
+     --network bridge="$VM_BRIDGE",mac=DE:6F:9F:0D:15:96 --network bridge=br0,mac=1e:03:e4:b3:4f:47 \
+     --hostdev 003.002 --hostdev pci_0000_00_14_3
 $ virsh autostart talos-prod-worker2
 $ virt-install --name talos-prod-worker3 \
      --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \

@@ -442,3 +442,35 @@ curl -d 'scope=openid' -d 'grant_type=password' \
     -d 'username=dan' -d 'password=REPLACEME' \
     https://keycloak.o.cavnet.cloud/realms/prod/protocol/openid-connect/token
 ```
+
+## Bluetooth
+
+Getting the NUC's Bluetooth adapter working on Kubernetes in the Talos VM was a two-step
+process. Making this Bluetooth adapter available inside a VM was relatively straightforward
+once I found this excellent comment: https://github.com/home-assistant/operating-system/issues/2611#issuecomment-2081271327.
+By passing through both the PCI device and the USB Bluetooth device, I was able to see
+and access the Bluetooth adapter from within an Ubuntu VM. These steps are documented in
+talos/prod/README.md.
+
+Getting it to work in a *Talos* VM was trickier because Talos's kernel is compiled without
+BT support (confirmed in https://github.com/siderolabs/pkgs/issues/486). There's an open
+request for a Talos System Extension for BT support (https://github.com/siderolabs/extensions/issues/247),
+but I don't think System Extensions currently allow kernel modules to be installed. 
+
+### Building Talos with Bluetooth support
+
+1. Start container registry if not one already: `docker run -d -p 5005:5000 --restart always --name local registry:2`
+2. Make kernel config changes in `pkgs` repo.
+3. Build kernel image: `make kernel REGISTRY=127.0.0.1:5005 PUSH=true PLATFORM=linux/amd64`
+4. Update `hack/modules-amd64.txt` in `talos` repo to include new modules.
+5. Build kernel and initramfs: `make kernel initramfs PKG_KERNEL=127.0.0.1:5005/siderolabs/kernel:<TAG> PLATFORM=linux/amd64`
+6. Build imager image: `make imager PKG_KERNEL=127.0.0.1:5005/siderolabs/kernel:<TAG> PLATFORM=linux/amd64 INSTALLER_ARCH=targetarch PUSH=true REGISTRY=127.0.0.1:5005`
+7. May need to explicitly pull imager image if it's been updated: `docker pull 127.0.0.1:5005/siderolabs/imager:<TAG>`
+8. Build ISO: `docker run --rm -t -v $PWD/_out:/out 127.0.0.1:5005/siderolabs/imager:<TAG> iso`
+9. Build installer image: `docker run --rm -t -v $PWD/_out:/out 127.0.0.1:5005/siderolabs/imager:<TAG> installer --base-installer-image ghcr.io/siderolabs/installer:v1.9.5`
+
+To upgrade a node:
+
+```shell
+talosctl upgrade -n <NODE IP> --image ghcr.io/dancavallaro/talos/installer:v1.9.5
+```

@@ -17,3 +17,4 @@ machine:
               - network: 192.168.4.0/22
   nodeLabels:
     network: dtcnet
+    hardware: bluetooth

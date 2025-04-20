@@ -8,7 +8,7 @@ RUN cd fliclib-linux-hci/simpleclient && make
 
 FROM debian:bookworm-slim
 
-COPY --from=base /fliclib-linux-hci/bin/aarch64/flicd /flicd
+COPY --from=base /fliclib-linux-hci/bin/x86_64/flicd /flicd
 COPY --from=base /fliclib-linux-hci/simpleclient/simpleclient /simpleclient
 
 ENTRYPOINT ["/flicd"]

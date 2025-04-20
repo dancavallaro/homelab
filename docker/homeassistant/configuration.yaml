@@ -97,7 +97,7 @@ mqtt:
       payload_off: "0"
 binary_sensor:
   - platform: flic
-    host: 172.17.0.1
+    host: 172.16.42.2 # IP of the LoadBalancer for flicd on k8s
     discovery: false
     ignored_click_types: [double, hold]
 emulated_hue:

@@ -9,15 +9,6 @@ services:
     restart: unless-stopped
     privileged: true
     network_mode: host
-  flicd:
-    container_name: flicd
-    restart: unless-stopped
-    image: "ghcr.io/dancavallaro/rpi-config/flicd:latest"
-    command: ["-f", "/data/flic.sqlite3", "-s", "0.0.0.0", "-p", "5551"]
-    privileged: true
-    network_mode: host
-    volumes:
-      - flicd:/data
   serial_logger:
     container_name: serial_logger
     restart: unless-stopped
@@ -127,7 +118,6 @@ services:
       - promtail:/etc/promtail
 volumes:
   homeassistant:
-  flicd:
   telegraf:
   grafana:
   influxdb-data:

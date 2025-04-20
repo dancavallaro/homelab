@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flicd
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: flicd
+  name: flicd-data
+spec:
+  storageClassName: local-path-v2
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: flicd
+  name: flicd
+  annotations:
+    "coredns.io/hostname": flic.o.cavnet.cloud
+spec:
+  type: LoadBalancer
+  selector:
+    app: flicd
+  ports:
+    - port: 5551
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: flicd
+  name: flicd
+spec:
+  serviceName: flicd
+  selector:
+    matchLabels:
+      app: flicd
+  replicas: 1
+  revisionHistoryLimit: 0
+  template:
+    metadata:
+      labels:
+        app: flicd
+    spec:
+      nodeSelector:
+        hardware: bluetooth
+      hostNetwork: true
+      containers:
+        - name: flicd
+          image: ghcr.io/dancavallaro/rpi-config/flicd:0.1.1
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          args:
+            - -f
+            - /data/flic.sqlite3
+            - -s
+            - 0.0.0.0
+            - -p
+            - "5551"
+          volumeMounts:
+            - mountPath: /data
+              name: flicd-data
+          ports:
+            - containerPort: 5551
+      volumes:
+        - name: flicd-data
+          persistentVolumeClaim:
+            claimName: flicd-data
