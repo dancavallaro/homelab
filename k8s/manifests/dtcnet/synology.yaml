@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: synology-proxy
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: synology-proxy
+  labels:
+    kubernetes.io/service-name: synology-proxy
+addressType: IPv4
+ports:
+  - name: http
+    protocol: TCP
+    port: 5000
+endpoints:
+  - addresses:
+      - "192.168.6.62"
+    conditions: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: synology-proxy
+spec:
+  parentRefs:
+    - namespace: default
+      name: private-gateway
+      sectionName: websecure
+  hostnames:
+    - nas.o.cavnet.cloud
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: synology-proxy
+          port: 80
