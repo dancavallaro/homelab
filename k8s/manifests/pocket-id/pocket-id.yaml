@@ -9,6 +9,7 @@ metadata:
   namespace: pocket-id
   name: pocket-id-data
 spec:
+  storageClassName: local-path-v2
   accessModes:
     - ReadWriteOnce
   resources:

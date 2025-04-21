@@ -35,6 +35,7 @@ metadata:
   name: mimir-data
   namespace: monitoring
 spec:
+  storageClassName: local-path-v2
   accessModes:
     - ReadWriteOnce
   resources:
