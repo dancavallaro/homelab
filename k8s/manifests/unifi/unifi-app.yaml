@@ -12,7 +12,6 @@ metadata:
   namespace: unifi
   name: unifi-app-config
 spec:
-  storageClassName: local-path
   accessModes:
     - ReadWriteOnce
   resources:
