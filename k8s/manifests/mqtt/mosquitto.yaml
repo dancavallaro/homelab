@@ -70,6 +70,7 @@ spec:
             - -c
           args:
             - |-
+              mkdir /mosquitto/config
               >/mosquitto/config/password.txt
               chmod 0700 /mosquitto/config/password.txt
               for u in /var/mosquitto/users/* ; do
