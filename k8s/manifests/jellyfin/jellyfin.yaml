@@ -11,6 +11,7 @@ metadata:
   namespace: jellyfin
   name: jellyfin-config
 spec:
+  storageClassName: local-path-v2
   accessModes:
     - ReadWriteOnce
   resources:
