@@ -14,5 +14,7 @@ spec:
     server: https://kubernetes.default.svc
   syncPolicy:
     automated:
-      selfHeal: false # TODO: revert
+      selfHeal: true
       prune: true
+    syncOptions:
+      - CreateNamespace=true
