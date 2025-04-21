@@ -9,7 +9,6 @@ metadata:
   namespace: ring-mqtt
   name: ring-mqtt-data
 spec:
-  storageClassName: local-path
   accessModes:
     - ReadWriteOnce
   resources:

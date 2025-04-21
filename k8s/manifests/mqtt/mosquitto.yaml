@@ -9,7 +9,6 @@ metadata:
   namespace: mosquitto
   name: mosquitto-data
 spec:
-  storageClassName: local-path
   accessModes:
     - ReadWriteOnce
   resources:

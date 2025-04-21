@@ -37,7 +37,6 @@ metadata:
   namespace: farm-notifier
   name: farm-notifier-data
 spec:
-  storageClassName: local-path-v2
   accessModes:
     - ReadWriteOnce
   resources:
