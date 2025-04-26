@@ -1,14 +1,4 @@
 services:
-  homeassistant:
-    container_name: homeassistant
-    image: "homeassistant/home-assistant:2024.12.3"
-    volumes:
-      - homeassistant:/config
-      - /etc/localtime:/etc/localtime:ro
-      - /run/dbus:/run/dbus:ro
-    restart: unless-stopped
-    privileged: true
-    network_mode: host
   serial_logger:
     container_name: serial_logger
     restart: unless-stopped
@@ -117,7 +107,6 @@ services:
     volumes:
       - promtail:/etc/promtail
 volumes:
-  homeassistant:
   telegraf:
   grafana:
   influxdb-data:

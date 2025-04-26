@@ -5,10 +5,6 @@ default_config:
 frontend:
   themes: !include_dir_merge_named themes
 
-# Text to speech
-tts:
-  - platform: google_translate
-
 automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
@@ -16,12 +12,19 @@ scene: !include scenes.yaml
 http:
   use_x_forwarded_for: true
   trusted_proxies:
-    # talos-worker2 VM, which is the source when requests are from pods running on
-    # worker2 using the host network.
-    - 192.168.6.100
-    # IP of the Mikrotik router, which is the source when requests from k8s
-    # are NAT'ed onto dtcnet.
-    - 192.168.5.198
+    - 10.244.0.0/16
+    - 192.168.42.0/24
+
+homekit:
+  - name: HA Bridge
+    filter:
+      include_domains:
+        - light
+      exclude_entities:
+        - light.all_lights
+        - light.classic_twinkle
+        - light.fading_twinkle
+        - light.fading_twinkle_w_fade_out
 
 mqtt:
   button:
@@ -95,11 +98,13 @@ mqtt:
       state_topic: "nursery/twinkling/mode/status"
       payload_on: "3"
       payload_off: "0"
+
 binary_sensor:
   - platform: flic
-    host: 172.16.42.2 # IP of the LoadBalancer for flicd on k8s
+    host: flicd.flicd.svc.cluster.local
     discovery: false
     ignored_click_types: [double, hold]
+
 emulated_hue:
   listen_port: 80
   expose_by_default: false

@@ -1,88 +1,3 @@
-## Bare metal host setup
-
-### Set up bridge
-
-Edit `/etc/netplan/50-cloud-init.yaml` to disable DHCP on enp89s0:
-
-```yaml
-network:
-    ethernets:
-        enp89s0:
-            dhcp4: false
-    version: 2
-    wifis: {}
-```
-
-Then (NOTE: this will kill SSH): `sudo netplan apply`
-
-Then:
-
-```shell
-sudo ip link add br0 addr 92:B9:36:6D:7F:97 type bridge
-sudo ip link set br0 up
-# This will kill your SSH connection dummy
-sudo ip link set enp89s0 master br0
-sudo dhclient br0
-```
-
-## Talos cluster setup
-
-### libvirt network
-
-```shell
-virsh net-define talos-net.xml --validate
-virsh net-start talos-net
-virsh net-autostart talos-net
-```
-
-### Set up CP nodes
-
-```shell
-virt-install --name talos-cp1 \
-     --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
-     --disk size=20,format=qcow2 \
-     --location /usr/local/images/metal-amd64.iso,kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
-     --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
-     --network bridge=virbr2,mac=02:C0:77:B4:28:80 --network bridge=br0,mac=02:7F:50:1E:B0:55
-
-export BOOTSTRAP_IP=10.42.42.100
-
-talosctl gen config nuc-talos https://$BOOTSTRAP_IP:6443
-talosctl machineconfig patch controlplane.yaml --patch @controlplane.patch.yaml -o controlplane.yaml
-talosctl config merge ./talosconfig
-talosctl config endpoint cavnet.cloud
-
-talosctl apply-config --insecure -n 192.168.100.10 --file controlplane.yaml
-
-talosctl bootstrap -n $BOOTSTRAP_IP
-talosctl kubeconfig -n $BOOTSTRAP_IP
-```
-
-### Set up worker nodes
-
-```shell
-virt-install --name talos-worker1 \
-     --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
-     --disk size=20,format=qcow2 --disk size=100,format=qcow2 \
-     --location /usr/local/images/metal-amd64.iso,kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
-     --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
-     --network bridge=virbr2,mac=02:52:A7:0B:1D:89
-
-talosctl machineconfig patch worker.yaml --patch @worker.patch.yaml -o worker.yaml
-talosctl apply-config --insecure -n 192.168.100.100 --file worker.yaml
-```
-
----
-
-## Note on Tailscale + routing
-
-```shell
-# These routes are necessary on dpu-host in order for it to route Tailscale traffic
-# properly (the bastion doesn't need these routes to route traffic through the Mikrotik).
-sudo ip r add 172.16.42.0/24 via 10.42.42.100
-sudo ip r add 10.96.0.0/12 via 10.42.42.100
-```
-
 ## Note on DNS delegation
 
 Delegation of the k.cavnet.cloud zone from Route 53 to my private k8s_gateway nameserver
@@ -149,139 +64,6 @@ sudo openssl storeutl -noout -text -certs /etc/letsencrypt/live/o.cavnet.cloud/c
 sudo kubectl create secret tls o.cavnet-wildcard-cert \
     --cert /etc/letsencrypt/live/o.cavnet.cloud/fullchain.pem \
     --key /etc/letsencrypt/live/o.cavnet.cloud/privkey.pem
-```
-
-## Setting up AWS IAM Roles Anywhere
-
-### Using Kubernetes cluster CA
-
-Extracted the k8s cluster CA certificate to use as the IAM RA trust anchor:
-
-```shell
-kubectl config view \
-    -o jsonpath='{.clusters[].cluster.certificate-authority-data}' \
-    --raw --minify --flatten | base64 -d > k8s.pem
-```
-
-### Set up IAM RA
-
-Upload k8s.pem as an IAM RA Trust Anchor.
-
-Add this policy to the trust relationship of roles I want to use:
-
-```json
-{
-  "Effect": "Allow",
-  "Principal": {
-    "Service": "rolesanywhere.amazonaws.com"
-  },
-  "Action": [
-    "sts:AssumeRole",
-    "sts:TagSession",
-    "sts:SetSourceIdentity"
-  ],
-  "Condition": {
-    "ArnEquals": {
-      "aws:SourceArn": "arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a"
-    }
-  }
-}
-```
-
-Then create one `nuc-talos-k8s-iamra` policy and associate all roles that I want to use from
-k8s cluster, and use default policy. I'll use conditions in the per-role trust relationship
-policies to enforce access controls for per-service k8s certificate identities. 
-
-TODO: need to add additional conditions to enforce authorized principles for each role
-
-### Issuing certs from cluster CA
-
-```shell
-openssl genrsa -out iam-ra-test.key 2048
-
-cat > csr.conf <<EOF
-[req]
-default_bits = 2048
-prompt = no
-encrypt_key = yes
-default_md = sha256
-distinguished_name = kube-apiserver-client
-req_extensions = v3_req
-[ kube-apiserver-client ]
-CN = iam-ra-test.default.pod.cluster.local
-[ v3_req ]
-basicConstraints = CA:FALSE
-keyUsage = nonRepudiation, digitalSignature, keyEncipherment, dataEncipherment
-extendedKeyUsage = serverAuth, clientAuth
-subjectAltName = @alt_names
-[alt_names]
-DNS.1 = iam-ra-test.default.pod
-EOF
-
-openssl req -new -key iam-ra-test.key -out iam-ra-test.csr -config csr.conf
-
-cat > csr.yaml <<EOF
-apiVersion: certificates.k8s.io/v1
-kind: CertificateSigningRequest
-metadata:
-   name: iam-ra-test
-spec:
-   signerName: kubernetes.io/kube-apiserver-client
-   expirationSeconds: 8640000
-   request: $(cat iam-ra-test.csr|base64|tr -d '\n')
-   usages:
-   - digital signature
-   - key encipherment
-   - client auth
-EOF
-
-kubectl create -f csr.yaml
-
-kubectl certificate approve iam-ra-test
-
-kubectl get csr iam-ra-test
-
-kubectl get csr iam-ra-test \
-    -o jsonpath='{.status.certificate}' | openssl base64 -d -A -out iam-ra-test.crt
-    
-openssl storeutl -text -noout -certs iam-ra-test.crt
-```
-
-### Issuing certs using cert-manager and self-signed CA
-
-Get the self-signed CA cert and upload that as the trust anchor:
-
-```shell
-kubectl -n cert-manager get secret self-signed-issuer-ca -o jsonpath='{.data}' | jq -r '.["tls.crt"]' | base64 -d
-```
-
-Issuing a test cert:
-
-```shell
-kubectl get secret kuard-tls -o jsonpath='{.data}' | jq -r '.["tls.crt"]' | base64 -d > kuard.crt
-kubectl get secret kuard-tls -o jsonpath='{.data}' | jq -r '.["tls.key"]' | base64 -d > kuard.key
-openssl storeutl -text -noout -certs kuard.crt
-```
-
-### Use k8s cert to get AWS creds
-
-```shell
-aws_signing_helper credential-process --region us-east-1 \
-    --certificate kuard.crt --private-key kuard.key \
-    --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a \
-    --profile-arn arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02 \
-    --role-arn arn:aws:iam::484396241422:role/S3BackupsRole
-```
-
-### POC for operator
-
-```shell
-kubectl exec -it deployment/aws-cli -c aws-iamra-manager -- \
-    /iamram/aws_signing_helper credential-process --region us-east-1 \
-    --certificate /iamram/certs/tls.crt --private-key /iamram/certs/tls.key \
-    --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a \
-    --profile-arn arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02 \
-    --role-arn arn:aws:iam::484396241422:role/S3BackupsRole | /parse-credentials > /root/.aws/credentials
 ```
 
 ## Multi-homing with homenet
@@ -366,34 +148,6 @@ Then, run a pod with host networking, the dtcnet node selector, and toleration:
       effect: NoSchedule
 ```
 
-## Cluster backups
-
-### Machine config
-
-```shell
-for node in 192.168.100.10 192.168.100.100 192.168.100.101; do 
-    talosctl get -n $node mc v1alpha1 -o yaml | yq eval '.spec' - > $node.yaml
-done
-```
-
-### etcd database
-
-```shell
-talosctl etcd snapshot ./etcd.snapshot.db
-```
-
-### local-path-provisioner volumes
-
-TODO: This is still manual, need to finish scripting this
-
-```shell
-for node in node/talos-worker1 node/talos-worker2; do
-    kubectl debug -n kube-system -it --image alpine "$node"
-    tar -czv -C /host/var/mnt/data -f local-path-provisioner.tar.gz local-path-provisioner
-    kubectl cp -n kube-system node-debugger-talos-worker2-7pst7:/local-path-provisioner.tar.gz ./local-path-provisioner.tar.gz
-done
-```
-
 ## Upgrading Talos
 
 ### Worker nodes
@@ -414,35 +168,6 @@ talosctl upgrade --preserve=true -n 192.168.100.10 \
     --image ghcr.io/siderolabs/installer:v1.8.0
 ```
 
-## Post-reboot automation
-
-This netplan config handles setting up the bridge with the expected MAC address:
-
-```
-network:
-    ethernets:
-        enp89s0:
-            dhcp4: false
-    bridges:
-        br0:
-            dhcp4: true
-            macaddress: "92:B9:36:6D:7F:97"
-            interfaces:
-              - enp89s0
-    version: 2
-```
-
-## OIDC
-
-Manually get a token from Keycloak:
-
-```shell
-curl -d 'scope=openid' -d 'grant_type=password' \
-    -d 'client_id=REPLACEME' -d 'client_secret=REPLACEME' \
-    -d 'username=dan' -d 'password=REPLACEME' \
-    https://keycloak.o.cavnet.cloud/realms/prod/protocol/openid-connect/token
-```
-
 ## Bluetooth
 
 Getting the NUC's Bluetooth adapter working on Kubernetes in the Talos VM was a two-step
@@ -455,7 +180,11 @@ talos/prod/README.md.
 Getting it to work in a *Talos* VM was trickier because Talos's kernel is compiled without
 BT support (confirmed in https://github.com/siderolabs/pkgs/issues/486). There's an open
 request for a Talos System Extension for BT support (https://github.com/siderolabs/extensions/issues/247),
-but I don't think System Extensions currently allow kernel modules to be installed. 
+but in the meantime the solution is to just build the kernel with BT-related modules.
+
+I originally got this working with the built-in AX201, but after a reboot it stopped working
+and I never got it working again. I switched to a TP-Link UB500, and that's working after
+building in the Realtek firmware system extension image which has the necessary firmware.
 
 ### Building Talos with Bluetooth support
 
@@ -466,8 +195,8 @@ but I don't think System Extensions currently allow kernel modules to be install
 5. Build kernel and initramfs: `make kernel initramfs PKG_KERNEL=127.0.0.1:5005/siderolabs/kernel:<TAG> PLATFORM=linux/amd64`
 6. Build imager image: `make imager PKG_KERNEL=127.0.0.1:5005/siderolabs/kernel:<TAG> PLATFORM=linux/amd64 INSTALLER_ARCH=targetarch PUSH=true REGISTRY=127.0.0.1:5005`
 7. May need to explicitly pull imager image if it's been updated: `docker pull 127.0.0.1:5005/siderolabs/imager:<TAG>`
-8. Build ISO: `docker run --rm -t -v $PWD/_out:/out 127.0.0.1:5005/siderolabs/imager:<TAG> iso`
-9. Build installer image: `docker run --rm -t -v $PWD/_out:/out 127.0.0.1:5005/siderolabs/imager:<TAG> installer --base-installer-image ghcr.io/siderolabs/installer:v1.9.5`
+8. Build ISO: `docker run --rm -t -v $PWD/_out:/out 127.0.0.1:5005/siderolabs/imager:<TAG> iso --system-extension-image ghcr.io/siderolabs/realtek-firmware:20250211@sha256:6c22784b86d781eba07a4025b9dfb4ae5679e05e3577d54c6c4283ba5dd7cec5`
+9. Build installer image: `docker run --rm -t -v $PWD/_out:/out 127.0.0.1:5005/siderolabs/imager:<TAG> installer --base-installer-image ghcr.io/siderolabs/installer:v1.9.5 --system-extension-image ghcr.io/siderolabs/realtek-firmware:20250211@sha256:6c22784b86d781eba07a4025b9dfb4ae5679e05e3577d54c6c4283ba5dd7cec5`
 
 To upgrade a node:
 

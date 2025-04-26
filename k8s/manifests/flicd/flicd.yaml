@@ -54,7 +54,7 @@ spec:
       hostNetwork: true
       containers:
         - name: flicd
-          image: ghcr.io/dancavallaro/rpi-config/flicd:0.1.1
+          image: ghcr.io/dancavallaro/rpi-config/flicd:0.1.3
           securityContext:
             capabilities:
               add:
