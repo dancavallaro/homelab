@@ -6,3 +6,10 @@ resources:
 patches:
   - path: namespace.patch.yaml
   - path: local-path-config.patch.yaml
+  - patch: |
+      # Delete the default StorageClass and we'll create our own
+      $patch: delete
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: local-path
