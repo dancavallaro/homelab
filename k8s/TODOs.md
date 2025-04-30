@@ -1,3 +1,4 @@
+* Migrate heartbeats app from CloudWatch to LGTM, remove RPi from SSM
 * Get creds out of source to ESO (see https://dashboard.gitguardian.com/workspace/668916/incidents)
 * More monitoring:
   * Cluster metrics

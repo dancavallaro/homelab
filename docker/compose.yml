@@ -1,21 +1,4 @@
 services:
-  heartbeats:
-    container_name: heartbeats
-    restart: unless-stopped
-    image: "ghcr.io/dancavallaro/telemetry/heartbeats:latest"
-    command:
-      - "-region"
-      - "us-east-1"
-      - "-mqttAddress"
-      - "172.16.42.12:1883"
-      - "-mqttUsername"
-      - "heartbeats"
-      - "-mqttPassword"
-      - "DHV6x48uBtYI83Ppu0tEWBmH"
-      - "-metricNamespace"
-      - "RPiMonitoring"
-    volumes:
-      - /home/pi/.aws/credentials:/root/.aws/credentials:ro
   credential-refresher:
     container_name: credential-refresher
     restart: unless-stopped
