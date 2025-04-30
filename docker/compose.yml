@@ -1,11 +1,4 @@
 services:
-  serial_logger:
-    container_name: serial_logger
-    restart: unless-stopped
-    image: "ghcr.io/dancavallaro/telemetry/serial_logger:latest"
-    command: ["-device", "/dev/ttyUSB"]
-    devices:
-      - "/dev/ttyUSB1:/dev/ttyUSB"
   heartbeats:
     container_name: heartbeats
     restart: unless-stopped

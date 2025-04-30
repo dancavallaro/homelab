@@ -143,7 +143,7 @@ $ virt-install --name talos-prod-worker1 \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=02:52:A7:0B:1D:89
 $ virsh autostart talos-prod-worker1
-# Create worker2k, attached to dtcnet and pass through the TP-Link BT USB device
+# Create worker2, attached to dtcnet and pass through the TP-Link BT USB device
 $ virt-install --name talos-prod-worker2 \
      --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=20,format=qcow2 --disk size=100,format=qcow2 \
@@ -152,12 +152,14 @@ $ virt-install --name talos-prod-worker2 \
      --network bridge="$VM_BRIDGE",mac=DE:6F:9F:0D:15:96 --network bridge=br0,mac=1e:03:e4:b3:4f:47 \
      --hostdev 0x2357:0x0604
 $ virsh autostart talos-prod-worker2
+# Create worker3, pass through the attached ESP32's USB serial device
 $ virt-install --name talos-prod-worker3 \
      --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=20,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
-     --network bridge="$VM_BRIDGE",mac=12:62:54:B1:2D:B0
+     --network bridge="$VM_BRIDGE",mac=12:62:54:B1:2D:B0 \
+     --hostdev 0x0403:0x6001
 $ virsh autostart talos-prod-worker3
 ```
 
@@ -173,6 +175,11 @@ $ talosctl mc patch worker.yaml \
     --patch @patches/worker-common.patch.yaml \
     --patch @patches/worker-dtcnet.patch.yaml \
     --output worker2.final.yaml
+$ talosctl mc patch worker.yaml \
+    --patch @patches/common.patch.yaml \
+    --patch @patches/worker-common.patch.yaml \
+    --patch @patches/worker-esp32.patch.yaml \
+    --output worker3.final.yaml
 ```
 
 #### Apply config and join nodes to cluster
@@ -180,7 +187,7 @@ $ talosctl mc patch worker.yaml \
 ```shell
 $ talosctl apply-config --insecure -n 192.168.42.100 --file worker.final.yaml
 $ talosctl apply-config --insecure -n 192.168.42.101 --file worker2.final.yaml
-$ talosctl apply-config --insecure -n 192.168.42.102 --file worker.final.yaml # Shares config with worker1; only worker2 is special
+$ talosctl apply-config --insecure -n 192.168.42.102 --file worker3.final.yaml
 ```
 
 ## Final manual bootstrapping
