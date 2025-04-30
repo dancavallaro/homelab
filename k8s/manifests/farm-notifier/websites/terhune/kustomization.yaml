@@ -7,7 +7,7 @@ patches:
   - patch: |-
       - op: replace
         path: /spec/schedule
-        value: "5 14 * * *"
+        value: "1 14 * * *"
       - op: replace
         path: /spec/jobTemplate/spec/template/metadata/labels/app
         value: farm-notifier-terhune

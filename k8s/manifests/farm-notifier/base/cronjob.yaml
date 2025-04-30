@@ -18,7 +18,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: farm-notifier
-              image: ghcr.io/dancavallaro/farm-notifier/farm-notifier:0.2.2
+              image: ghcr.io/dancavallaro/farm-notifier/farm-notifier:0.3.0
               args:
                 - REPLACEME
               env:
@@ -38,8 +38,8 @@ spec:
                       key: secret-key
                 - name: SOURCE_BUCKET_NAME
                   value: farm-notifier-website-source
-                - name: EMAIL_TEMPLATE_NAME
-                  value: FarmNotifierTemplate
+                - name: EMAILS_ENABLED
+                  value: "true"
                 - name: DATA_PATH_PREFIX
                   value: /farm-notifier/data
               volumeMounts:
