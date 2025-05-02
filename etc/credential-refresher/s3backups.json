@@ -1,5 +1,0 @@
-{
-  "user": "s3backups",
-  "role_arn": "arn:aws:iam::484396241422:role/S3BackupsRole",
-  "session_name": "s3-backups"
-}

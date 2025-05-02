@@ -1,4 +1,4 @@
-- name: Bootstrap RPi
+- name: Bootstrap host
   hosts: all
   tasks:
     - name: Sanity check
@@ -10,93 +10,91 @@
         pkg:
           - vim
           - curl
+          - unzip
           - ca-certificates
           - lm-sensors
           - jq
           - sqlite3
           - rsyslog
-    - name: Clone rpi-config repo
-      ansible.builtin.git:
-        repo: git@github.com:dancavallaro/rpi-config.git
-        dest: ~/rpi-config
-        accept_newhostkey: true
-        version: main
     - name: Install .vimrc
-      ansible.builtin.file:
-        src: ~/rpi-config/dotfiles/vimrc
+      ansible.builtin.copy:
+        src: ../dotfiles/vimrc
         dest: ~/.vimrc
-        state: link
-        force: true
     - name: Install .gitconfig
-      ansible.builtin.file:
-        src: ~/rpi-config/dotfiles/gitconfig
+      ansible.builtin.copy:
+        src: ../dotfiles/gitconfig
         dest: ~/.gitconfig
-        state: link
-        force: true
-    - name: Create virtual env
-      become: true
-      ansible.builtin.command: python3 -m venv /usr/local/rpi-config/.venv
-    - name: Install dependencies for Python scripts
-      become: true
-      ansible.builtin.pip:
-        requirements: "{{ ansible_user_dir }}/rpi-config/requirements.txt"
-        executable: /usr/local/rpi-config/.venv/bin/pip
     - name: Copy scripts
       become: true
       ansible.builtin.copy:
-        remote_src: true
-        src: "{{ ansible_user_dir }}/rpi-config/bin"
+        src: ../bin
         dest: /usr/local/rpi-config
         mode: '755'
     - name: Install AWS CLI
       become: true
-      ansible.builtin.command: "{{ ansible_user_dir }}/rpi-config/ansible/install-aws-cli"
+      ansible.builtin.script: scripts/install-aws-cli
+      register: result
+      failed_when: "'already installed' not in result.stdout"
+      changed_when: "result.rc == 0"
     - name: Install Docker
       become: true
-      ansible.builtin.command: "{{ ansible_user_dir }}/rpi-config/ansible/install-docker"
+      ansible.builtin.script: scripts/install-docker
+      register: result
+      failed_when: "'already installed' not in result.stdout"
+      changed_when: "result.rc == 0"
     - name: Add my user to docker group
       become: true
       ansible.builtin.user:
         name: "{{ ansible_user_id }}"
         groups: docker
         append: true
-    # This didn't actually work until I compiled the Loki driver myself:
-    # https://github.com/grafana/loki/issues/974#issuecomment-1684801986
     - name: Install Loki Docker driver
-      ansible.builtin.command: "docker plugin install grafana/loki-docker-driver:2.9.10 --alias loki --grant-all-permissions"
+      ansible.builtin.command: "docker plugin install grafana/loki-docker-driver:3.5.0-{{ arch }} --alias loki --grant-all-permissions"
+      register: result
+      failed_when: "result.rc != 0 and 'plugin loki:latest already exists' not in result.stderr"
+      changed_when: "result.rc == 0"
     - name: Install Docker daemon config with Loki logging
       become: true
+      register: docker_config
       ansible.builtin.copy:
         src: files/etc/docker/daemon.json
         dest: /etc/docker/daemon.json
-        owner: root
-        group: root
-    - name: Create users
-      ansible.builtin.include_tasks:
-        file: create-user.yaml
-      loop:
-        - pi
-        - s3backups
-    - name: Add pi user to additional groups
+    - name: Restart dockerd
       become: true
-      ansible.builtin.user:
-        name: pi
-        groups: gpio,docker,dialout
-        append: true
-    - name: Copy credential-refresher configs
+      when: docker_config.changed
+      ansible.builtin.systemd_service:
+        name: docker
+        state: restarted
+    - name: Copy Docker config files
       become: true
       ansible.builtin.copy:
-        src: ../etc/credential-refresher
-        dest: /etc/
-        owner: root
-        group: root
-    - name: Install crontab
+        src: ../docker
+        dest: /usr/local/rpi-config/
+    - name: Determine Docker group ID
+      ansible.builtin.command:
+        cmd: stat -c '%g' /var/run/docker.sock
+      register: docker_gid
+    - name: Render Docker compose file
+      become: true
+      ansible.builtin.template:
+        src: ../docker/compose.yml
+        dest: /usr/local/rpi-config/docker/compose.yml
+    - name: Launch containers
+      ansible.builtin.command: docker compose -f /usr/local/rpi-config/docker/compose.yml up -d
+    - name: Create journald drop-in directory
+      become: true
+      ansible.builtin.file:
+        path: /etc/systemd/journald.conf.d
+        state: directory
+        mode: '0755'
+    - name: Install journald config
       become: true
       ansible.builtin.copy:
-        src: ../etc/crontab
-        dest: /etc/cron.d/rpi
+        src: files/etc/journald.conf
+        dest: /etc/systemd/journald.conf.d/override.conf
         owner: root
         group: root
+      notify: Restart journald
     - name: Install rsyslog config
       become: true
       ansible.builtin.copy:
@@ -105,25 +103,14 @@
         owner: root
         group: root
       notify: Restart rsyslog
-      changed_when: true
-    - name: Install avahi config
-      become: true
-      ansible.builtin.copy:
-        src: files/etc/avahi/avahi-daemon.conf
-        dest: /etc/avahi/avahi-daemon.conf
-        owner: root
-        group: root
-      notify: Restart avahi
-    - name: Print completion message
-      ansible.builtin.debug:
-        msg: Done with initial provisioning! Run SSM activation next.
-
   handlers:
     - name: Restart rsyslog
+      become: true
       ansible.builtin.systemd_service:
         name: rsyslog
         state: restarted
-    - name: Restart avahi
+    - name: Restart journald
+      become: true
       ansible.builtin.systemd_service:
-        name: avahi-daemon
+        name: systemd-journald
         state: restarted

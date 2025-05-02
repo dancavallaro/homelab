@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-aws ssm create-activation \
-  --iam-role SSMInstanceProfile \
-  --region us-east-1

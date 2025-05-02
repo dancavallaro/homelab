@@ -1,5 +1,0 @@
-{
-    "user": "pi",
-    "role_arn": "arn:aws:iam::484396241422:role/RPiMonitoringRole",
-    "session_name": "rpi-monitoring"
-}

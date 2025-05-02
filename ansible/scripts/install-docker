@@ -3,7 +3,7 @@ set -euo pipefail
 
 if command -v docker ; then
   echo "docker is already installed, nothing to do"
-  exit 0
+  exit 1
 fi
 
 install -m 0755 -d /etc/apt/keyrings

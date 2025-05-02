@@ -1,0 +1,73 @@
+[global_tags]
+  service = "host_metrics"
+
+[agent]
+  interval = "20s"
+  round_interval = false
+  debug = true
+
+#[[outputs.file]]
+#  files = ["stdout"]
+
+[[outputs.http]]
+  url = "http://172.16.42.2/api/v1/push" # Mimir LB
+  data_format = "prometheusremotewrite"
+
+  [outputs.http.headers]
+    Content-Type = "application/x-protobuf"
+    Content-Encoding = "snappy"
+
+[[inputs.cpu]]
+
+[[inputs.disk]]
+  ignore_fs = [
+    "tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs",
+    "nsfs", "ramfs", "rpc_pipefs", "vfat", "fuse.gvfsd-fuse", "fuse.portal",
+    "hugetlbfs"
+  ]
+
+[[inputs.diskio]]
+
+[[inputs.docker]]
+  docker_label_include = [
+    "com.docker.compose.image"
+  ]
+  fieldexclude = ["container_id"]
+
+[[inputs.ethtool]]
+
+[[inputs.kernel]]
+
+[[inputs.mem]]
+
+[[inputs.processes]]
+
+[[inputs.swap]]
+
+[[inputs.system]]
+  fieldexclude = ["uptime_format"]
+
+[[inputs.net]]
+
+[[inputs.netstat]]
+
+[[inputs.sensors]]
+  remove_numbers = true
+
+# [[inputs.mqtt_consumer]]
+#   servers = ["tcp://172.16.42.12:1883"]
+#
+#   topics = [
+#     "device/+/telemetry/+",
+#   ]
+#
+#   data_format = "value"
+#   data_type = "float"
+#
+#   username = "telegraf"
+#   password = "REPLACEME"
+#
+#   [[inputs.mqtt_consumer.topic_parsing]]
+#     topic = "device/+/telemetry/+"
+#     measurement = "_/_/_/measurement"
+#     tags = "_/device_name/_/_"

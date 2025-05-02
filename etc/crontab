@@ -1,2 +1,0 @@
-* * * * * pi /usr/local/rpi-config/bin/publish_temp_metric.sh 2>&1 | logger -t rpitemp
-0 0 * * * root /usr/local/rpi-config/bin/docker-backup --upload 2>&1 | logger -t docker-backup

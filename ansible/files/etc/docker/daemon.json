@@ -1,7 +1,8 @@
 {
   "log-driver": "loki",
   "log-opts": {
-    "loki-url": "http://127.0.0.1:3100/loki/api/v1/push",
-    "loki-retries": "5"
+    "loki-url": "http://172.16.42.6/loki/api/v1/push",
+    "loki-retries": "5",
+    "loki-external-labels": "service_name=host.container_logs,container_name={{.Name}}"
   }
 }

@@ -1,12 +1,10 @@
-* Migrate Telegraf on RPi to use LGTM on k8s
-* Migrate heartbeats app from CloudWatch to LGTM, remove RPi from SSM
+* Migrate heartbeats metrics/alarm from CloudWatch to LGTM+Pushover
 * Get creds out of source to ESO (see https://dashboard.gitguardian.com/workspace/668916/incidents)
 * More monitoring:
   * Cluster metrics
   * Talos logs
   * Pod metrics
   * Node(VM) metrics
-  * Host(NUC) metrics/logs
 * Set up notifications for cron/job failures (and any other health events)
 * One of the RPis should have a way to power cycle the NUC without using HA
 * Backup job:
