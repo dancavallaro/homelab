@@ -106,6 +106,7 @@ metadata:
   name: loki-http
   namespace: monitoring
 spec:
+  type: LoadBalancer
   selector:
     app: loki
   ports:

@@ -88,6 +88,7 @@ metadata:
   name: mimir-http
   namespace: monitoring
 spec:
+  type: LoadBalancer
   selector:
     app: mimir
   ports:
