@@ -65,7 +65,6 @@ spec:
           args:
             - run
             - --server.http.listen-addr=0.0.0.0:12345
-            - --stability.level=experimental
             - /etc/alloy.d
           ports:
             - name: http
@@ -78,7 +77,44 @@ spec:
         - name: alloy-conf
           configMap:
             name: alloy-conf
-            optional: false
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: alloy-talos
+  namespace: monitoring
+spec:
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: alloy-talos
+  template:
+    metadata:
+      labels:
+        app: alloy-talos
+    spec:
+      serviceAccountName: alloy
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+      containers:
+        - name: alloy
+          image: grafana/alloy:v1.7.5
+          args:
+            - run
+            - --stability.level=experimental
+            - /etc/alloy.d
+          volumeMounts:
+            - name: alloy-talos-conf
+              mountPath: /etc/alloy.d
+              readOnly: true
+      volumes:
+        - name: alloy-talos-conf
+          configMap:
+            name: alloy-talos-conf
 ---
 apiVersion: v1
 kind: Service

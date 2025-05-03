@@ -1,0 +1,99 @@
+declare "talos_logs" {
+  argument "service_name" {
+    comment = "Value for the service_name label, used in the Grafana drilldown feature"
+  }
+  argument "listen_port" {
+    comment = "Port to listen on for incoming logs"
+  }
+  argument "extra_json_expressions" {
+    comment = "Additional expressions to parse from JSON message"
+  }
+  argument "extra_label_values" {
+    comment = "Additional values to set as labels"
+  }
+  argument "logs_destinations" {
+    comment = "Must be a list of log destinations where collected logs should be forwarded to"
+  }
+
+  otelcol.receiver.tcplog "logserver" {
+    listen_address = "127.0.0.1:" + argument.listen_port.value
+  
+    output {
+      logs = [otelcol.exporter.loki.default.input]
+    }
+  }
+  
+  otelcol.exporter.loki "default" {
+    forward_to = [loki.process.default.receiver]
+  }
+  
+  loki.process "default" {
+    stage.json {
+      expressions = {output = "body"}
+    }
+  
+    stage.json {
+      source = "output"
+      expressions = {level = `"talos-level"`, talos_time = `"talos-time"`}
+    }
+
+    stage.json {
+      source = "output"
+      expressions = argument.extra_json_expressions.value
+    }
+  
+    stage.labels {
+      values = {
+        "level" = "",
+      }
+    }
+
+    stage.labels {
+      values = argument.extra_label_values.value
+    }
+  
+    stage.label_drop {
+      values = ["exporter"]
+    }
+  
+    stage.static_labels {
+      values = {
+        "service_name" = argument.service_name.value,
+        "node" = sys.env("HOSTNAME"),
+      }
+    }
+  
+    stage.output {
+      source = "output"
+    }
+  
+    stage.timestamp {
+      source = "talos_time"
+      format = "RFC3339Nano"
+    }
+  
+    forward_to = argument.logs_destinations.value
+  }
+}
+
+talos_logs "service_logs" {
+  service_name = "talos.service_logs"
+  listen_port = "32411"
+  extra_json_expressions = {talos_service = `"talos-service"`}
+  extra_label_values = {"talos_service" = ""}
+  logs_destinations = [
+    //loki.echo.echo.receiver,
+    loki.write.loki.receiver,
+  ]
+}
+
+talos_logs "kernel_logs" {
+  service_name = "talos.kernel_logs"
+  listen_port = "32412"
+  extra_json_expressions = {facility = "", priority = ""}
+  extra_label_values = {facility = "", priority = ""}
+  logs_destinations = [
+    //loki.echo.echo.receiver,
+    loki.write.loki.receiver,
+  ]
+}

@@ -1,7 +1,9 @@
 machine:
   install:
     disk: /dev/vda
-    image: ghcr.io/dancavallaro/talos/installer:v1.9.5
+    image: ghcr.io/dancavallaro/talos/installer:v1.9.5 # Custom build with BT modules included
+    extraKernelArgs:
+      - talos.logging.kernel=tcp://127.0.0.1:32412/
   network:
     nameservers:
       - 1.1.1.1
@@ -13,6 +15,10 @@ machine:
         - 192.168.42.0/24
   features:
     nodeAddressSortAlgorithm: v2
+  logging:
+    destinations:
+      - endpoint: "tcp://127.0.0.1:32411/"
+        format: "json_lines"
 # Use Cilium as CNI and kube-proxy replacement
 cluster:
   network:
