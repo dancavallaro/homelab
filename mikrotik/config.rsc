@@ -1,4 +1,4 @@
-# 2025-04-09 19:58:36 by RouterOS 7.14.1
+# 2025-05-06 12:31:05 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -64,6 +64,7 @@ add address=10.255.1.1 comment="dpu-dev Protectli" mac-address=00:E0:67:30:D6:DE
 add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-address=90:8D:6E:35:11:38 server=defconf
 add address=10.42.42.42 client-id=1:e4:5f:1:ef:d7:10 comment="bastion RPi" mac-address=E4:5F:01:EF:D7:10 server=defconf
 add address=10.42.42.2 comment="NUC br0" mac-address=92:B9:36:6D:7F:97 server=defconf
+add address=10.42.42.8 client-id=1:90:9:d0:77:4f:26 comment="Synology NAS" mac-address=90:09:D0:77:4F:26 server=defconf
 /ip dhcp-server network
 add address=10.42.0.0/16 comment="Office network" dns-server=10.42.42.1 gateway=10.42.42.1 netmask=16
 add address=10.255.1.0/30 comment="Link to Protectli" dns-server=8.8.8.8,8.8.4.4 gateway=10.255.1.2
@@ -96,10 +97,12 @@ add action=masquerade chain=srcnat comment="defconf: masquerade" ipsec-policy=ou
 /ip firewall raw
 add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and k8s subnet" dst-address=10.96.0.0/12 src-address=10.42.0.0/16
 add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and MetalLB subnet" dst-address=172.16.42.0/24 src-address=10.42.0.0/16
+add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and k8s VM subnet" dst-address=192.168.42.0/24 src-address=10.42.0.0/16
 /ip route
 add disabled=no distance=1 dst-address=10.255.0.0/16 gateway=10.255.1.1 pref-src="" routing-table=main suppress-hw-offload=no
 add comment="Route for MetalLB" disabled=no distance=1 dst-address=172.16.42.0/24 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
 add comment="Route for k8s cluster" disabled=no distance=1 dst-address=10.96.0.0/12 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
+add comment="Route for k8s VM private subnet" disabled=no distance=1 dst-address=192.168.42.0/24 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
 /ipv6 firewall address-list
 add address=::/128 comment="defconf: unspecified address" list=bad_ipv6
 add address=::1/128 comment="defconf: lo" list=bad_ipv6

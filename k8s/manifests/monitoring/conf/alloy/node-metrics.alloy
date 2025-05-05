@@ -8,7 +8,7 @@ prometheus.exporter.unix "nodemetrics" {
     "netclass", "netdev", "netstat", "processes", "stat", "time", "vmstat",
   ]
   netdev {
-    device_include = "^enp.*"
+    device_include = "^(enp.*|lo$)"
   }
   netclass {
     ignored_devices = "^lxc.*"

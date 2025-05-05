@@ -18,6 +18,7 @@
     Content-Encoding = "snappy"
 
 [[inputs.cpu]]
+  report_active = true
 
 [[inputs.disk]]
   ignore_fs = [
