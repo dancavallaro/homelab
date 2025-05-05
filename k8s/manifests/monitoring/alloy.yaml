@@ -72,7 +72,6 @@ spec:
           volumeMounts:
             - name: alloy-conf
               mountPath: /etc/alloy.d
-              readOnly: true
       volumes:
         - name: alloy-conf
           configMap:
@@ -103,18 +102,49 @@ spec:
       containers:
         - name: alloy
           image: grafana/alloy:v1.7.5
+          securityContext:
+            privileged: true
           args:
             - run
+            - --server.http.listen-addr=127.0.0.1:12345
             - --stability.level=experimental
             - /etc/alloy.d
           volumeMounts:
             - name: alloy-talos-conf
               mountPath: /etc/alloy.d
               readOnly: true
+            - name: rootfs
+              mountPath: /host/root
+              mountPropagation: HostToContainer
+            - name: procfs
+              mountPath: /host/proc
+              mountPropagation: HostToContainer
+            - name: sysfs
+              mountPath: /host/sys
+              mountPropagation: HostToContainer
+            - name: udev-data
+              mountPath: /host/udev
+              mountPropagation: HostToContainer
       volumes:
         - name: alloy-talos-conf
           configMap:
             name: alloy-talos-conf
+        - name: rootfs
+          hostPath:
+            path: /
+            type: Directory
+        - name: procfs
+          hostPath:
+            path: /proc
+            type: Directory
+        - name: sysfs
+          hostPath:
+            path: /sys
+            type: Directory
+        - name: udev-data
+          hostPath:
+            path: /run/udev/data
+            type: Directory
 ---
 apiVersion: v1
 kind: Service

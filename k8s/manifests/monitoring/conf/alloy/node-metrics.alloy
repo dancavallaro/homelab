@@ -1,0 +1,47 @@
+prometheus.exporter.unix "nodemetrics" {
+  rootfs_path = "/host/root"
+  procfs_path = "/host/proc"
+  sysfs_path = "/host/sys"
+  udev_data_path = "/host/udev"
+  set_collectors = [
+    "boottime", "cpu", "diskstats", "filefd", "filesystem", "loadavg", "meminfo",
+    "netclass", "netdev", "netstat", "processes", "stat", "time", "vmstat",
+  ]
+  netdev {
+    device_include = "^enp.*"
+  }
+  netclass {
+    ignored_devices = "^lxc.*"
+  }
+  filesystem {
+    // Defaults from https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.exporter.unix/#filesystem,
+    // plus "tmpfs" (literally the only addition here -__-).
+    fs_types_exclude = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|tmpfs)$"
+  }
+}
+
+prometheus.scrape "default" {
+  scrape_interval = "60s"
+  targets = prometheus.exporter.unix.nodemetrics.targets
+  forward_to = [
+    prometheus.relabel.default.receiver,
+  ]
+}
+
+prometheus.relabel "default" {
+  rule {
+    action = "replace"
+    source_labels = ["instance"]
+    target_label = "host"
+  }
+
+  rule {
+    action = "replace"
+    replacement = "vm_metrics"
+    target_label = "service"
+  }
+
+  forward_to = [
+    prometheus.remote_write.mimir.receiver,
+  ]
+}

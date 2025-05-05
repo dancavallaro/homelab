@@ -18,3 +18,4 @@ configMapGenerator:
     files:
       - conf/alloy/common.alloy
       - conf/alloy/talos-logs.alloy
+      - conf/alloy/node-metrics.alloy
