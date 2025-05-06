@@ -22,7 +22,7 @@ prometheus.scrape "kube_state_metrics" {
 prometheus.relabel "kube_state_metrics" {
   rule {
     source_labels = ["__name__"]
-    regex = ".*_created|.*_info|kube_pod_.*|kube_deployment_status_replicas.*"
+    regex = ".*_created|.*_info|kube_pod_.*|kube_daemonset.*|kube_job.*|kube_cronjob.*|kube_node.*|kube_replicaset.*|kube_statefulset.*|kube_persistentvolume.*|kube_deployment_status_replicas.*"
     action = "keep"
   }
   forward_to = [

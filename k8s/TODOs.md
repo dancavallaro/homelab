@@ -1,6 +1,7 @@
 * More monitoring:
   * Migrate heartbeats metrics/alarm from CloudWatch to LGTM+Pushover 
   * Set up notifications for cron/job failures (and any other health events)
+  * Metrics on PVs/PVCs
 * One of the RPis should have a way to power cycle the NUC without using HA
 * Set up Synology CSI
 * Backup job:
