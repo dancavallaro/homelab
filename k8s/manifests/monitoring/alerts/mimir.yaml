@@ -1,0 +1,7 @@
+namespace: kubernetes
+groups:
+  - name: alerts
+    interval: 1m
+    rules:
+      - alert: Failed Kubernetes Job
+        expr: kube_job_status_failed{cluster="talos-prod"} > 0
