@@ -3,10 +3,6 @@ prometheus.relabel "output" {
     replacement = "cluster_metrics"
     target_label = "service"
   }
-  rule {
-    replacement = "talos-prod"
-    target_label = "cluster"
-  }
   forward_to = [
     prometheus.remote_write.mimir.receiver,
   ]

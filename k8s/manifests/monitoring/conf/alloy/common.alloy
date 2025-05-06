@@ -11,6 +11,12 @@ prometheus.remote_write "mimir" {
   endpoint {
     url = "http://mimir-http/api/v1/push"
   }
+  write_relabel_config {
+    rule {
+      replacement = "talos-prod"
+      target_label = "cluster"
+    }
+  }
 }
 
 loki.write "loki" {
