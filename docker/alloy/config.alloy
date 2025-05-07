@@ -1,0 +1,73 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+livedebugging {
+  enabled = true
+}
+
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "http://172.16.42.2/api/v1/push"
+  }
+}
+
+prometheus.exporter.unix "default" {
+  rootfs_path = "/host/root"
+  procfs_path = "/host/proc"
+  sysfs_path = "/host/sys"
+  udev_data_path = "/host/udev"
+  set_collectors = [
+    "boottime", "cpu", "diskstats", "filefd", "filesystem", "loadavg", "meminfo",
+    "netclass", "netdev", "netstat", "processes", "stat", "time", "vmstat",
+  ]
+  netdev {
+    device_include = "^(enp.*|eth.*|br[0-9]+|lo$)"
+  }
+  netclass {
+    ignored_devices = "^lxc.*"
+  }
+  filesystem {
+    // Defaults from https://grafana.com/docs/alloy/latest/reference/components/prometheus/prometheus.exporter.unix/#filesystem, plus "tmpfs"
+    fs_types_exclude = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|tmpfs)$"
+  }
+}
+
+prometheus.scrape "hostmetrics" {
+  scrape_interval = "60s"
+  targets = prometheus.exporter.unix.default.targets
+  forward_to = [
+    prometheus.relabel.hostmetrics.receiver,
+  ]
+}
+
+prometheus.relabel "hostmetrics" {
+  rule {
+    action = "replace"
+    source_labels = ["instance"]
+    target_label = "host"
+  }
+  rule {
+    action = "replace"
+    replacement = "host_metrics"
+    target_label = "service"
+  }
+  rule {
+    source_labels = ["__name__", "device"]
+    separator = "@"
+    regex = "node_network_.*@(en[ospx][0-9].*|eth[0-9].*|br[0-9]+|lo$)"
+    target_label = "__keepme"
+    replacement = "1"
+  }
+  rule {
+    source_labels = ["__name__", "__keepme"]
+    separator = "@"
+    regex = "node_network_.*@"
+    action = "drop"
+  }
+
+  forward_to = [
+    prometheus.remote_write.mimir.receiver,
+  ]
+}

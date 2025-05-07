@@ -1,37 +1,26 @@
 services:
-  telegraf:
-    container_name: telegraf
+  alloy:
+    container_name: alloy
     restart: unless-stopped
-    image: telegraf:1.34.1
-    networks:
-      - telemetry
-    # docker group gid, from: stat -c '%g' /var/run/docker.sock
-    user: telegraf:{{ docker_gid.stdout }}
     privileged: true
-    hostname: {{ inventory_hostname }}
-    environment:
-      HOST_ETC: /hostfs/etc
-      HOST_PROC: /hostfs/proc
-      HOST_SYS: /hostfs/sys
-      HOST_VAR: /hostfs/var
-      HOST_RUN: /hostfs/run
-    command: ["telegraf", "--config", "/etc/telegraf/telegraf.toml"]
+    network_mode: host
+    image: grafana/alloy:v1.7.5
+    command:
+      - run
+      - --server.http.listen-addr=127.0.0.1:12345
+      - /etc/alloy.d
     volumes:
-      - /:/hostfs:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /var/run/utmp:/var/run/utmp:ro
-      - /run/udev:/run/udev:ro
-      - ./telegraf:/etc/telegraf
+      - /:/host/root:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /run/udev/data:/host/udev:ro
+      - ./alloy:/etc/alloy.d
   promtail:
     container_name: promtail
     restart: unless-stopped
     image: grafana/promtail:2.9.10
     command: ["-config.file=/etc/promtail/config.yaml"]
-    networks:
-      - telemetry
     ports:
       - "1514:1514"
     volumes:
       - ./promtail:/etc/promtail
-networks:
-  telemetry:
