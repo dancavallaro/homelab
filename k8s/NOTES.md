@@ -203,3 +203,34 @@ To upgrade a node:
 ```shell
 talosctl upgrade -n <NODE IP> --image ghcr.io/dancavallaro/talos/installer:v1.9.5
 ```
+
+## Loki log volume analysis
+
+See log stream size by service name in the last day:
+
+```
+sum by(service_name) (bytes_over_time({service_name=~".+"} [24h]))
+```
+
+(spoiler alert, it was Talos service logs)
+
+Break it down by service and level:
+
+```
+sum by(talos_service, level) (bytes_over_time({service_name="talos.service_logs"} [24h]))
+```
+
+## Use Pocket ID to get token to access k8s APIs from CLI
+
+First get a token:
+
+```shell
+export CLIENT_SECRET="$(kubectl -n headlamp get secret headlamp-oidc -o jsonpath="{.data['client-secret']}" | base64 -d)"
+export TOKEN="$(kubectl oidc-login get-token --oidc-issuer-url=https://pocket-id.o.cavnet.cloud --oidc-client-id=816acb21-3d87-470c-8d90-8c17ee9da65c --oidc-client-secret="$CLIENT_SECRET" --oidc-extra-scope=email,groups | jq -r .status.token)"
+```
+
+Then use the token to access an authenticated API:
+
+```shell
+curl -s -k -H "Authorization: Bearer $TOKEN" https://10.42.42.100:6443/metrics
+```
