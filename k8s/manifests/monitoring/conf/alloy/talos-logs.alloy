@@ -76,14 +76,27 @@ declare "talos_logs" {
   }
 }
 
+// Talos machined logs are incredibly noisy and so far represent more than 90% of total
+// log volume (including all pod logs, host/VM syslogs, and all other system logs). They
+// don't seem to have anything useful so just drop them here.
+loki.process "filter_service_logs" {
+  stage.drop {
+    source = "talos_service,level"
+    separator = "@"
+    expression = "machined@info"
+  }
+  forward_to = [
+    //loki.echo.echo.receiver,
+    loki.write.loki.receiver,
+  ]
+}
 talos_logs "service_logs" {
   service_name = "talos.service_logs"
   listen_port = "32411"
   extra_json_expressions = {talos_service = `"talos-service"`}
   extra_label_values = {"talos_service" = ""}
   logs_destinations = [
-    //loki.echo.echo.receiver,
-    loki.write.loki.receiver,
+    loki.process.filter_service_logs.receiver,
   ]
 }
 
