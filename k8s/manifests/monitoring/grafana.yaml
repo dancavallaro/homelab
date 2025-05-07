@@ -32,22 +32,9 @@ data:
         jsonData:
           implementation: prometheus
           handleGrafanaManagedAlerts: true
-  legacy.yaml: |-
-    apiVersion: 1
-    datasources:
+    deleteDatasources:
       - name: RPi InfluxDB
-        type: influxdb
-        url: http://192.168.5.100:8086
-        editable: false
-        jsonData:
-          dbName: home
-          httpHeaderName1: "Authorization"
-        secureJsonData:
-          httpHeaderValue1: "Token admin=="
       - name: RPi Loki
-        type: loki
-        url: http://192.168.5.100:3100
-        editable: false
 ---
 apiVersion: v1
 kind: ConfigMap
