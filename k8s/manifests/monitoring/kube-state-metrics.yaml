@@ -31,7 +31,7 @@ spec:
       labels:
         app: kube-state-metrics
     spec:
-      serviceAccountName: metrics-reader
+      serviceAccountName: kube-state-metrics
       containers:
         - name: kube-state-metrics
           image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0
