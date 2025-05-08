@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# pip install python-kasa
+
+# IP address of the TP-Link Kasa smart power strip (KP303)
+ADDRESS=192.168.5.208
+
+kasa --host 192.168.5.208 feature
+
+kasa --host 192.168.5.208 device --index 1 on # for example
