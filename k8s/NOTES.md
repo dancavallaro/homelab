@@ -188,15 +188,38 @@ building in the Realtek firmware system extension image which has the necessary 
 
 ### Building Talos with Bluetooth support
 
-1. Start container registry if not one already: `docker run -d -p 5005:5000 --restart always --name local registry:2`
+1. Start container registry if not one already:
+   ```
+   docker run -d -p 5005:5000 --restart always --name local registry:2
+   ```
 2. Make kernel config changes in `pkgs` repo.
-3. Build kernel image: `make kernel REGISTRY=127.0.0.1:5005 PUSH=true PLATFORM=linux/amd64`
+3. Build kernel image: 
+   ```
+   time make kernel REGISTRY=127.0.0.1:5005 PUSH=true PLATFORM=linux/amd64
+   ```
 4. Update `hack/modules-amd64.txt` in `talos` repo to include new modules.
-5. Build kernel and initramfs: `make kernel initramfs PKG_KERNEL=127.0.0.1:5005/siderolabs/kernel:<TAG> PLATFORM=linux/amd64`
-6. Build imager image: `make imager PKG_KERNEL=127.0.0.1:5005/siderolabs/kernel:<TAG> PLATFORM=linux/amd64 INSTALLER_ARCH=targetarch PUSH=true REGISTRY=127.0.0.1:5005`
+5. Build kernel and initramfs:
+   ```
+   time make kernel initramfs PKG_KERNEL=127.0.0.1:5005/siderolabs/kernel:<TAG> PLATFORM=linux/amd64
+   ```
+6. Build imager image:
+   ```
+   time make imager PKG_KERNEL=127.0.0.1:5005/siderolabs/kernel:<TAG> PLATFORM=linux/amd64 INSTALLER_ARCH=targetarch PUSH=true REGISTRY=127.0.0.1:5005
+   ```
 7. May need to explicitly pull imager image if it's been updated: `docker pull 127.0.0.1:5005/siderolabs/imager:<TAG>`
-8. Build ISO: `docker run --rm -t -v $PWD/_out:/out 127.0.0.1:5005/siderolabs/imager:<TAG> iso --system-extension-image ghcr.io/siderolabs/realtek-firmware:20250211@sha256:6c22784b86d781eba07a4025b9dfb4ae5679e05e3577d54c6c4283ba5dd7cec5`
-9. Build installer image: `docker run --rm -t -v $PWD/_out:/out 127.0.0.1:5005/siderolabs/imager:<TAG> installer --base-installer-image ghcr.io/siderolabs/installer:v1.9.5 --system-extension-image ghcr.io/siderolabs/realtek-firmware:20250211@sha256:6c22784b86d781eba07a4025b9dfb4ae5679e05e3577d54c6c4283ba5dd7cec5`
+8. Build ISO:
+   ```
+   docker run --rm -t -v $PWD/_out:/out 127.0.0.1:5005/siderolabs/imager:<TAG> iso \
+       --system-extension-image ghcr.io/siderolabs/realtek-firmware:20250211@sha256:6c22784b86d781eba07a4025b9dfb4ae5679e05e3577d54c6c4283ba5dd7cec5 \
+       --system-extension-image ghcr.io/siderolabs/iscsi-tools:v0.1.6@sha256:8ad7cd682f06198a6df7906d439939cc3f5feaa8a32f38ab2563268a17862baa
+   ```
+9. Build installer image:
+   ```
+   docker run --rm -t -v $PWD/_out:/out 127.0.0.1:5005/siderolabs/imager:<TAG> installer \
+       --base-installer-image ghcr.io/siderolabs/installer:v1.9.5 \
+       --system-extension-image ghcr.io/siderolabs/realtek-firmware:20250211@sha256:6c22784b86d781eba07a4025b9dfb4ae5679e05e3577d54c6c4283ba5dd7cec5 \
+       --system-extension-image ghcr.io/siderolabs/iscsi-tools:v0.1.6@sha256:8ad7cd682f06198a6df7906d439939cc3f5feaa8a32f38ab2563268a17862baa
+   ```
 
 To upgrade a node:
 

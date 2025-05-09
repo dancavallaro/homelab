@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: speedtest
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: test-claim
+  namespace: speedtest
+spec:
+  storageClassName: synology-iscsi
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10G
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: read
+  namespace: speedtest
+spec:
+  template:
+    metadata:
+      name: read
+    spec:
+      containers:
+        - name: read
+          image: ubuntu:xenial
+          command: ["sh", "-c"]
+          args:
+            - |-
+              until [ -f /mnt/pv/test.img ]; do sleep 1; done
+              dd if=/mnt/pv/test.img of=/dev/null bs=8k
+          volumeMounts:
+            - mountPath: "/mnt/pv"
+              name: test-volume
+      volumes:
+        - name: test-volume
+          persistentVolumeClaim:
+            claimName: test-claim
+      restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: write
+  namespace: speedtest
+spec:
+  template:
+    metadata:
+      name: write
+    spec:
+      containers:
+        - name: write
+          image: ubuntu:xenial
+          command: ["dd","if=/dev/zero","of=/mnt/pv/test.img","bs=5G","count=1","oflag=dsync"]
+          volumeMounts:
+            - mountPath: "/mnt/pv"
+              name: test-volume
+      volumes:
+        - name: test-volume
+          persistentVolumeClaim:
+            claimName: test-claim
+      restartPolicy: Never

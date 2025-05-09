@@ -2,19 +2,16 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   namespace: argocd
-  name: dtcnet
+  name: synology
 spec:
   project: default
   source:
     repoURL: https://github.com/dancavallaro/rpi-config
     targetRevision: HEAD
-    path: k8s/manifests/dtcnet
+    path: k8s/manifests/synology-csi
   destination:
-    namespace: dtcnet
     server: https://kubernetes.default.svc
   syncPolicy:
     automated:
       selfHeal: true
       prune: true
-    syncOptions:
-      - CreateNamespace=true

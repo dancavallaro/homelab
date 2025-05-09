@@ -1,7 +1,7 @@
 machine:
   install:
     disk: /dev/vda
-    image: ghcr.io/dancavallaro/talos/installer:v1.9.5 # Custom build with BT modules included
+    image: ghcr.io/dancavallaro/talos/installer:v1.9.5-bluetooth-iscsi # Custom build with BT modules/firmware and iSCSI support
     extraKernelArgs:
       - talos.logging.kernel=tcp://127.0.0.1:32412/
   network:

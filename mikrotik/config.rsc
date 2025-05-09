@@ -1,4 +1,4 @@
-# 2025-05-06 12:31:05 by RouterOS 7.14.1
+# 2025-05-10 08:20:53 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -9,17 +9,18 @@ add comment="bridges some ports to \"WAN\" (dtcnet/home LAN) on ether1" name=dtc
 add comment="Private IoT network for ESP32 devices" name=iotnet_bridge
 add comment="Bridge for BF3 network behind Protectli" name=labnet_bridge
 /interface ethernet
-set [ find default-name=ether1 ] comment="eero (uplink to dtcnet LAN)"
+set [ find default-name=ether1 ] comment="NUC (2.5GbE)"
 set [ find default-name=ether2 ] comment="Laptop docking station"
 set [ find default-name=ether3 ] comment="PoE switch to Ubiquiti APs"
 set [ find default-name=ether4 ] comment=Protectli
-set [ find default-name=ether5 ] comment=NUC
+set [ find default-name=ether5 ] comment="eero (uplink to dtcnet LAN)"
 set [ find default-name=ether6 ] comment="RPi4 (bastion.local)"
 set [ find default-name=ether7 ] comment="dtcnet Netgear switch"
+set [ find default-name=sfp-sfpplus1 ] comment="Synology NAS"
 /interface vlan
 add comment="WiFi SSID for labnet" interface=ether3 name=vlan10 vlan-id=10
 add comment="WiFi SSID for IoT network" interface=ether3 name=vlan20 vlan-id=20
-add comment="NUC -> dtcnet bridge" interface=ether5 name=vlan192 vlan-id=192
+add comment="NUC -> dtcnet bridge" interface=ether1 name=vlan192 vlan-id=192
 /interface list
 add comment=defconf name=WAN
 add comment=defconf name=LAN
@@ -36,10 +37,10 @@ add address-pool=iotnet comment="DHCP for private IoT network" interface=iotnet_
 /interface bridge port
 add bridge=bridge comment=defconf interface=ether2 internal-path-cost=10 path-cost=10
 add bridge=bridge interface=ether6 internal-path-cost=10 path-cost=10
-add bridge=bridge comment=defconf interface=sfp-sfpplus1 internal-path-cost=10 path-cost=10
+add bridge=bridge comment="Synology NAS" interface=sfp-sfpplus1 internal-path-cost=10 path-cost=10
 add bridge=labnet_bridge interface=ether4
-add bridge=dtcnet_bridge interface=ether1
-add bridge=bridge interface=ether5
+add bridge=bridge interface=ether1
+add bridge=dtcnet_bridge interface=ether5
 add bridge=dtcnet_bridge comment="Bridges dpu-host to dtcnet" interface=vlan192
 add bridge=dtcnet_bridge interface=ether3
 add bridge=dtcnet_bridge interface=ether7
@@ -64,7 +65,7 @@ add address=10.255.1.1 comment="dpu-dev Protectli" mac-address=00:E0:67:30:D6:DE
 add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-address=90:8D:6E:35:11:38 server=defconf
 add address=10.42.42.42 client-id=1:e4:5f:1:ef:d7:10 comment="bastion RPi" mac-address=E4:5F:01:EF:D7:10 server=defconf
 add address=10.42.42.2 comment="NUC br0" mac-address=92:B9:36:6D:7F:97 server=defconf
-add address=10.42.42.8 client-id=1:90:9:d0:77:4f:26 comment="Synology NAS" mac-address=90:09:D0:77:4F:26 server=defconf
+add address=10.42.42.12 client-id=1:90:9:d0:66:1f:3b comment="Synology NAS" mac-address=90:09:D0:66:1F:3B server=defconf
 /ip dhcp-server network
 add address=10.42.0.0/16 comment="Office network" dns-server=10.42.42.1 gateway=10.42.42.1 netmask=16
 add address=10.255.1.0/30 comment="Link to Protectli" dns-server=8.8.8.8,8.8.4.4 gateway=10.255.1.2

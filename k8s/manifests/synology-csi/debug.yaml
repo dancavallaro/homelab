@@ -1,0 +1,64 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: synology-debug-claim
+spec:
+  storageClassName: synology-iscsi
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10G
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synology-debug
+spec:
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: synology-debug
+  template:
+    metadata:
+      labels:
+        app: synology-debug
+    spec:
+      containers:
+        - name: ubuntu
+          image: ubuntu:22.04
+          command: ["sleep", "infinity"]
+          volumeMounts:
+            - mountPath: "/mnt/pv"
+              name: synology-debug-vol
+      volumes:
+        - name: synology-debug-vol
+          persistentVolumeClaim:
+            claimName: synology-debug-claim
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synology-debug-2
+spec:
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: synology-debug-2
+  template:
+    metadata:
+      labels:
+        app: synology-debug-2
+    spec:
+      nodeName: talos-prod-worker4
+      containers:
+        - name: ubuntu
+          image: ubuntu:22.04
+          command: ["sleep", "infinity"]
+          volumeMounts:
+            - mountPath: "/mnt/pv"
+              name: synology-debug-vol
+      volumes:
+        - name: synology-debug-vol
+          persistentVolumeClaim:
+            claimName: synology-debug-claim

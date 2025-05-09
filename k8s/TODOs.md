@@ -1,7 +1,6 @@
 * More monitoring:
   * Migrate heartbeats metrics/alarm from CloudWatch to LGTM+Pushover
   * Metrics on PVs/PVCs
-* Set up Synology CSI
 * Backup job:
   * Only back up directories for active PVs
   * Add support for skipping PVs somehow

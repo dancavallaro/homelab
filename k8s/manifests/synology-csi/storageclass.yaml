@@ -1,0 +1,35 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  namespace: synology-csi
+  name: client-info-secret
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-parameter-store
+  target:
+    template:
+      engineVersion: v2
+      data:
+        client-info.yml: |
+          clients:
+            - host: dsm-data.synology-csi
+              port: 5000
+              https: false
+              username: "{{ .username }}"
+              password: "{{ .password }}"
+  dataFrom:
+    - extract:
+        key: /talos-prod/synology-csi-user
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: synology-iscsi
+provisioner: csi.san.synology.com
+parameters:
+  location: "/volume1"
+  protocol: iscsi
+  csi.storage.k8s.io/fstype: ext4
+reclaimPolicy: Delete
+allowVolumeExpansion: true
