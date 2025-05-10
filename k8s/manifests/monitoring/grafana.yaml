@@ -58,7 +58,7 @@ data:
     role_attribute_path = contains(groups[*], 'superusers') && 'Admin' || 'None'
 
     [feature_toggles]
-    alertmanagerRemoteOnly = true
+    enable = alertmanagerRemoteOnly sqlExpressions provisioning kubernetesDashboards
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -91,10 +91,15 @@ spec:
     spec:
       containers:
         - name: grafana
-          image: grafana/grafana:11.6.0
+          image: grafana/grafana:12.0.0
           env:
             - name: GF_PATHS_DATA
               value: /grafana
+            - name: GF_PATHS_PLUGINS
+              value: /grafana/plugins
+              # CLI needs this defined separately, of course (https://github.com/grafana/grafana/issues/36502)
+            - name:  GF_PLUGIN_DIR
+              value: /grafana/plugins
             - name: GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
