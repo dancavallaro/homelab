@@ -97,7 +97,7 @@ BOOTSTRAP_IP=10.42.42.100
 
 ```shell
 $ virt-install --name talos-prod-cp1 \
-     --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
+     --ram 6144 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=20,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
@@ -145,7 +145,7 @@ $ virt-install --name talos-prod-worker1 \
 $ virsh autostart talos-prod-worker1
 # Create worker2, attached to dtcnet and pass through the TP-Link BT USB device
 $ virt-install --name talos-prod-worker2 \
-     --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
+     --ram 6144 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=20,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
@@ -266,24 +266,4 @@ Patch apiserver to enable OIDC auth:
 
 ```shell
 $ talosctl -n 192.168.42.10 patch mc -p @talos/prod/patches/oidc.patch.yaml
-```
-
-## Media server
-
-Add a 4th worker node with an additional large disk for media storage:
-
-```shell
-$ virt-install --name talos-prod-worker4 \
-     --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
-     --disk size=20,format=qcow2 --disk size=100,format=qcow2 --disk size=384,format=qcow2 \
-     --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
-     --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
-     --network bridge="$VM_BRIDGE",mac=06:31:E2:44:ED:4C
-$ virsh autostart talos-prod-worker4
-$ talosctl mc patch worker.yaml \
-    --patch @patches/common.patch.yaml \
-    --patch @patches/worker-common.patch.yaml \
-    --patch @patches/worker-media.patch.yaml \
-    --output worker4.final.yaml
-$ talosctl apply-config --insecure -n 192.168.42.103 --file worker4.final.yaml
 ```

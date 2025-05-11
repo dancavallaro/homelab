@@ -34,8 +34,6 @@ spec:
       labels:
         app: jellyfin
     spec:
-      nodeSelector:
-        storage: media
       volumes:
         - name: jellyfin-config
           persistentVolumeClaim:
