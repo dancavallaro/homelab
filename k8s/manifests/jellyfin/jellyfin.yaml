@@ -41,8 +41,15 @@ spec:
           persistentVolumeClaim:
             claimName: jellyfin-config
         - name: jellyfin-media
-          hostPath:
-            path: /var/mnt/media
+          nfs:
+            server: "10.42.42.12"
+            path: /volume1/Media
+            readOnly: true
+        - name: jellyfin-pc
+          nfs:
+            server: "10.42.42.12"
+            path: /volume1/PCStorage
+            readOnly: true
       containers:
         - name: jellyfin
           image: jellyfin/jellyfin:2025032405
@@ -51,6 +58,8 @@ spec:
               name: jellyfin-config
             - mountPath: /mnt/media
               name: jellyfin-media
+            - mountPath: /mnt/pc
+              name: jellyfin-pc
           ports:
             - containerPort: 8096
               name: jellyfin
