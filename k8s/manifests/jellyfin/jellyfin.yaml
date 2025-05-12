@@ -11,9 +11,9 @@ metadata:
   namespace: jellyfin
   name: jellyfin-config
 spec:
-  storageClassName: local-path-v2
+  storageClassName: synology-iscsi
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
       storage: 1Gi
