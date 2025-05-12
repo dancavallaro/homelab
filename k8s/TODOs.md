@@ -4,5 +4,6 @@
 * Backup job:
   * Only back up directories for active PVs
   * Add support for skipping PVs somehow
+* Migrate (some? all?) local-path PVs to Synology iSCSI
 * Test restoring a brand new cluster from a cluster etcd backup
 * Set up some kind of pastebin and URL shortener

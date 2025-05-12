@@ -4,4 +4,4 @@ groups:
     interval: 1m
     rules:
       - alert: Failed Kubernetes Job
-        expr: kube_job_status_failed{cluster="talos-prod"} > 0
+        expr: increase(kube_job_status_failed{cluster="talos-prod"}[1h]) > 0
