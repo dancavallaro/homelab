@@ -257,3 +257,17 @@ Then use the token to access an authenticated API:
 ```shell
 curl -s -k -H "Authorization: Bearer $TOKEN" https://10.42.42.100:6443/metrics
 ```
+
+## Resize libvirt disk image
+
+To find the path to the image:
+
+```shell
+virsh domblklist <VM>
+```
+
+Then shut down the VM and run:
+
+```shell
+sudo qemu-img resize <IMAGE> +30G
+```

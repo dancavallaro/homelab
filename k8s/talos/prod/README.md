@@ -138,7 +138,7 @@ $ helm install cilium cilium/cilium --version 1.17.1 --namespace kube-system --v
 ```shell
 $ virt-install --name talos-prod-worker1 \
      --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
-     --disk size=20,format=qcow2 --disk size=100,format=qcow2 \
+     --disk size=50,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=02:52:A7:0B:1D:89
@@ -146,7 +146,7 @@ $ virsh autostart talos-prod-worker1
 # Create worker2, attached to dtcnet and pass through the TP-Link BT USB device
 $ virt-install --name talos-prod-worker2 \
      --ram 6144 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
-     --disk size=20,format=qcow2 --disk size=100,format=qcow2 \
+     --disk size=50,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=DE:6F:9F:0D:15:96 --network bridge=br0,mac=1e:03:e4:b3:4f:47 \
@@ -155,7 +155,7 @@ $ virsh autostart talos-prod-worker2
 # Create worker3, pass through the attached ESP32's USB serial device
 $ virt-install --name talos-prod-worker3 \
      --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
-     --disk size=20,format=qcow2 --disk size=100,format=qcow2 \
+     --disk size=50,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=12:62:54:B1:2D:B0 \
