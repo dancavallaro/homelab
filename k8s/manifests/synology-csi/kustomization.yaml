@@ -6,6 +6,8 @@ resources:
   - https://raw.githubusercontent.com/dancavallaro/synology-csi-talos/refs/heads/main/deploy/kubernetes/v1.20/csi-driver.yaml
   - https://raw.githubusercontent.com/dancavallaro/synology-csi-talos/refs/heads/main/deploy/kubernetes/v1.20/controller.yaml
   - https://raw.githubusercontent.com/dancavallaro/synology-csi-talos/refs/heads/main/deploy/kubernetes/v1.20/node.yaml
+  - https://github.com/kubernetes-csi/external-snapshotter/deploy/kubernetes/snapshot-controller?ref=v8.2.0
+  - https://raw.githubusercontent.com/dancavallaro/synology-csi-talos/refs/heads/main/deploy/kubernetes/v1.20/snapshotter/snapshotter.yaml
   - storageclass.yaml
   - dsm-proxy.yaml
 patches:
@@ -23,4 +25,23 @@ patches:
       - op: replace
         path: /spec/template/spec/dnsPolicy
         value: ClusterFirstWithHostNet
+  - target:
+      kind: StatefulSet
+      name: synology-csi-snapshotter
+    patch: |
+      - op: replace
+        path: /spec/template/spec/dnsPolicy
+        value: ClusterFirstWithHostNet
+  - target:
+      kind: Deployment
+      name: snapshot-controller
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: remove
+        path: /spec/strategy
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value: ["--v=5", "--leader-election=false"]
         
