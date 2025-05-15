@@ -1,0 +1,173 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  namespace: volsync
+  name: volsync-config-template
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-parameter-store
+  target:
+    template:
+      engineVersion: v2
+      data:
+        RESTIC_PASSWORD: "{{ .encryption_password }}"
+        AWS_ACCESS_KEY_ID: "{{ .aws_access_key_id }}"
+        AWS_SECRET_ACCESS_KEY: "{{ .aws_secret_access_key }}"
+  dataFrom:
+    - extract:
+        key: /talos-prod/volsync-config
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kyverno:volsync-backups
+  labels:
+    rbac.kyverno.io/aggregate-to-admission-controller: "true"
+    rbac.kyverno.io/aggregate-to-background-controller: "true"
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - create
+      - update
+      - delete
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - "volsync.backube"
+    resources:
+      - replicationsources
+    verbs:
+      - create
+      - update
+      - delete
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kyverno:volsync-backups-reporting
+  labels:
+    rbac.kyverno.io/aggregate-to-reports-controller: "true"
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: kyverno.io/v2beta1
+kind: ClusterPolicy
+metadata:
+  name: enable-volsync-backup
+spec:
+  generateExisting: true
+  rules:
+    - name: clone-config-template
+      match:
+        any:
+          - resources:
+              kinds:
+                - PersistentVolumeClaim
+      exclude:
+        any:
+          - resources:
+              selector:
+                matchLabels:
+                  app.kubernetes.io/created-by: volsync
+      generate:
+        synchronize: true
+        apiVersion: v1
+        kind: Secret
+        name: "volsync-config--{{request.object.metadata.name}}"
+        namespace: "{{request.object.metadata.namespace}}"
+        clone:
+          namespace: volsync
+          name: volsync-config-template
+    - name: inject-volume-name-to-repo-url
+      match:
+        any:
+          - resources:
+              kinds:
+                - Secret
+              names:
+                - "volsync-config--*"
+      mutate:
+        patchStrategicMerge:
+          stringData:
+            RESTIC_REPOSITORY: "s3:https://s3.us-east-1.amazonaws.com/nuc-talos-backups/volsync/{{request.object.metadata.namespace}}--{{trim_prefix(request.object.metadata.name, 'volsync-config--')}}"
+    - name: create-replication-source
+      match:
+        any:
+          - resources:
+              kinds:
+                - PersistentVolumeClaim
+      exclude:
+        any:
+          - resources:
+              selector:
+                matchLabels:
+                  app.kubernetes.io/created-by: volsync
+      generate:
+        synchronize: true
+        apiVersion: volsync.backube/v1alpha1
+        kind: ReplicationSource
+        name: "{{request.object.metadata.name}}"
+        namespace: "{{request.object.metadata.namespace}}"
+        data:
+          spec:
+            sourcePVC: "{{request.object.metadata.name}}"
+            trigger:
+              # Add some random jitter so all backups don't happen at once
+              schedule: "{{modulo(to_number(random('[0-9]{2}')), `60`)}} 6 * * *"
+              #manual: initial-backup
+            restic:
+              pruneIntervalDays: 15
+              storageClassName: synology-iscsi
+              repository: "volsync-config--{{request.object.metadata.name}}"
+              moverPodLabels:
+                cloud.dancav.io/privileged-volsync-mover: '{{lookup(`{"synology-iscsi": "false"}`, request.object.spec.storageClassName) || `"true"`}}'
+              retain:
+                hourly: 0
+                daily: 7
+                weekly: 4
+                monthly: 4
+                yearly: 1
+              copyMethod: '{{lookup(`{"synology-iscsi": "Clone"}`, request.object.spec.storageClassName) || `"Direct"`}}'
+    - name: escalate-mover-privileges
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              selector:
+                matchLabels:
+                  cloud.dancav.io/privileged-volsync-mover: "true"
+      mutate:
+        patchStrategicMerge:
+          # From https://github.com/backube/volsync/blob/main/internal/controller/mover/restic/mover.go#L575-L584
+          # Doesn't seem to be any way of enabling privileged movers in the mover config secret or replication
+          # source (only by putting an annotation on each namespace), so just do it myself here.
+          spec:
+            containers:
+              - (name): restic
+                securityContext:
+                  capabilities:
+                    add:
+                      - DAC_OVERRIDE
+                      - CHOWN
+                      - FOWNER
+                  runAsUser: 0
+                env:
+                  - name: PRIVILEGED_MOVER
+                    value: "1"
+
