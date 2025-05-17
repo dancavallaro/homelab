@@ -1,0 +1,36 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kyverno:delete-replicasets
+  labels:
+    rbac.kyverno.io/aggregate-to-cleanup-controller: "true"
+rules:
+  - apiGroups:
+      - apps
+    resources:
+      - replicasets
+    verbs:
+      - delete
+      - get
+      - list
+      - watch
+---
+apiVersion: kyverno.io/v2
+kind: ClusterCleanupPolicy
+metadata:
+  name: cleanup-empty-replicasets
+spec:
+  match:
+    any:
+      - resources:
+          kinds:
+            - ReplicaSet
+  conditions:
+    all:
+      - key: "{{ target.spec.replicas }}"
+        operator: Equals
+        value: 0
+      - key: "{{ time_diff('{{target.metadata.creationTimestamp}}','{{ time_now_utc() }}') }}"
+        operator: GreaterThan
+        value: "0h0m30s"
+  schedule: "0 * * * *"
