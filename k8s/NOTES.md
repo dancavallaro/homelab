@@ -227,7 +227,9 @@ To upgrade a node:
 talosctl upgrade -n <NODE IP> --image ghcr.io/dancavallaro/talos/installer:v1.9.5
 ```
 
-## Loki log volume analysis
+## Loki
+
+### Log volume analysis
 
 See log stream size by service name in the last day:
 
@@ -241,6 +243,40 @@ Break it down by service and level:
 
 ```
 sum by(talos_service, level) (bytes_over_time({service_name="talos.service_logs"} [24h]))
+```
+
+### Deleting logs
+
+To find log streams using the HTTP API:
+
+```shell
+curl -s loki.o.cavnet.cloud/loki/api/v1/series \
+  --data-urlencode 'match[]={service_name="kubernetes.pod_logs.hass"}' \
+  --data-urlencode "start=$(orb date --date='2025-04-04T00:00:00Z' +%s%N)" \
+  --data-urlencode "end=$(orb date --date='2025-05-20T00:00:00Z' +%s%N)"
+```
+
+Times must be in nanoseconds, and this API doesn't support line filters.
+
+The delete API expects times in seconds, and supports line filters:
+
+```shell
+curl -X POST --get -s loki.o.cavnet.cloud/loki/api/v1/delete \
+  --data-urlencode 'query={service_name="talos.service_logs", talos_service="machined"}' \
+  --data-urlencode "start=$(orb date --date='2025-05-04T00:00:00Z' +%s)" \
+  --data-urlencode "end=$(orb date --date='2025-05-08T00:00:00Z' +%s)"
+```
+
+To view requests:
+
+```shell
+curl -s loki.o.cavnet.cloud/loki/api/v1/delete | jq
+```
+
+To cancel an in-flight request:
+
+```shell
+curl -s -X DELETE "loki.o.cavnet.cloud/loki/api/v1/delete?request_id=<REQUEST_ID>&force=true"
 ```
 
 ## Use Pocket ID to get token to access k8s APIs from CLI

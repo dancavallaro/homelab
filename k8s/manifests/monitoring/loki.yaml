@@ -8,7 +8,7 @@ data:
     target: all
     auth_enabled: false
     server:
-      log_level: info
+      log_level: warn
     schema_config:
       configs:
         - from: 2025-04-01
@@ -30,6 +30,19 @@ data:
             dir: /loki/thanos
     limits_config:
       max_query_length: 0
+      # Don't enforce automatic retention (only enabled for deletion)
+      retention_period: "0s"
+      deletion_mode: filter-and-delete
+    compactor:
+      # Retention (deletion) doesn't work correctly with the Thanos object client and filesystem
+      # storage, because it doesn't enter this block: https://github.com/grafana/loki/blob/main/pkg/compactor/compactor.go#L348-L350.
+      # The chunk files are base64-encoded because the Thanos chunk client is using the
+      # FSEncoder, so the compactor can't find them without using the FSEncoder.
+      retention_enabled: false
+      retention_delete_delay: "1h"
+      delete_request_cancel_period: "1m"
+      compaction_interval: "10m"
+      delete_request_store: filesystem
     storage_config:
       use_thanos_objstore: true
     ruler_storage:
@@ -105,6 +118,8 @@ kind: Service
 metadata:
   name: loki-http
   namespace: monitoring
+  annotations:
+    "coredns.io/hostname": loki.o.cavnet.cloud
 spec:
   type: LoadBalancer
   selector:

@@ -1,3 +1,4 @@
+* Loki/Mimir/(lots of others) should be StatefulSets if they don't properly handle concurrency of data access
 * More monitoring:
   * Migrate heartbeats metrics/alarm from CloudWatch to LGTM+Pushover
 * Storage:
