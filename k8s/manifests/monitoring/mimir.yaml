@@ -87,6 +87,8 @@ kind: Service
 metadata:
   name: mimir-http
   namespace: monitoring
+  annotations:
+    "coredns.io/hostname": mimir.o.cavnet.cloud
 spec:
   type: LoadBalancer
   selector:
