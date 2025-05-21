@@ -5,3 +5,9 @@ groups:
     rules:
       - alert: Failed Kubernetes Job
         expr: increase(kube_job_status_failed{cluster="talos-prod"}[1h]) > 0
+        annotations:
+          message: "Job {{ $labels.namespace }}/{{ $labels.job_name }} has failed."
+      - alert: Stuck Kubernetes Job
+        expr: ((time() - kube_job_status_start_time{cluster="talos-prod"})/3600 unless kube_job_status_completion_time{cluster="talos-prod"}) > 2
+        annotations:
+          message: "Job {{ $labels.namespace }}/{{ $labels.job_name }} has been running for more than 2 hours."
