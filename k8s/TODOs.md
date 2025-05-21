@@ -4,4 +4,5 @@
 * Storage:
   * Migrate (some? all?) local-path PVs to Synology iSCSI
   * Metrics on PVs/PVCs
+* Fix Stults/Terhune parsers to properly handle text updates
 * Test restoring a brand new cluster from a cluster etcd backup

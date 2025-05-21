@@ -23,7 +23,7 @@ spec:
                     fieldRef:
                       fieldPath:
                         status.hostIP
-              image: ghcr.io/dancavallaro/rpi-config/cluster-archiver:0.1.1
+              image: ghcr.io/dancavallaro/rpi-config/cluster-archiver:0.2.1
               name: cluster-archiver
               volumeMounts:
                 - mountPath: /var/run/secrets/talos.dev
