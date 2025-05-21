@@ -8,6 +8,8 @@ helmCharts:
     version: 0.12.1
     namespace: volsync
     includeCRDs: true
-    valuesInline: {}
+    valuesInline:
+      metrics:
+        disableAuth: true
 resources:
   - resources.yaml
