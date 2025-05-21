@@ -4,6 +4,7 @@ metadata:
   name: cluster-archiver
 spec:
   schedule: "0 5 * * *"
+  concurrencyPolicy: Replace
   jobTemplate:
     spec:
       template:

@@ -5,6 +5,7 @@ metadata:
   name: farm-notifier
 spec:
   schedule: "- - - - -"
+  concurrencyPolicy: Replace
   jobTemplate:
     spec:
       template:
