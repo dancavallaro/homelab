@@ -117,6 +117,13 @@ spec:
               selector:
                 matchLabels:
                   app.kubernetes.io/created-by: volsync
+      context:
+        - name: uidNumericOnly
+          variable:
+            value: "{{ regex_replace_all_literal('[a-z-]', '{{request.object.metadata.uid}}', '') }}"
+        - name: syncScheduleMinute
+          variable:
+            value: "{{modulo(to_number(truncate(uidNumericOnly, `5`)), `60`)}}"
       generate:
         synchronize: true
         apiVersion: volsync.backube/v1alpha1
@@ -127,8 +134,8 @@ spec:
           spec:
             sourcePVC: "{{request.object.metadata.name}}"
             trigger:
-              # Add some random jitter so all backups don't happen at once
-              schedule: "{{modulo(to_number(random('[0-9]{2}')), `60`)}} 6 * * *"
+              # Add some jitter so all backups don't happen at once
+              schedule: "{{syncScheduleMinute}} 6 * * *"
               #manual: initial-backup
             restic:
               pruneIntervalDays: 15
