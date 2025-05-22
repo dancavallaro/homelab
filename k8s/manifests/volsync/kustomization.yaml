@@ -13,3 +13,4 @@ helmCharts:
         disableAuth: true
 resources:
   - resources.yaml
+  - metrics-exporter.yaml

@@ -105,3 +105,36 @@ prometheus.relabel "cadvisor" {
     prometheus.relabel.output.receiver,
   ]
 }
+
+// ----------------------------------------------------------------------------
+// Volsync/PV metrics
+// ----------------------------------------------------------------------------
+
+prometheus.scrape "volsync_metrics" {
+  targets = [{"__address__" = "volsync-metrics.volsync:8443"}]
+  scheme = "https"
+  tls_config {
+    insecure_skip_verify = true
+  }
+  job_name = "integrations/kubernetes/volsync_metrics"
+  scrape_interval = "60s"
+  forward_to = [prometheus.relabel.volsync_metrics.receiver]
+}
+
+prometheus.scrape "volsync_size_metrics" {
+  targets = [{"__address__" = "volsync-metrics-exporter.volsync:8080"}]
+  job_name = "integrations/kubernetes/volsync_size_metrics"
+  scrape_interval = "60s"
+  forward_to = [prometheus.relabel.volsync_metrics.receiver]
+}
+
+prometheus.relabel "volsync_metrics" {
+  rule {
+    source_labels = ["__name__"]
+    regex = "volsync_.*"
+    action = "keep"
+  }
+  forward_to = [
+    prometheus.relabel.output.receiver,
+  ]
+}
