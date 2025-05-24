@@ -5,6 +5,5 @@
   * Alarm on ArgoCD sync disabled for too long
 * Storage:
   * Migrate (some? all?) local-path PVs to Synology iSCSI
-  * Alarm on PV utilization and Volsync metrics(?), Volsync/storage dashboard
 * Fix Stults/Terhune parsers to properly handle text updates
 * Test restoring a brand new cluster from a cluster etcd backup

@@ -1,6 +1,6 @@
 namespace: kubernetes
 groups:
-  - name: alerts
+  - name: job-alerts
     interval: 1m
     rules:
       - alert: Failed Kubernetes Job
@@ -11,3 +11,16 @@ groups:
         expr: ((time() - kube_job_status_start_time{cluster="talos-prod"})/3600 unless kube_job_status_completion_time{cluster="talos-prod"}) > 2
         annotations:
           message: "Job {{ $labels.namespace }}/{{ $labels.job_name }} has been running for more than 2 hours."
+  - name: volsync-alerts
+    interval: 1m
+    rules:
+      - alert: Volume Nearing Capacity
+        expr: (volsync_sync_total_bytes{cluster="talos-prod"} / on (persistentvolume) kube_persistentvolume_capacity_bytes{cluster="talos-prod"}) * on (persistentvolume) group_left(claim_namespace, name) kube_persistentvolume_claim_ref{cluster="talos-prod"} > 0.8
+        annotations:
+          message: "Volume {{ $labels.claim_namespace }}/{{ $labels.name }} is nearing its allocated capacity."
+      - alert: Volume Out of Sync
+        expr: volsync_volume_out_of_sync{cluster="talos-prod"} > 0
+        for: 1h
+        annotations:
+          message: "Volume {{ $labels.obj_namespace }}/{{ $labels.obj_name }} is out of sync."
+
