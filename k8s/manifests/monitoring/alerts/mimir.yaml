@@ -31,4 +31,9 @@ groups:
         for: 3h
         annotations:
           message: "ArgoCD application sync controller has been disabled for a while. Did you forget to re-enable it?"
+      - alert: Loss of Telemetry from RPi
+        expr: absent(node_boot_time_seconds{service="host_metrics", instance="rpi"})
+        for: 10m
+        annotations:
+          message: "RPi has stopped publishing telemetry to Mimir. Is Tailscale down?"
 
