@@ -23,4 +23,12 @@ groups:
         for: 1h
         annotations:
           message: "Volume {{ $labels.obj_namespace }}/{{ $labels.obj_name }} is out of sync."
+  - name: cluster-health
+    interval: 1m
+    rules:
+      - alert: ArgoCD Sync Disabled
+        expr: kube_statefulset_status_replicas_current{cluster="talos-prod", namespace="argocd", statefulset="argocd-application-controller"} == 0
+        for: 3h
+        annotations:
+          message: "ArgoCD application sync controller has been disabled for a while. Did you forget to re-enable it?"
 
