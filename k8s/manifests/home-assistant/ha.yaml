@@ -11,12 +11,12 @@ metadata:
   namespace: hass
   name: hass-data
 spec:
-  storageClassName: local-path-v2
+  storageClassName: synology-iscsi
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 100Mi
+      storage: 1Gi
 ---
 apiVersion: v1
 kind: Service

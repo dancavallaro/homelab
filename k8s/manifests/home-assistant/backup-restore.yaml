@@ -1,0 +1,14 @@
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationDestination
+metadata:
+  name: hass-data-restore
+  namespace: hass
+spec:
+  trigger:
+    manual: restore-once
+  restic:
+    repository: volsync-config--hass-data
+    destinationPVC: hass-data
+    copyMethod: Direct
+    restoreAsOf: "2025-05-24T00:00:00-00:00"
+    storageClassName: synology-iscsi
