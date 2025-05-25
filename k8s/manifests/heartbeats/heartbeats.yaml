@@ -65,7 +65,7 @@ spec:
     spec:
       containers:
         - name: heartbeats
-          image: ghcr.io/dancavallaro/telemetry/heartbeats:v0.1.3
+          image: ghcr.io/dancavallaro/telemetry/heartbeats:0.1.5
           envFrom:
             - secretRef:
                 name: heartbeats-mqtt-creds
@@ -80,3 +80,31 @@ spec:
             - "$(password)"
             - -metricNamespace
             - RPiMonitoring
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: cluster-heartbeat
+  namespace: heartbeats
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: cluster-heartbeat
+  template:
+    metadata:
+      labels:
+        app: cluster-heartbeat
+      annotations:
+        cloud.dancav.io/aws-iamra-role-profile: heartbeats-role
+        cloud.dancav.io/aws-iamra-cert-secret: heartbeats-cert
+    spec:
+      containers:
+        - name: heartbeats
+          image: ghcr.io/dancavallaro/telemetry/cluster-heartbeat:0.1.0
+          args:
+            - -region
+            - us-east-1
+            - -metricNamespace
+            - KubernetesMonitoring
