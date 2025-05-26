@@ -48,7 +48,7 @@ spec:
       serviceAccountName: volsync-metrics-exporter
       containers:
         - name: exporter
-          image: ghcr.io/dancavallaro/telemetry/volsync-metrics:0.2.1
+          image: ghcr.io/dancavallaro/telemetry/volsync-metrics:0.3.0
           ports:
             - containerPort: 8080
 ---
