@@ -19,7 +19,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: farm-notifier
-              image: ghcr.io/dancavallaro/farm-notifier/farm-notifier:0.3.0
+              image: ghcr.io/dancavallaro/farm-notifier/farm-notifier:0.3.1
               args:
                 - REPLACEME
               env:
