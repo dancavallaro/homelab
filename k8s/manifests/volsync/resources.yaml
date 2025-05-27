@@ -142,7 +142,7 @@ spec:
               storageClassName: synology-iscsi
               repository: "volsync-config--{{request.object.metadata.name}}"
               moverPodLabels:
-                cloud.dancav.io/privileged-volsync-mover: '{{lookup(`{"synology-iscsi": "false"}`, request.object.spec.storageClassName) || `"true"`}}'
+                cloud.dancav.io/privileged-volsync-mover: "true"
               retain:
                 hourly: 0
                 daily: 7
