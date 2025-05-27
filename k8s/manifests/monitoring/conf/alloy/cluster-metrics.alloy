@@ -138,3 +138,29 @@ prometheus.relabel "volsync_metrics" {
     prometheus.relabel.output.receiver,
   ]
 }
+
+// ----------------------------------------------------------------------------
+// ESP32 IOT device heartbeats
+// ----------------------------------------------------------------------------
+
+prometheus.scrape "heartbeat_metrics" {
+  targets = [{"__address__" = "heartbeat-exporter.heartbeats:8080"}]
+  job_name = "integrations/kubernetes/heartbeat_metrics"
+  scrape_interval = "60s"
+  forward_to = [prometheus.relabel.heartbeat_metrics.receiver]
+}
+
+prometheus.relabel "heartbeat_metrics" {
+  rule {
+    source_labels = ["__name__"]
+    regex = "iot_.*"
+    action = "keep"
+  }
+  rule {
+    replacement = "iot_metrics"
+    target_label = "service"
+  }
+  forward_to = [
+    prometheus.remote_write.mimir.receiver,
+  ]
+}

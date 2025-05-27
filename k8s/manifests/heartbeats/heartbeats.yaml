@@ -16,34 +16,6 @@ spec:
     - extract:
         key: /talos-prod/heartbeats-mqtt-creds
 ---
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: heartbeats-cert
-  namespace: heartbeats
-spec:
-  revisionHistoryLimit: 1
-  secretName: heartbeats-cert
-  duration: 24h
-  isCA: false
-  usages:
-    - client auth
-  dnsNames:
-    - heartbeats
-  issuerRef:
-    name: cluster-ca-issuer
-    kind: ClusterIssuer
----
-apiVersion: cloud.dancav.io/v1
-kind: AwsIamRaRoleProfile
-metadata:
-  name: heartbeats-role
-  namespace: heartbeats
-spec:
-  trustAnchorArn: arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a
-  profileArn: arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02
-  roleArn: arn:aws:iam::484396241422:role/RPiMonitoringRole
----
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -64,22 +36,31 @@ spec:
         cloud.dancav.io/aws-iamra-cert-secret: heartbeats-cert
     spec:
       containers:
-        - name: heartbeats
-          image: ghcr.io/dancavallaro/telemetry/heartbeats:0.1.5
+        - name: heartbeat-exporter
+          image: ghcr.io/dancavallaro/telemetry/heartbeats:0.2.0
           envFrom:
             - secretRef:
                 name: heartbeats-mqtt-creds
           args:
-            - -region
-            - us-east-1
             - -mqttAddress
             - mqtt.mosquitto:1883
             - -mqttUsername
             - "$(username)"
             - -mqttPassword
             - "$(password)"
-            - -metricNamespace
-            - RPiMonitoring
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: heartbeat-exporter
+  namespace: heartbeats
+spec:
+  ports:
+    - port: 8080
+  selector:
+    app: heartbeats
 ---
 kind: Deployment
 apiVersion: apps/v1

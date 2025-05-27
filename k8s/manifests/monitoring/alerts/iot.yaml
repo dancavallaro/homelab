@@ -1,0 +1,13 @@
+namespace: iot
+groups:
+  - name: device-heartbeats
+    interval: 1m
+    rules:
+      - alert: Device Heartbeat Late
+        expr: time() - iot_device_last_heartbeat_time{} > 300
+        annotations:
+          message: "Device {{ $labels.device }} hasn't sent a heartbeat in over 5 minutes!"
+      - alert: Device Heartbeat Missing
+        expr: iot_device_last_heartbeat_time{} offset 5m unless on (device) iot_device_last_heartbeat_time{}
+        annotations:
+          message: "Device {{ $labels.device }} heartbeat metric has disappeared"
