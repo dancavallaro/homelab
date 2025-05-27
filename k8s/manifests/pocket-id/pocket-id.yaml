@@ -9,7 +9,7 @@ metadata:
   namespace: pocket-id
   name: pocket-id-data
 spec:
-  storageClassName: local-path-v2
+  storageClassName: synology-iscsi
   accessModes:
     - ReadWriteOnce
   resources:
@@ -34,19 +34,19 @@ spec:
     spec:
       containers:
         - name: pocket-id
-          image: ghcr.io/pocket-id/pocket-id:v0.46
+          image: ghcr.io/pocket-id/pocket-id:v1.0.0
           env:
-            - name: PUBLIC_APP_URL
+            - name: APP_URL
               value: https://pocket-id.o.cavnet.cloud
             - name: TRUST_PROXY
               value: "true"
             - name: UPDATE_CHECK_DISABLED
               value: "true"
           ports:
-            - containerPort: 80
+            - containerPort: 1411
           volumeMounts:
             - name: pocket-id-data
-              mountPath: /app/backend/data
+              mountPath: /app/data
       volumes:
         - name: pocket-id-data
           persistentVolumeClaim:
@@ -62,6 +62,7 @@ spec:
     app: pocket-id
   ports:
     - port: 80
+      targetPort: 1411
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
