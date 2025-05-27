@@ -1,6 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: minio
+resources:
+  - secrets.yaml
 helmCharts:
   - name: minio
     repo: https://charts.min.io
@@ -29,6 +31,7 @@ helmCharts:
         tls:
           - hosts:
               - minio.o.cavnet.cloud
+      existingSecret: minio
       oidc:
         enabled: true
         displayName: Pocket ID
