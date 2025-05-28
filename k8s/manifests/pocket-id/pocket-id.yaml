@@ -34,13 +34,11 @@ spec:
     spec:
       containers:
         - name: pocket-id
-          image: ghcr.io/pocket-id/pocket-id:v1.0.0
+          image: ghcr.io/pocket-id/pocket-id:v1.1.0
           env:
             - name: APP_URL
               value: https://pocket-id.o.cavnet.cloud
             - name: TRUST_PROXY
-              value: "true"
-            - name: UPDATE_CHECK_DISABLED
               value: "true"
           ports:
             - containerPort: 1411
