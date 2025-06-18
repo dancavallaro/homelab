@@ -307,3 +307,33 @@ Then shut down the VM and run:
 ```shell
 sudo qemu-img resize <IMAGE> +30G
 ```
+
+## iSCSI troubleshooting
+
+```shell
+export ISCSI_ADDR=10.42.42.12
+```
+
+### List targets
+
+```shell
+sudo iscsiadm -m discovery -t sendtargets -p $ISCSI_ADDR
+```
+
+### Log in to target
+
+```shell
+sudo iscsiadm -m node --targetname=iqn.2000-01.com.synology:syn-ds923.pvc-174fe7f7-c60e-4341-83cf-6b09fddf2129 --portal $ISCSI_ADDR --login
+```
+
+### List logged-in targets and associated drives
+
+```shell
+ls -l /dev/disk/by-path | grep iscsi
+```
+
+### Log out of all targets
+
+```shell
+sudo iscsiadm -m node --logoutall=all
+```
