@@ -82,7 +82,7 @@ spec:
               mountPath: /data
       containers:
         - name: ring-mqtt
-          image: tsightler/ring-mqtt:5.6.7
+          image: tsightler/ring-mqtt:5.8.1
           volumeMounts:
             - name: ring-mqtt-data
               mountPath: /data

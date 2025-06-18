@@ -3,8 +3,10 @@
 # pip install python-kasa
 
 # IP address of the TP-Link Kasa smart power strip (KP303)
-ADDRESS=192.168.5.208
+export POWERSTRIP_ADDR=192.168.5.208
 
-kasa --host 192.168.5.208 feature
+# List subfeatures (outlets); these are 0-indexed
+kasa --host "$POWERSTRIP_ADDR" feature
 
-kasa --host 192.168.5.208 device --index 1 on # for example
+# Turn on BF3 outlet (for example)
+kasa --host "$POWERSTRIP_ADDR" device --index 0 on
