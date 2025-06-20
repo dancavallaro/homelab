@@ -14,6 +14,13 @@ spec:
     helm:
       values: |
         config:
+          webhooks:
+            namespaceSelector:
+              matchExpressions:
+                - key: kubernetes.io/metadata.name
+                  operator: NotIn
+                  values:
+                    - aws-iamram-system
           webhookLabels:
             app.kubernetes.io/managed-by: argocd
           resourceFiltersExclude:
