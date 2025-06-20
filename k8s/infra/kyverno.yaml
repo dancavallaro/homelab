@@ -21,6 +21,8 @@ spec:
                   operator: NotIn
                   values:
                     - aws-iamram-system
+                    - kube-system
+                    - kyverno
           webhookLabels:
             app.kubernetes.io/managed-by: argocd
           resourceFiltersExclude:
