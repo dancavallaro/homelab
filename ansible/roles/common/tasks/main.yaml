@@ -1,0 +1,37 @@
+- name: Install apt packages
+  become: true
+  ansible.builtin.apt:
+    update_cache: yes
+    pkg:
+      - vim
+      - curl
+      - unzip
+      - ca-certificates
+      - lm-sensors
+      - jq
+      - sqlite3
+      - rsyslog
+
+- name: Install .vimrc
+  ansible.builtin.copy:
+    src: ../dotfiles/vimrc
+    dest: ~/.vimrc
+
+- name: Install .gitconfig
+  ansible.builtin.copy:
+    src: ../dotfiles/gitconfig
+    dest: ~/.gitconfig
+
+- name: Copy scripts
+  become: true
+  ansible.builtin.copy:
+    src: ../bin
+    dest: /usr/local/rpi-config
+    mode: '755'
+
+- name: Install AWS CLI
+  become: true
+  ansible.builtin.script: install-aws-cli
+  register: result
+  failed_when: "'already installed' not in result.stdout"
+  changed_when: "result.rc == 0"

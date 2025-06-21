@@ -1,0 +1,11 @@
+- name: Bootstrap host
+  hosts: all
+  pre_tasks:
+    - name: Sanity check
+      tags:
+        - ping
+      ansible.builtin.ping:
+  roles:
+    - {role: common, tags: common}
+    - {role: docker, tags: docker}
+    - {role: logging, tags: logging}

@@ -1,0 +1,5 @@
+- name: Restart dockerd
+  become: true
+  ansible.builtin.systemd_service:
+    name: docker
+    state: restarted

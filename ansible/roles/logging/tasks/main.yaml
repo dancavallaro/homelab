@@ -1,0 +1,24 @@
+- name: Create journald drop-in directory
+  become: true
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    mode: '0755'
+
+- name: Install journald config
+  become: true
+  ansible.builtin.copy:
+    src: journald.conf
+    dest: /etc/systemd/journald.conf.d/override.conf
+    owner: root
+    group: root
+  notify: Restart journald
+
+- name: Install rsyslog config
+  become: true
+  ansible.builtin.copy:
+    src: rsyslog.conf
+    dest: /etc/rsyslog.conf
+    owner: root
+    group: root
+  notify: Restart rsyslog

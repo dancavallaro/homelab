@@ -1,0 +1,46 @@
+- name: Install Docker
+  become: true
+  ansible.builtin.script: install-docker
+  register: result
+  failed_when: "'already installed' not in result.stdout"
+  changed_when: "result.rc == 0"
+
+- name: Add my user to docker group
+  become: true
+  ansible.builtin.user:
+    name: "{{ ansible_user_id }}"
+    groups: docker
+    append: true
+
+- name: Install Loki Docker driver
+  ansible.builtin.command: "docker plugin install grafana/loki-docker-driver:3.5.0-{{ arch }} --alias loki --grant-all-permissions"
+  register: result
+  failed_when: "result.rc != 0 and 'plugin loki:latest already exists' not in result.stderr"
+  changed_when: "result.rc == 0"
+
+- name: Install Docker daemon config with Loki logging
+  become: true
+  notify: Restart dockerd
+  ansible.builtin.copy:
+    src: daemon.json
+    dest: /etc/docker/daemon.json
+
+- name: Copy Docker config files
+  become: true
+  ansible.builtin.copy:
+    src: ../docker
+    dest: /usr/local/rpi-config/
+
+- name: Determine Docker group ID
+  ansible.builtin.command:
+    cmd: stat -c '%g' /var/run/docker.sock
+  register: docker_gid
+
+- name: Render Docker compose file
+  become: true
+  ansible.builtin.template:
+    src: ../docker/compose.yml
+    dest: /usr/local/rpi-config/docker/compose.yml
+
+- name: Launch containers
+  ansible.builtin.command: docker compose -f /usr/local/rpi-config/docker/compose.yml up -d
