@@ -6,9 +6,9 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: https://ori-edge.github.io/k8s_gateway
+    - repoURL: https://k8s-gateway.github.io/k8s_gateway
       chart: k8s-gateway
-      targetRevision: 2.4.0
+      targetRevision: 3.2.0
       helm:
         valueFiles:
           - $values/k8s/manifests/k8s_gateway/values.yaml
