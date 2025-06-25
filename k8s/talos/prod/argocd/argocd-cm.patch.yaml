@@ -18,11 +18,3 @@ data:
     clientID: 16dcff1b-d35e-4395-9791-c2fac0d0eb08
     clientSecret: $argocd-oidc:client-secret
     cliClientID: 53c2d1aa-2a1f-4154-bd35-8679c1ae5f64
-  # ArgoCD logs are really chatty so turn them all down
-  controller.log.level: "warn"
-  server.log.level: "warn"
-  reposerver.log.level: "warn"
-  commitserver.log.level: "warn"
-  dexserver.log.level: "warn"
-  applicationsetcontroller.log.level: "warn"
-  notificationscontroller.log.level: "warn"
