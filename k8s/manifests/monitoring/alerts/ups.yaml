@@ -1,0 +1,12 @@
+namespace: ups
+groups:
+  - name: ups-monitoring
+    interval: 1m
+    rules:
+      - alert: UPS has lost power or switched to battery
+        expr: network_ups_tools_ups_status{flag="OL"} == 0 or network_ups_tools_ups_status{flag="OB"} == 1
+      - alert: UPS has changed status recently
+        expr: changes(network_ups_tools_ups_status[5m]) > 0
+      - alert: UPS health metric disappeared
+        for: 5m
+        expr: network_ups_tools_ups_status{flag="OL"} offset 5m unless on (ups) network_ups_tools_ups_status{flag="OL"}

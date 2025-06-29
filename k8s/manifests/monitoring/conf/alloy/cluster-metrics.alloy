@@ -164,3 +164,34 @@ prometheus.relabel "heartbeat_metrics" {
     prometheus.remote_write.mimir.receiver,
   ]
 }
+
+// ----------------------------------------------------------------------------
+// UPS monitoring
+// ----------------------------------------------------------------------------
+
+prometheus.scrape "ups_metrics" {
+  targets = [{"__address__" = "nut-exporter.nut-exporter:8080"}]
+  metrics_path = "/ups_metrics"
+  job_name = "integrations/kubernetes/ups_metrics"
+  scrape_interval = "60s"
+  forward_to = [prometheus.relabel.ups_metrics.receiver]
+}
+
+prometheus.relabel "ups_metrics" {
+  rule {
+    source_labels = ["__name__"]
+    regex = "network_ups_tools_.*"
+    action = "keep"
+  }
+  rule {
+    replacement = "cp900avr"
+    target_label = "ups"
+  }
+  rule {
+    replacement = "ups_metrics"
+    target_label = "service"
+  }
+  forward_to = [
+    prometheus.remote_write.mimir.receiver,
+  ]
+}

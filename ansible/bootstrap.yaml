@@ -9,3 +9,4 @@
     - {role: common, tags: common}
     - {role: docker, tags: docker}
     - {role: logging, tags: logging}
+    - {role: ups, tags: ups, when: monitor_ups}

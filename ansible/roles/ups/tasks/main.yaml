@@ -1,0 +1,26 @@
+- name: Install packages
+  become: true
+  ansible.builtin.apt:
+    update_cache: yes
+    pkg:
+      - nut
+
+- name: Install UPS driver config
+  become: true
+  notify: Start UPS driver
+  ansible.builtin.copy:
+    src: ups.conf
+    dest: /etc/nut/ups.conf
+
+- name: Install NUT config
+  become: true
+  ansible.builtin.copy:
+    src: nut.conf
+    dest: /etc/nut/nut.conf
+
+- name: Install upsd config
+  become: true
+  notify: Start nut-server
+  ansible.builtin.copy:
+    src: upsd.conf
+    dest: /etc/nut/upsd.conf
