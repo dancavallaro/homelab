@@ -24,7 +24,7 @@ spec:
           image: ghcr.io/druggeri/nut_exporter:3.2.0
           args:
             - --web.listen-address=:8080
-            - --nut.server=192.168.5.100
+            - --nut.server=10.42.42.5
             - --nut.vars_enable=battery.charge,battery.voltage,battery.voltage.nominal,battery.runtime,input.voltage,input.voltage.nominal,ups.load,ups.status
           ports:
             - containerPort: 8080
