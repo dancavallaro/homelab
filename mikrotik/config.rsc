@@ -1,4 +1,4 @@
-# 2025-05-10 08:20:53 by RouterOS 7.14.1
+# 2025-07-09 14:33:48 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -46,6 +46,7 @@ add bridge=dtcnet_bridge interface=ether3
 add bridge=dtcnet_bridge interface=ether7
 add bridge=bridge comment="Bridges WiFi APs to office network" interface=vlan10
 add bridge=iotnet_bridge interface=vlan20
+add bridge=bridge interface=ether8
 /ip firewall connection tracking
 set udp-timeout=10s
 /ip neighbor discovery-settings
@@ -66,6 +67,7 @@ add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-add
 add address=10.42.42.42 client-id=1:e4:5f:1:ef:d7:10 comment="bastion RPi" mac-address=E4:5F:01:EF:D7:10 server=defconf
 add address=10.42.42.2 comment="NUC br0" mac-address=92:B9:36:6D:7F:97 server=defconf
 add address=10.42.42.12 client-id=1:90:9:d0:66:1f:3b comment="Synology NAS" mac-address=90:09:D0:66:1F:3B server=defconf
+add address=10.42.42.5 client-id=1:d8:3a:dd:c8:db:3c comment="RPi 5" mac-address=D8:3A:DD:C8:DB:3C server=defconf
 /ip dhcp-server network
 add address=10.42.0.0/16 comment="Office network" dns-server=10.42.42.1 gateway=10.42.42.1 netmask=16
 add address=10.255.1.0/30 comment="Link to Protectli" dns-server=8.8.8.8,8.8.4.4 gateway=10.255.1.2
@@ -74,7 +76,6 @@ add address=192.168.20.0/24 comment="Private IoT network" dns-server=172.16.42.5
 set allow-remote-requests=yes servers=8.8.8.8,8.8.4.4
 /ip dns static
 add address=10.42.42.1 comment=defconf name=router.lan
-add address=192.168.5.238 name=rpi
 add address=10.255.0.1 name=dpu-dev
 add address=10.42.42.2 name=dpu-host
 add address=10.255.2.3 name=dpu
