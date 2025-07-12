@@ -337,3 +337,12 @@ ls -l /dev/disk/by-path | grep iscsi
 ```shell
 sudo iscsiadm -m node --logoutall=all
 ```
+
+## DNS w/o Tailscale
+
+I can tell MacOS to use my k8s DNS gateway for all *.o.cavnet.cloud domains by writing
+the following contents to `/etc/resolver/o.cavnet.cloud`:
+
+```shell
+nameserver 172.16.42.53
+```

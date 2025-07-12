@@ -1,15 +1,23 @@
 [alias]
-    st = status
-    co = checkout
-    br = branch
-    lastdiff = diff HEAD~1..HEAD
+  st = status
+  co = checkout
+  br = branch
+  nbr = !git co -b $1 && git br -u main && :
+  dag = log --graph --format='format:%C(yellow)%h%C(reset) %C(blue)\"%an\" <%ae>%C(reset) %C(magenta)%cr%C(reset)%C(auto)%d%C(reset)%n%s' --date-order
+  commitdiff = log --left-right --graph --cherry-pick --oneline
+  lastdiff = diff HEAD~1..HEAD
+  lastdiffstats = diff --stat HEAD~1..HEAD
+  amend = commit --amend --no-edit
+  rbi = rebase -i
+  sp = show -p
 [core]
-    pager = less -r
-	editor = vim
+  pager = less -r
+  excludesfile = ~/.gitignore
+  editor = vim
 [user]
-    name = Dan Cavallaro
-    email = dan.t.cavallaro@gmail.com
+  name = Dan Cavallaro
+  email = dan.t.cavallaro@gmail.com
 [push]
-    default = simple
+  default = simple
 [color]
-    ui = true
+  ui = true
