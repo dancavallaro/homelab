@@ -1,0 +1,21 @@
+- name: Enable passwordless sudo
+  become: true
+  ansible.builtin.copy:
+    src: etc/sudoers
+    dest: /etc/sudoers.d/00_custom
+    mode: '0644'
+    validate: /usr/sbin/visudo -csf %s
+
+- name: Set authorized SSH keys
+  ansible.builtin.copy:
+    src: ssh/authorized_keys
+    dest: ~/.ssh/authorized_keys
+    mode: '0600'
+
+- name: Disable SSH password auth
+  become: true
+  ansible.builtin.copy:
+    src: etc/sshd_config.conf
+    dest: /etc/ssh/sshd_config.d/00_custom.conf
+    mode: '0600'
+  notify: Restart sshd

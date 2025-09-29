@@ -1,4 +1,4 @@
-# 2025-07-09 14:33:48 by RouterOS 7.14.1
+# 2025-09-29 11:35:23 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -7,7 +7,6 @@
 add admin-mac=78:9A:18:BD:BF:20 auto-mac=no comment=defconf name=bridge port-cost-mode=short
 add comment="bridges some ports to \"WAN\" (dtcnet/home LAN) on ether1" name=dtcnet_bridge
 add comment="Private IoT network for ESP32 devices" name=iotnet_bridge
-add comment="Bridge for BF3 network behind Protectli" name=labnet_bridge
 /interface ethernet
 set [ find default-name=ether1 ] comment="NUC (2.5GbE)"
 set [ find default-name=ether2 ] comment="Laptop docking station"
@@ -26,8 +25,6 @@ add comment=defconf name=WAN
 add comment=defconf name=LAN
 /interface wireless security-profiles
 set [ find default=yes ] supplicant-identity=MikroTik
-/ip dhcp-server
-add interface=labnet_bridge name=labnet
 /ip pool
 add comment="Address pool for office network" name=dhcp ranges=10.42.42.2-10.42.42.254
 add comment="Address pool for private IoT network" name=iotnet ranges=192.168.20.2-192.168.20.254
@@ -38,7 +35,7 @@ add address-pool=iotnet comment="DHCP for private IoT network" interface=iotnet_
 add bridge=bridge comment=defconf interface=ether2 internal-path-cost=10 path-cost=10
 add bridge=bridge interface=ether6 internal-path-cost=10 path-cost=10
 add bridge=bridge comment="Synology NAS" interface=sfp-sfpplus1 internal-path-cost=10 path-cost=10
-add bridge=labnet_bridge interface=ether4
+add bridge=bridge interface=ether4
 add bridge=bridge interface=ether1
 add bridge=dtcnet_bridge interface=ether5
 add bridge=dtcnet_bridge comment="Bridges dpu-host to dtcnet" interface=vlan192
@@ -56,13 +53,12 @@ add comment=defconf interface=bridge list=LAN
 add comment=defconf interface=dtcnet_bridge list=WAN
 /ip address
 add address=10.42.42.1/16 comment=defconf interface=bridge network=10.42.0.0
-add address=10.255.1.2/24 interface=labnet_bridge network=10.255.1.0
 add address=192.168.20.1/24 interface=iotnet_bridge network=192.168.20.0
 /ip dhcp-client
 add interface=dtcnet_bridge
 /ip dhcp-server lease
 add address=10.42.42.10 client-id=work-laptop comment="Work MBP" mac-address=90:8D:6E:35:11:38 server=defconf
-add address=10.255.1.1 comment="dpu-dev Protectli" mac-address=00:E0:67:30:D6:DE server=labnet
+add address=10.42.42.16 comment=Protectli mac-address=00:E0:67:30:D6:DE
 add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-address=90:8D:6E:35:11:38 server=defconf
 add address=10.42.42.42 client-id=1:e4:5f:1:ef:d7:10 comment="bastion RPi" mac-address=E4:5F:01:EF:D7:10 server=defconf
 add address=10.42.42.2 comment="NUC br0" mac-address=92:B9:36:6D:7F:97 server=defconf
@@ -70,16 +66,17 @@ add address=10.42.42.12 client-id=1:90:9:d0:66:1f:3b comment="Synology NAS" mac-
 add address=10.42.42.5 client-id=1:d8:3a:dd:c8:db:3c comment="RPi 5" mac-address=D8:3A:DD:C8:DB:3C server=defconf
 /ip dhcp-server network
 add address=10.42.0.0/16 comment="Office network" dns-server=10.42.42.1 gateway=10.42.42.1 netmask=16
-add address=10.255.1.0/30 comment="Link to Protectli" dns-server=8.8.8.8,8.8.4.4 gateway=10.255.1.2
 add address=192.168.20.0/24 comment="Private IoT network" dns-server=172.16.42.53 gateway=192.168.20.1
 /ip dns
 set allow-remote-requests=yes servers=8.8.8.8,8.8.4.4
 /ip dns static
 add address=10.42.42.1 comment=defconf name=router.lan
-add address=10.255.0.1 name=dpu-dev
 add address=10.42.42.2 name=dpu-host
-add address=10.255.2.3 name=dpu
 add address=192.168.6.40 name=dtcnet-netgear
+add address=10.42.42.16 name=protectli
+add address=10.42.42.12 name=nas
+add address=10.42.42.42 name=bastion
+add address=10.42.42.5 name=rpi
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
@@ -101,7 +98,6 @@ add action=notrack chain=prerouting comment="Disable conntrack for traffic betwe
 add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and MetalLB subnet" dst-address=172.16.42.0/24 src-address=10.42.0.0/16
 add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and k8s VM subnet" dst-address=192.168.42.0/24 src-address=10.42.0.0/16
 /ip route
-add disabled=no distance=1 dst-address=10.255.0.0/16 gateway=10.255.1.1 pref-src="" routing-table=main suppress-hw-offload=no
 add comment="Route for MetalLB" disabled=no distance=1 dst-address=172.16.42.0/24 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
 add comment="Route for k8s cluster" disabled=no distance=1 dst-address=10.96.0.0/12 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
 add comment="Route for k8s VM private subnet" disabled=no distance=1 dst-address=192.168.42.0/24 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no

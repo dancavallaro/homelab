@@ -22,6 +22,12 @@
     src: ../dotfiles/gitconfig
     dest: ~/.gitconfig
 
+- name: Set default editor
+  become: true
+  community.general.alternatives:
+    name: editor
+    path: /usr/bin/vim.basic
+
 - name: Copy scripts
   become: true
   ansible.builtin.copy:
@@ -33,5 +39,5 @@
   become: true
   ansible.builtin.script: install-aws-cli
   register: result
-  failed_when: "'already installed' not in result.stdout"
+  failed_when: "result.rc != 0 and 'already installed' not in result.stdout"
   changed_when: "result.rc == 0"

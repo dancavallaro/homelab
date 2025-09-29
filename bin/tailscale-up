@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 
-# On the RPi, run this instead:
-# $ sudo tailscale up --ssh --accept-routes --accept-dns
-
 # On the NUC I recently started running into https://github.com/tailscale/tailscale/issues/13863,
 # which was resolved by adding TS_DEBUG_FIREWALL_MODE=nftables to /etc/default/tailscaled.
 
 sudo tailscale up \
-    --advertise-routes=10.255.0.0/16,10.42.0.0/16,10.96.0.0/12,172.16.42.0/24 \
+    --advertise-routes=10.42.0.0/16,10.96.0.0/12,172.16.42.0/24 \
     --ssh --accept-dns \
     --advertise-exit-node

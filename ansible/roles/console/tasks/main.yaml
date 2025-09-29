@@ -1,0 +1,8 @@
+- name: Update GRUB config
+  become: true
+  lineinfile:
+    path: /etc/default/grub
+    regexp: "^#?{{ item.key }}=.*$"
+    line: '{{ item.key }}="{{ item.value }}"'
+  notify: Update GRUB config
+  loop: "{{ grub_config | dict2items }}"

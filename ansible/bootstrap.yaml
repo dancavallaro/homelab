@@ -7,6 +7,8 @@
       ansible.builtin.ping:
   roles:
     - {role: common, tags: common}
+    - {role: users, tags: users}
     - {role: docker, tags: docker}
     - {role: logging, tags: logging}
     - {role: ups, tags: ups, when: monitor_ups}
+    - {role: console, tags: console, when: enable_console}
