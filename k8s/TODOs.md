@@ -12,3 +12,4 @@ TODOs:
 * Fix Stults/Terhune parsers to properly handle text updates
 * Host curing calculator as static website (+ lime/lemon juice calc)
 * Test restoring a brand new cluster from a cluster etcd backup
+* Set up an IPv6-only test cluster
