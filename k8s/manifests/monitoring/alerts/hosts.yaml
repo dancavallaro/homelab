@@ -1,0 +1,10 @@
+namespace: hosts
+groups:
+  - name: host-monitoring
+    interval: 1m
+    rules:
+      - alert: Host has stopped reporting metrics
+        for: 30m
+        expr: node_time_seconds{job="integrations/unix", service="host_metrics"} offset 1h unless on (host) node_time_seconds{job="integrations/unix", service="host_metrics"}
+        annotations:
+          message: "Host {{ $labels.host }} has stopped reporting telemetry. Is it up? Is Alloy failing?"
