@@ -3,4 +3,4 @@ kind: Kustomization
 resources:
   - common
   - websites/stults
-  - websites/terhune
+  #- websites/terhune
