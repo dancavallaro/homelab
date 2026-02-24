@@ -1,4 +1,12 @@
 machine:
+  sysctls:
+    # These are needed for the Matter controller to be able to receive routes for the
+    # Thread network from the HomePod Mini acting as the Thread Border Router.
+    # Inspired by https://github.com/matter-js/python-matter-server/issues/983.
+    net.ipv6.conf.enp2s0.accept_ra: "2"
+    net.ipv6.conf.enp2s0.accept_ra_rt_info_max_plen: "64"
+    net.ipv6.conf.enp2s0/192.accept_ra: "2"
+    net.ipv6.conf.enp2s0/192.accept_ra_rt_info_max_plen: "64"
   network:
     interfaces:
       - deviceSelector:
