@@ -10,6 +10,7 @@ script: !include scripts.yaml
 scene: !include scenes.yaml
 
 prometheus:
+  requires_auth: false
   filter:
     include_entity_globs:
       - "sensor.alpstuga_*"
