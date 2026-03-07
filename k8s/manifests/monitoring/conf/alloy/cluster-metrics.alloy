@@ -195,3 +195,30 @@ prometheus.relabel "ups_metrics" {
     prometheus.remote_write.mimir.receiver,
   ]
 }
+
+// ----------------------------------------------------------------------------
+// Metrics exported by Home Assistant
+// ----------------------------------------------------------------------------
+
+prometheus.scrape "hass_metrics" {
+  targets = [{"__address__" = "hass.hass:80"}]
+  metrics_path = "/api/prometheus"
+  job_name = "integrations/kubernetes/hass_metrics"
+  scrape_interval = "60s"
+  forward_to = [prometheus.relabel.hass_metrics.receiver]
+}
+
+prometheus.relabel "hass_metrics" {
+  rule {
+    source_labels = ["__name__"]
+    regex = "homeassistant_.*"
+    action = "keep"
+  }
+  rule {
+    replacement = "hass_metrics"
+    target_label = "service"
+  }
+  forward_to = [
+    prometheus.remote_write.mimir.receiver,
+  ]
+}
