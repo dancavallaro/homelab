@@ -1,0 +1,11 @@
+namespace: home
+groups:
+  - name: air-quality
+    interval: 1m
+    rules:
+      - alert: CO2 level in office is approaching unhealthy threshold
+        expr: homeassistant_sensor_carbon_dioxide_ppm > 1000
+        for: 15m
+      - alert: CO2 level in office is unhealthy - get fresh air
+        expr: homeassistant_sensor_carbon_dioxide_ppm > 1200
+        for: 5m
