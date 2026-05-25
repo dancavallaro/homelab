@@ -33,6 +33,8 @@ data:
 
     API_URL = "https://api.turnip.exchange/islands/"
     PUSHOVER_URL = "https://api.pushover.net/1/messages.json"
+    # Sentinel returned when no real islands match the query.
+    NO_ISLANDS_CODE = "00000000"
     USER_AGENT = (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:151.0) "
         "Gecko/20100101 Firefox/151.0"
@@ -89,7 +91,10 @@ data:
         notified = set()
         while True:
             try:
-                islands = fetch_islands()
+                islands = [
+                    i for i in fetch_islands()
+                    if i.get("turnipCode") != NO_ISLANDS_CODE
+                ]
                 present = {i.get("messageID") for i in islands if i.get("messageID")}
                 # Drop entries no longer in the queue so reappearances re-fire.
                 notified &= present
