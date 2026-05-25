@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  namespace: argocd
+  name: turnip-watch
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/dancavallaro/rpi-config
+    targetRevision: HEAD
+    path: k8s/manifests/turnip-watch
+  destination:
+    namespace: turnip-watch
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true

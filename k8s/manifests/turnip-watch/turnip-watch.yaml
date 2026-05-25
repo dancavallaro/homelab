@@ -1,0 +1,163 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: turnip-watch
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: pushover-creds
+  namespace: turnip-watch
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-parameter-store
+  dataFrom:
+    - extract:
+        # JSON with keys "token" and "user_key"
+        key: /talos-prod/pushover-creds
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: turnip-watch-script
+  namespace: turnip-watch
+data:
+  watch.py: |
+    import json
+    import os
+    import random
+    import time
+    import urllib.parse
+    import urllib.request
+
+    API_URL = "https://api.turnip.exchange/islands/"
+    PUSHOVER_URL = "https://api.pushover.net/1/messages.json"
+    USER_AGENT = (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:151.0) "
+        "Gecko/20100101 Firefox/151.0"
+    )
+
+    THRESHOLD = int(os.environ.get("THRESHOLD", "550"))
+    BASE_INTERVAL = int(os.environ.get("BASE_INTERVAL_SECONDS", "300"))
+    JITTER_MAX = int(os.environ.get("JITTER_MAX_SECONDS", "60"))
+    PUSHOVER_TOKEN = os.environ["PUSHOVER_TOKEN"]
+    PUSHOVER_USER_KEY = os.environ["PUSHOVER_USER_KEY"]
+
+
+    def log(msg):
+        print(msg, flush=True)
+
+
+    def fetch_islands():
+        body = json.dumps({"islander": "neither", "category": "turnips"}).encode()
+        req = urllib.request.Request(
+            API_URL,
+            data=body,
+            headers={
+                "User-Agent": USER_AGENT,
+                "Content-Type": "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.load(resp).get("islands", [])
+
+
+    def notify(island):
+        price = island["turnipPrice"]
+        message = (
+            f"{island.get('name', 'unknown')}: {price} bells\n"
+            f"Code: {island.get('turnipCode', '?')} | "
+            f"Queue: {island.get('queued', '?')}"
+        )
+        data = urllib.parse.urlencode({
+            "token": PUSHOVER_TOKEN,
+            "user": PUSHOVER_USER_KEY,
+            "title": f"Turnip price {price} bells",
+            "message": message,
+        }).encode()
+        req = urllib.request.Request(PUSHOVER_URL, data=data)
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            resp.read()
+
+
+    def main():
+        log(
+            f"starting: threshold={THRESHOLD} "
+            f"interval={BASE_INTERVAL}s+0-{JITTER_MAX}s jitter"
+        )
+        notified = set()
+        while True:
+            try:
+                islands = fetch_islands()
+                present = {i.get("messageID") for i in islands if i.get("messageID")}
+                # Drop entries no longer in the queue so reappearances re-fire.
+                notified &= present
+                for island in islands:
+                    mid = island.get("messageID")
+                    price = island.get("turnipPrice") or 0
+                    if mid and price >= THRESHOLD and mid not in notified:
+                        log(f"alert: {island.get('name')} @ {price}")
+                        notify(island)
+                        notified.add(mid)
+            except Exception as e:
+                log(f"error: {e}")
+            sleep_for = BASE_INTERVAL + random.uniform(0, JITTER_MAX)
+            log(f"sleeping {sleep_for:.1f}s ({len(notified)} tracked)")
+            time.sleep(sleep_for)
+
+
+    if __name__ == "__main__":
+        main()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: turnip-watch
+  namespace: turnip-watch
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: turnip-watch
+  template:
+    metadata:
+      labels:
+        app: turnip-watch
+    spec:
+      containers:
+        - name: turnip-watch
+          image: python:3.12-slim
+          command: ["python", "/app/watch.py"]
+          env:
+            - name: THRESHOLD
+              value: "550"
+            - name: BASE_INTERVAL_SECONDS
+              value: "300"
+            - name: JITTER_MAX_SECONDS
+              value: "60"
+            - name: PUSHOVER_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: pushover-creds
+                  key: token
+            - name: PUSHOVER_USER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pushover-creds
+                  key: user_key
+          volumeMounts:
+            - name: script
+              mountPath: /app
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+      volumes:
+        - name: script
+          configMap:
+            name: turnip-watch-script
