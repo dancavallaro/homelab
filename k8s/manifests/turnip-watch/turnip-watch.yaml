@@ -65,18 +65,13 @@ data:
             return json.load(resp).get("islands", [])
 
 
-    def notify(island):
-        price = island["turnipPrice"]
-        message = (
-            f"{island.get('name', 'unknown')}: {price} bells\n"
-            f"Code: {island.get('turnipCode', '?')} | "
-            f"Queue: {island.get('queued', '?')}"
-        )
+    def notify(count, max_price):
+        plural = "s" if count != 1 else ""
         data = urllib.parse.urlencode({
             "token": PUSHOVER_TOKEN,
             "user": PUSHOVER_USER_KEY,
-            "title": f"Turnip price {price} bells",
-            "message": message,
+            "title": f"Turnip prices: max {max_price} bells",
+            "message": f"{count} island{plural} with turnipPrice >= {THRESHOLD}",
         }).encode()
         req = urllib.request.Request(PUSHOVER_URL, data=data)
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -88,27 +83,28 @@ data:
             f"starting: threshold={THRESHOLD} "
             f"interval={BASE_INTERVAL}s+0-{JITTER_MAX}s jitter"
         )
-        notified = set()
+        last_set = set()
         while True:
             try:
                 islands = [
                     i for i in fetch_islands()
                     if i.get("turnipCode") != NO_ISLANDS_CODE
                 ]
-                present = {i.get("messageID") for i in islands if i.get("messageID")}
-                # Drop entries no longer in the queue so reappearances re-fire.
-                notified &= present
-                for island in islands:
-                    mid = island.get("messageID")
-                    price = island.get("turnipPrice") or 0
-                    if mid and price >= THRESHOLD and mid not in notified:
-                        log(f"alert: {island.get('name')} @ {price}")
-                        notify(island)
-                        notified.add(mid)
+                above = [
+                    i for i in islands
+                    if i.get("messageID")
+                    and (i.get("turnipPrice") or 0) >= THRESHOLD
+                ]
+                current_set = {i["messageID"] for i in above}
+                if current_set and current_set != last_set:
+                    max_price = max(i["turnipPrice"] for i in above)
+                    log(f"alert: {len(above)} islands, max {max_price}")
+                    notify(len(above), max_price)
+                last_set = current_set
             except Exception as e:
                 log(f"error: {e}")
             sleep_for = BASE_INTERVAL + random.uniform(0, JITTER_MAX)
-            log(f"sleeping {sleep_for:.1f}s ({len(notified)} tracked)")
+            log(f"sleeping {sleep_for:.1f}s ({len(last_set)} active)")
             time.sleep(sleep_for)
 
 
