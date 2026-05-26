@@ -73,12 +73,30 @@ kind: Service
 metadata:
   name: turnip-watch
   namespace: turnip-watch
-  annotations:
-    coredns.io/hostname: turnips.o.cavnet.cloud
 spec:
-  type: LoadBalancer
   selector:
     app: turnip-watch
   ports:
     - port: 80
       targetPort: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: turnip-watch
+  namespace: turnip-watch
+spec:
+  parentRefs:
+    - namespace: default
+      name: private-gateway
+      sectionName: websecure
+  hostnames:
+    - turnips.o.cavnet.cloud
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: turnip-watch
+          port: 80

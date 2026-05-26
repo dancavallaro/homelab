@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 API_URL = "https://api.turnip.exchange/islands/"
 PUSHOVER_URL = "https://api.pushover.net/1/messages.json"
-SNOOZE_URL = "http://turnips.o.cavnet.cloud/snooze"
+SNOOZE_URL = "https://turnips.o.cavnet.cloud/snooze"
 # Sentinel returned when no real islands match the query.
 NO_ISLANDS_CODE = "00000000"
 USER_AGENT = (
