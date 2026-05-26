@@ -40,9 +40,10 @@ data:
         "Gecko/20100101 Firefox/151.0"
     )
 
-    THRESHOLD = int(os.environ.get("THRESHOLD", "550"))
-    BASE_INTERVAL = int(os.environ.get("BASE_INTERVAL_SECONDS", "300"))
-    JITTER_MAX = int(os.environ.get("JITTER_MAX_SECONDS", "60"))
+    BASE_INTERVAL = 300
+    JITTER_MAX = 60
+
+    THRESHOLD = int(os.environ["THRESHOLD"])
     PUSHOVER_TOKEN = os.environ["PUSHOVER_TOKEN"]
     PUSHOVER_USER_KEY = os.environ["PUSHOVER_USER_KEY"]
 
@@ -134,10 +135,6 @@ spec:
           env:
             - name: THRESHOLD
               value: "550"
-            - name: BASE_INTERVAL_SECONDS
-              value: "300"
-            - name: JITTER_MAX_SECONDS
-              value: "60"
             - name: PUSHOVER_TOKEN
               valueFrom:
                 secretKeyRef:
