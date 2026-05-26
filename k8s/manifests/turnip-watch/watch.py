@@ -23,7 +23,8 @@ BASE_INTERVAL = 300
 JITTER_MAX = 60
 TZ = ZoneInfo("America/New_York")
 
-THRESHOLD = int(os.environ["THRESHOLD"])
+
+THRESHOLD = int(os.getenv("THRESHOLD", "200"))
 PUSHOVER_TOKEN = os.environ["PUSHOVER_TOKEN"]
 PUSHOVER_USER_KEY = os.environ["PUSHOVER_USER_KEY"]
 
@@ -75,9 +76,13 @@ def notify(count, max_price):
         "url": SNOOZE_URL,
         "url_title": "Snooze until Sunday noon",
     }).encode()
-    req = urllib.request.Request(PUSHOVER_URL, data=data)
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        resp.read()
+
+    if PUSHOVER_TOKEN == "skip":
+        log(f"skipping Pushover notification; would notify with payload: {data}")
+    else:
+        req = urllib.request.Request(PUSHOVER_URL, data=data)
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            resp.read()
 
 
 class SnoozeHandler(http.server.BaseHTTPRequestHandler):
