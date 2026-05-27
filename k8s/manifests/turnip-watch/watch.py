@@ -1,5 +1,6 @@
 import http.server
 import json
+import logging
 import os
 import random
 import threading
@@ -30,10 +31,6 @@ PUSHOVER_USER_KEY = os.environ["PUSHOVER_USER_KEY"]
 
 # Ephemeral; resets on pod restart.
 snooze_until = 0.0
-
-
-def log(msg):
-    print(msg, flush=True)
 
 
 def next_sunday_noon():
@@ -78,7 +75,7 @@ def notify(count, max_price):
     }).encode()
 
     if PUSHOVER_TOKEN == "skip":
-        log(f"skipping Pushover notification; would notify with payload: {data}")
+        logging.info("skipping Pushover notification; would notify with payload: %s", data)
     else:
         req = urllib.request.Request(PUSHOVER_URL, data=data)
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -100,7 +97,7 @@ class SnoozeHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
-        log(f"snooze: until={until_str}")
+        logging.info("snooze: until=%s", until_str)
 
     def log_message(self, format, *args):
         pass
@@ -112,9 +109,13 @@ def start_http_server():
 
 
 def main():
-    log(
-        f"starting: threshold={THRESHOLD} "
-        f"interval={BASE_INTERVAL}s+0-{JITTER_MAX}s jitter"
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
+    logging.info(
+        "starting: threshold=%d interval=%ds+0-%ds jitter",
+        THRESHOLD, BASE_INTERVAL, JITTER_MAX,
     )
     start_http_server()
     last_set = set()
@@ -135,19 +136,19 @@ def main():
             current_set = {i["messageID"] for i in above}
             if current_set and current_set != last_set:
                 if time.time() < snooze_until:
-                    log(
-                        f"snoozed until {fmt_local(snooze_until)}; "
-                        f"skipping alert for {len(above)} islands"
+                    logging.info(
+                        "snoozed until %s; skipping alert for %d islands",
+                        fmt_local(snooze_until), len(above),
                     )
                 else:
                     max_price = max(i["turnipPrice"] for i in above)
-                    log(f"alert: {len(above)} islands, max {max_price}")
+                    logging.info("alert: %d islands, max %d", len(above), max_price)
                     notify(len(above), max_price)
             last_set = current_set
         except Exception as e:
-            log(f"error: {e}")
+            logging.exception("error: %s", e)
         sleep_for = BASE_INTERVAL + random.uniform(0, JITTER_MAX)
-        log(f"sleeping {sleep_for:.1f}s ({len(last_set)} active)")
+        logging.info("sleeping %.1fs (%d active)", sleep_for, len(last_set))
         time.sleep(sleep_for)
 
 
