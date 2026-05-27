@@ -15,7 +15,7 @@ spec:
   dataFrom:
     - extract:
         # JSON with keys "token" and "user_key"
-        key: /talos-prod/pushover-creds
+        key: /talos-prod/pushover-creds-turnip-watch
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -4,4 +4,3 @@
 * Figure out how to handle error monitoring
 * Add timestamps to log messages
   * Figure out why serial-logger has duplicate timestamps
-* Use dedicated Pushover app/creds for turnip-watch
