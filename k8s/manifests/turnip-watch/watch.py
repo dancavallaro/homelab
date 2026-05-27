@@ -123,6 +123,9 @@ def main():
             islands = [
                 i for i in fetch_islands()
                 if i.get("turnipCode") != NO_ISLANDS_CODE
+                # Patreon-promoted entries are paid/scammy treasure-island
+                # listings, not real sellers.
+                and not i.get("patreon")
             ]
             above = [
                 i for i in islands
