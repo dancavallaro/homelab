@@ -9,3 +9,6 @@ groups:
       - alert: CO2 level in office is unhealthy - get fresh air
         expr: homeassistant_sensor_carbon_dioxide_ppm > 1500
         for: 5m
+      - alert: Air quality monitor disappeared
+        expr: absent_over_time(homeassistant_sensor_temperature_celsius[15m])
+        for: 5m
