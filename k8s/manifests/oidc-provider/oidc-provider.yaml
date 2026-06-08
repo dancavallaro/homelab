@@ -56,6 +56,9 @@ data:
         server_name _;
         root /usr/share/nginx/html;
 
+        # Allow browser/cross-origin verifiers to read the public discovery docs.
+        add_header Access-Control-Allow-Origin "*" always;
+
         location = /.well-known/openid-configuration {
             default_type application/json;
         }
