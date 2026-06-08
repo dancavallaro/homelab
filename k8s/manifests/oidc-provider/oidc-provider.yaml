@@ -1,0 +1,165 @@
+# Publicly-reachable OIDC discovery + JWKS endpoint for the cluster's
+# service-account token issuer, so AWS IAM can federate workload identities via
+# AssumeRoleWithWebIdentity (DIY IRSA). Exposed at https://oidc.cavnet.io through
+# the existing Cloudflare Tunnel (the `*.cavnet.io` wildcard already routes to the
+# public gateway, so no cloudflared change is needed).
+#
+# Both documents served here are PUBLIC by design: the JWKS contains only the
+# public half of the SA signing key pair, and the discovery doc is metadata.
+#
+# The JWKS is kept current by the CronJob in jwks-refresh.yaml, so a signing-key
+# rotation requires no manual edit here. See README.md for the full runbook.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: oidc-provider
+---
+# Static discovery document. `issuer` and `jwks_uri` MUST exactly match the
+# kube-apiserver's --service-account-issuer / --service-account-jwks-uri and the
+# AWS IAM OIDC provider URL.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: oidc-provider
+  name: oidc-provider-discovery
+data:
+  openid-configuration: |-
+    {
+      "issuer": "https://oidc.cavnet.io",
+      "jwks_uri": "https://oidc.cavnet.io/openid/v1/jwks",
+      "response_types_supported": ["id_token"],
+      "subject_types_supported": ["public"],
+      "id_token_signing_alg_values_supported": ["RS256"]
+    }
+---
+# JWKS (public signing keys). This is the initial snapshot of
+# `kubectl get --raw /openid/v1/jwks`; the jwks-refresh CronJob overwrites it on a
+# schedule, so it stays correct across key rotations on its own.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: oidc-provider
+  name: oidc-provider-jwks
+data:
+  jwks: |-
+    {"keys":[{"use":"sig","kty":"RSA","kid":"g9YxFQ0s27ppozYnbOIuekzdAZqF-J6HRuznDK5gf-o","alg":"RS256","n":"0enGfMG1Zhh3RrryaccqmgIQgqH2sEC6gvK1AeKzBegy69zws2uYP2zTqJGP3LogJWyvCEYj_gsMPNtDelJJyFmbpeYOWjlOxagnAB7eB_qJUQJ8ElbIDvqBvZyh2XPcK9tiu0syykte6jHIP-ry25ZN_Pxolqk23X0seDLIl2-7itAokPXqXbbWlXHa2v7cw-qiMLNQPzU70S9b8oaXfUKeL84GL6YMrxLQTQjE6065sb9qoFNq9wttSz0uZ-K0j49CRw1sAgk7EAQOFoyz-ZqjgODR5xV7YpH3uQgas0ySHwz_RgIVEd-huCwcz9xySrr252uid1Ok9JefGasOz3sKW52_m6Td65bp7IKdLJFiC9oAxkBRCn8yk3rozER8utm1FYrmYgRDLHpIiE-pmR5QS3vyosbLHXWKsO-j7ORS7W5wyGtse1imnlQ4POdxSs6fA13knIPH6wz5UDTaiLazXzCQnWJcMc6IKRYR66q6LQmU0HNkpbPm07pn9kuC0_kVAxAlx0epljRS8W9F3ui2VPKqUwaTrhOmI2qFCKDz9ttXoalyF9f8sG2D238CCWF1x3BLlAA1MG_5KtjY56kxX4YHDqmx-ANrEu4FDu1MOR2bIE8ddQUW3tRcRr8FkHYzr092b8Jk4aN28yXDReorafMzRM1Uf8ehYjL5aZc","e":"AQAB"}]}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: oidc-provider
+  name: oidc-provider-nginx
+data:
+  default.conf: |
+    server {
+        listen 80 default_server;
+        server_name _;
+        root /usr/share/nginx/html;
+
+        location = /.well-known/openid-configuration {
+            default_type application/json;
+        }
+        location = /openid/v1/jwks {
+            default_type application/json;
+        }
+        # Nothing else is served from this endpoint.
+        location / {
+            return 404;
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: oidc-provider
+  name: oidc-provider
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: oidc-provider
+  template:
+    metadata:
+      labels:
+        app: oidc-provider
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+          livenessProbe:
+            httpGet:
+              path: /.well-known/openid-configuration
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /.well-known/openid-configuration
+              port: 80
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+            - name: web
+              mountPath: /usr/share/nginx/html
+              readOnly: true
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: oidc-provider-nginx
+        # Combine the static discovery doc and the cron-refreshed JWKS into one
+        # docroot. ConfigMap keys can't contain '/', so map them onto the
+        # spec-mandated request paths here. Updates to oidc-provider-jwks
+        # propagate into this volume without a pod restart.
+        - name: web
+          projected:
+            sources:
+              - configMap:
+                  name: oidc-provider-discovery
+                  items:
+                    - key: openid-configuration
+                      path: .well-known/openid-configuration
+              - configMap:
+                  name: oidc-provider-jwks
+                  items:
+                    - key: jwks
+                      path: openid/v1/jwks
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: oidc-provider
+  name: oidc-provider
+spec:
+  selector:
+    app: oidc-provider
+  ports:
+    - port: 80
+      targetPort: 80
+---
+# Attaches to the public gateway (the one the Cloudflare Tunnel fronts), so
+# https://oidc.cavnet.io is reachable from AWS. Mirrors the pocket-id HTTPRoute
+# pattern, but parents the public listener instead of the private one.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  namespace: oidc-provider
+  name: oidc-provider
+spec:
+  parentRefs:
+    - namespace: internet
+      name: public-gateway
+      sectionName: webpublic
+  hostnames:
+    - oidc.cavnet.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: oidc-provider
+          port: 80

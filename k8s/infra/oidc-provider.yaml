@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  namespace: argocd
+  name: oidc-provider
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/dancavallaro/rpi-config
+    targetRevision: HEAD
+    path: k8s/manifests/oidc-provider
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+  # The jwks-refresh CronJob rewrites this ConfigMap's `jwks` key from the live
+  # apiserver. Without this, selfHeal would revert it to the git snapshot on every
+  # sync and defeat the auto-refresh.
+  ignoreDifferences:
+    - group: ""
+      kind: ConfigMap
+      name: oidc-provider-jwks
+      namespace: oidc-provider
+      jsonPointers:
+        - /data/jwks

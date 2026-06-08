@@ -1,0 +1,71 @@
+# Keeps the published JWKS in sync with the apiserver so a service-account
+# signing-key rotation needs no manual edit. Reading /openid/v1/jwks is already
+# authorized for every SA (the cluster-wide system:service-account-issuer-discovery
+# binding to Group/system:serviceaccounts), so this SA only needs RBAC to rewrite
+# the oidc-provider-jwks ConfigMap. The projected volume in the Deployment picks up
+# the change with no pod restart.
+#
+# Daily is plenty: Kubernetes serves both the old and new public keys in the JWKS
+# during a rotation overlap, so even a day of lag verifies tokens with no downtime.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: oidc-provider
+  name: jwks-refresh
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: oidc-provider
+  name: jwks-refresh
+rules:
+  - apiGroups: [""]
+    resources: [configmaps]
+    resourceNames: [oidc-provider-jwks]
+    verbs: [get, update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: oidc-provider
+  name: jwks-refresh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: jwks-refresh
+subjects:
+  - kind: ServiceAccount
+    name: jwks-refresh
+    namespace: oidc-provider
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  namespace: oidc-provider
+  name: jwks-refresh
+spec:
+  schedule: "17 4 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          serviceAccountName: jwks-refresh
+          restartPolicy: OnFailure
+          containers:
+            - name: jwks-refresh
+              image: alpine/k8s:1.32.2
+              command: [/bin/sh, -c]
+              args:
+                - |
+                  set -euo pipefail
+                  kubectl get --raw /openid/v1/jwks > /tmp/jwks
+                  # Refuse to publish an empty/garbage response.
+                  test -s /tmp/jwks
+                  grep -q '"keys"' /tmp/jwks
+                  kubectl create configmap oidc-provider-jwks \
+                    --from-file=jwks=/tmp/jwks \
+                    --dry-run=client -o yaml | kubectl apply -f -

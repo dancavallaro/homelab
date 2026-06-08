@@ -1,0 +1,64 @@
+# EXAMPLE — fully commented so ArgoCD applies nothing from this file.
+#
+# Template for a workload that assumes an AWS IAM role via web-identity
+# federation (DIY IRSA). Copy these snippets into a real app's manifest; you do
+# NOT deploy them from here. No sidecar and no cert: the AWS SDK reads the
+# projected token + the two env vars below, calls AssumeRoleWithWebIdentity, and
+# refreshes the credentials automatically before expiry.
+#
+# Prerequisites (see README.md): the Talos issuer patch is applied, this
+# oidc-provider app is serving https://oidc.cavnet.io, and in AWS you've created
+# the IAM OIDC provider + a role whose trust policy pins this exact
+# namespace/serviceaccount.
+#
+# ---
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   namespace: myapp
+#   name: myapp
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   namespace: myapp
+#   name: myapp
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: myapp
+#   template:
+#     metadata:
+#       labels:
+#         app: myapp
+#     spec:
+#       serviceAccountName: myapp
+#       containers:
+#         - name: myapp
+#           image: myapp:latest
+#           env:
+#             # The role this pod assumes. Its trust policy must allow
+#             # sts:AssumeRoleWithWebIdentity for
+#             # oidc.cavnet.io:sub = system:serviceaccount:myapp:myapp
+#             - name: AWS_ROLE_ARN
+#               value: arn:aws:iam::484396241422:role/myapp
+#             - name: AWS_WEB_IDENTITY_TOKEN_FILE
+#               value: /var/run/secrets/aws/token
+#             # Use the regional STS endpoint (lower latency, no global dependency).
+#             - name: AWS_STS_REGIONAL_ENDPOINTS
+#               value: regional
+#           volumeMounts:
+#             - name: aws-token
+#               mountPath: /var/run/secrets/aws
+#               readOnly: true
+#       volumes:
+#         # Projected SA token scoped to the STS audience. The kubelet refreshes
+#         # it well before the 1h expiry; the AWS SDK re-reads the file.
+#         - name: aws-token
+#           projected:
+#             sources:
+#               - serviceAccountToken:
+#                   audience: sts.amazonaws.com
+#                   expirationSeconds: 3600
+#                   path: token

@@ -36,6 +36,12 @@ cluster:
             warn: baseline
     certSANs:
       - k8s.cavnet.cloud
+    extraArgs:
+      # Publish a public OIDC issuer for AWS IAM web-identity federation (see
+      # k8s/manifests/oidc-provider). The issuer + jwks-uri must exactly match
+      # what oidc.cavnet.io serves and the AWS IAM OIDC provider URL.
+      service-account-issuer: https://oidc.cavnet.io
+      service-account-jwks-uri: https://oidc.cavnet.io/openid/v1/jwks
   controlPlane:
     endpoint: https://k8s.cavnet.cloud:6443
   etcd:
