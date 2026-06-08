@@ -24,7 +24,8 @@ spec:
     kind: ClusterIssuer
     group: cert-manager.io
 ---
-# At the moment this is only used to issue certificates that I use with AWS IAM RA.
+# This is used to issue certificates for use with AWS IAM RA, and is used by the
+# Pod Identity Webhook as well.
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:

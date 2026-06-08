@@ -1,0 +1,24 @@
+# amazon-eks-pod-identity-webhook (the same mutating webhook EKS runs for IRSA,
+# here off-EKS). It injects AWS_ROLE_ARN, AWS_WEB_IDENTITY_TOKEN_FILE, and a
+# projected sts.amazonaws.com SA token into any pod whose ServiceAccount is
+# annotated with `eks.amazonaws.com/role-arn`. Pairs with the oidc-provider app
+# so workloads get IRSA-style AWS access from just that annotation — no per-app
+# token volume or env. See k8s/manifests/oidc-provider/README.md.
+
+# Issue the webhook serving cert from the existing cluster CA ClusterIssuer;
+# cert-manager injects its CA bundle into the MutatingWebhookConfiguration.
+pki:
+  certManager:
+    enabled: true
+    existingIssuer:
+      enabled: true
+      kind: ClusterIssuer
+      name: cluster-ca-issuer
+
+config:
+  # Must equal the IAM OIDC provider's client-id and the trust-policy aud condition.
+  tokenAudience: sts.amazonaws.com
+  stsRegionalEndpoint: true
+
+mutatingWebhook:
+  failurePolicy: Ignore

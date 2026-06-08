@@ -7,6 +7,10 @@ A consuming pod gets a projected SA token and the AWS SDK exchanges it for
 temporary role credentials, refreshing them automatically. No sidecar, no
 per-app cert (contrast with `aws-iamra-manager`, which stays in place for ESO).
 
+The `pod-identity-webhook` (deployed separately as `k8s/infra/pod-identity-webhook.yaml`,
+the off-EKS build of the webhook EKS itself uses) does the per-pod wiring, so a
+consuming app needs only an annotation on its ServiceAccount.
+
 ## What's here
 
 - `oidc-provider.yaml` — nginx serving `/.well-known/openid-configuration`
@@ -15,9 +19,18 @@ per-app cert (contrast with `aws-iamra-manager`, which stays in place for ESO).
   routes here, so cloudflared is untouched.
 - `jwks-refresh.yaml` — daily `CronJob` that re-snapshots the live JWKS into the
   `oidc-provider-jwks` ConfigMap, so a signing-key rotation needs no manual edit.
-- `example-app.yaml` — fully commented template for a consuming workload.
+- `example-app.yaml` — fully commented, annotation-only template for a consuming
+  workload.
 - The ArgoCD app (`k8s/infra/oidc-provider.yaml`) sets `ignoreDifferences` on the
   JWKS ConfigMap so `selfHeal` doesn't fight the CronJob.
+
+The credential injection lives in a separate app: `pod-identity-webhook`
+(`k8s/infra/pod-identity-webhook.yaml` + `k8s/manifests/pod-identity-webhook/`).
+It mutates pods whose ServiceAccount carries `eks.amazonaws.com/role-arn`,
+injecting `AWS_ROLE_ARN`, `AWS_WEB_IDENTITY_TOKEN_FILE`, and a projected
+`sts.amazonaws.com` token. Its serving cert comes from the `cluster-ca-issuer`
+ClusterIssuer via cert-manager, with `failurePolicy: Ignore` so a webhook outage
+never blocks pod scheduling.
 
 Both published documents are public by design — the JWKS holds only public keys.
 
@@ -92,9 +105,10 @@ AWS records is a non-functional formality — the CLI fetches one for you.
 
    Attach the task-specific permissions policy to the same role.
 
-2. **Wire the pod** — copy the projected-token volume + `AWS_ROLE_ARN` /
-   `AWS_WEB_IDENTITY_TOKEN_FILE` env from `example-app.yaml`. The AWS SDK does the
-   rest, including refresh.
+2. **Annotate the ServiceAccount** — add `eks.amazonaws.com/role-arn` pointing at
+   the role, and set `serviceAccountName` on the pod (see `example-app.yaml`). The
+   pod-identity-webhook injects the token + env at admission and the AWS SDK does
+   the rest, including refresh.
 
 3. **Verify** from inside the pod: `aws sts get-caller-identity` should return the
    assumed-role ARN.

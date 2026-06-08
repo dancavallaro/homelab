@@ -1,15 +1,17 @@
 # EXAMPLE — fully commented so ArgoCD applies nothing from this file.
 #
 # Template for a workload that assumes an AWS IAM role via web-identity
-# federation (DIY IRSA). Copy these snippets into a real app's manifest; you do
-# NOT deploy them from here. No sidecar and no cert: the AWS SDK reads the
-# projected token + the two env vars below, calls AssumeRoleWithWebIdentity, and
-# refreshes the credentials automatically before expiry.
+# federation (DIY IRSA). With the pod-identity-webhook deployed
+# (k8s/infra/pod-identity-webhook.yaml), the ENTIRE integration is the role-arn
+# annotation on the ServiceAccount: the webhook injects AWS_ROLE_ARN,
+# AWS_WEB_IDENTITY_TOKEN_FILE, and a projected sts.amazonaws.com token at
+# admission, and the AWS SDK assumes the role and refreshes creds on its own.
+# No sidecar, no per-app cert, no env/volume boilerplate.
 #
-# Prerequisites (see README.md): the Talos issuer patch is applied, this
-# oidc-provider app is serving https://oidc.cavnet.io, and in AWS you've created
-# the IAM OIDC provider + a role whose trust policy pins this exact
-# namespace/serviceaccount.
+# Prerequisites (see README.md): the Talos issuer patch is applied, oidc-provider
+# is serving https://oidc.cavnet.io, the pod-identity-webhook is running, and in
+# AWS you've created the IAM OIDC provider + a role whose trust policy pins this
+# exact namespace/serviceaccount.
 #
 # ---
 # apiVersion: v1
@@ -17,6 +19,11 @@
 # metadata:
 #   namespace: myapp
 #   name: myapp
+#   annotations:
+#     # The role this pod assumes. Its trust policy must allow
+#     # sts:AssumeRoleWithWebIdentity for
+#     # oidc.cavnet.io:sub = system:serviceaccount:myapp:myapp
+#     eks.amazonaws.com/role-arn: arn:aws:iam::484396241422:role/myapp
 # ---
 # apiVersion: apps/v1
 # kind: Deployment
@@ -33,32 +40,7 @@
 #       labels:
 #         app: myapp
 #     spec:
-#       serviceAccountName: myapp
+#       serviceAccountName: myapp   # the webhook injects creds; nothing else needed
 #       containers:
 #         - name: myapp
 #           image: myapp:latest
-#           env:
-#             # The role this pod assumes. Its trust policy must allow
-#             # sts:AssumeRoleWithWebIdentity for
-#             # oidc.cavnet.io:sub = system:serviceaccount:myapp:myapp
-#             - name: AWS_ROLE_ARN
-#               value: arn:aws:iam::484396241422:role/myapp
-#             - name: AWS_WEB_IDENTITY_TOKEN_FILE
-#               value: /var/run/secrets/aws/token
-#             # Use the regional STS endpoint (lower latency, no global dependency).
-#             - name: AWS_STS_REGIONAL_ENDPOINTS
-#               value: regional
-#           volumeMounts:
-#             - name: aws-token
-#               mountPath: /var/run/secrets/aws
-#               readOnly: true
-#       volumes:
-#         # Projected SA token scoped to the STS audience. The kubelet refreshes
-#         # it well before the 1h expiry; the AWS SDK re-reads the file.
-#         - name: aws-token
-#           projected:
-#             sources:
-#               - serviceAccountToken:
-#                   audience: sts.amazonaws.com
-#                   expirationSeconds: 3600
-#                   path: token

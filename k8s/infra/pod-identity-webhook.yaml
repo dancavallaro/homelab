@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  namespace: argocd
+  name: pod-identity-webhook
+spec:
+  project: default
+  sources:
+    - repoURL: https://jkroepke.github.io/helm-charts/
+      chart: amazon-eks-pod-identity-webhook
+      targetRevision: 2.6.5
+      helm:
+        valueFiles:
+          - $values/k8s/manifests/pod-identity-webhook/values.yaml
+    - repoURL: https://github.com/dancavallaro/rpi-config
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pod-identity-webhook
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
