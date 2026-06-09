@@ -4,6 +4,8 @@ In-progress (updated 3/15/26):
   * SwiftUI version at /Users/dan/workspace/xcode/ShoppingList, Claude-generated but not building yet
 
 TODOs:
+* Upgrade Talos and Kubernetes
+* Migrate apps from IAMRAM to DIY IRSA
 * Submit kubectl-unmount to Krew index (need to rename first)
 * Storage/NAS:
   * Migrate (some? all?) local-path PVs to Synology iSCSI

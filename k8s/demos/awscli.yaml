@@ -3,6 +3,14 @@ kind: Namespace
 metadata:
   name: aws-cli
 ---
+ apiVersion: v1
+ kind: ServiceAccount
+ metadata:
+   namespace: aws-cli
+   name: aws-cli
+   annotations:
+     eks.amazonaws.com/role-arn: arn:aws:iam::484396241422:role/S3BackupsRole
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,39 +27,40 @@ spec:
       name: aws-cli
       labels:
         app: aws-cli
-      annotations:
-        cloud.dancav.io/aws-iamra-role-profile: aws-cli-role
-        cloud.dancav.io/aws-iamra-cert-secret: aws-cli-cert
+#      annotations:
+#        cloud.dancav.io/aws-iamra-role-profile: aws-cli-role
+#        cloud.dancav.io/aws-iamra-cert-secret: aws-cli-cert
     spec:
+      serviceAccountName: aws-cli
       containers:
         - name: aws-cli
           image: amazon/aws-cli
           command: [ "sleep", "infinity" ]
 ---
-apiVersion: cloud.dancav.io/v1
-kind: AwsIamRaRoleProfile
-metadata:
-  namespace: aws-cli
-  name: aws-cli-role
-spec:
-  trustAnchorArn: arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a
-  profileArn: arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02
-  roleArn: arn:aws:iam::484396241422:role/S3BackupsRole
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  namespace: aws-cli
-  name: aws-cli
-spec:
-  revisionHistoryLimit: 1
-  secretName: aws-cli-cert
-  duration: 24h
-  isCA: false
-  usages:
-    - client auth
-  dnsNames:
-    - aws-cli.o.cavnet.cloud
-  issuerRef:
-    name: cluster-ca-issuer
-    kind: ClusterIssuer
+#apiVersion: cloud.dancav.io/v1
+#kind: AwsIamRaRoleProfile
+#metadata:
+#  namespace: aws-cli
+#  name: aws-cli-role
+#spec:
+#  trustAnchorArn: arn:aws:rolesanywhere:us-east-1:484396241422:trust-anchor/1acbff48-4cbe-4593-9fea-caf869c51b1a
+#  profileArn: arn:aws:rolesanywhere:us-east-1:484396241422:profile/cf0dca44-1d61-41d5-9963-50f3477b8b02
+#  roleArn: arn:aws:iam::484396241422:role/S3BackupsRole
+#---
+#apiVersion: cert-manager.io/v1
+#kind: Certificate
+#metadata:
+#  namespace: aws-cli
+#  name: aws-cli
+#spec:
+#  revisionHistoryLimit: 1
+#  secretName: aws-cli-cert
+#  duration: 24h
+#  isCA: false
+#  usages:
+#    - client auth
+#  dnsNames:
+#    - aws-cli.o.cavnet.cloud
+#  issuerRef:
+#    name: cluster-ca-issuer
+#    kind: ClusterIssuer
