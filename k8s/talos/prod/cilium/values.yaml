@@ -45,5 +45,11 @@ hubble:
     enabled: true
   ui:
     enabled: true
+  tls:
+    auto:
+      enabled: true
+      method: cronJob
+      certValidityDuration: 1095
+      schedule: "0 0 1 */4 *" # re-issue every 4 months, well before expiry
 bpf:
   lbExternalClusterIP: true
