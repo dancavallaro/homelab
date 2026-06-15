@@ -36,4 +36,7 @@ groups:
         for: 10m
         annotations:
           message: "RPi has stopped publishing telemetry to Mimir. Is Tailscale down?"
+      - alert: One or more pods are unavailable
+        expr:  (kube_deployment_status_replicas_unavailable > 0) or (kube_statefulset_status_replicas_ready < kube_statefulset_replicas) or (kube_daemonset_status_number_unavailable > 0)
+        for: 10m
 
