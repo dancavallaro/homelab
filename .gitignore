@@ -1,6 +1,12 @@
 *.bin
 .venv
 .vagrant
+__pycache__/
+.pytest_cache/
+
+# Local-only design specs/plans (superpowers brainstorming + writing-plans
+# output). Kept on disk for reference but intentionally not committed.
+docs/superpowers/
 controlplane.yaml
 worker.yaml
 kubeconfig

@@ -29,8 +29,10 @@ THRESHOLD = int(os.getenv("THRESHOLD", "200"))
 PUSHOVER_TOKEN = os.environ["PUSHOVER_TOKEN"]
 PUSHOVER_USER_KEY = os.environ["PUSHOVER_USER_KEY"]
 
-# Ephemeral; resets on pod restart.
 snooze_until = 0.0
+
+# Latest poll snapshot, published by the loop and read by GET /state.
+latest = {"last_checked": None, "islands": []}
 
 
 def next_sunday_noon():
@@ -47,6 +49,26 @@ def next_sunday_noon():
 
 def fmt_local(ts):
     return datetime.fromtimestamp(ts, TZ).strftime("%a %b %d %I:%M %p %Z")
+
+
+def build_snapshot(islands, now):
+    return {
+        "last_checked": now,
+        "islands": [
+            {"name": i.get("name"), "turnipPrice": i.get("turnipPrice")}
+            for i in islands
+        ],
+    }
+
+
+def build_state(now):
+    snoozed = now < snooze_until
+    last_checked = latest["last_checked"]
+    return {
+        "snooze_until": fmt_local(snooze_until) if snoozed else None,
+        "last_checked": fmt_local(last_checked) if last_checked is not None else None,
+        "islands": latest["islands"],
+    }
 
 
 def fetch_islands():
@@ -85,19 +107,26 @@ def notify(count, max_price):
 class SnoozeHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         global snooze_until
-        if self.path != "/snooze":
+        if self.path == "/snooze":
+            snooze_until = next_sunday_noon()
+            until_str = fmt_local(snooze_until)
+            body = f"Snoozed until {until_str}\n".encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            logging.info("snooze: until=%s", until_str)
+        elif self.path == "/state":
+            body = json.dumps(build_state(time.time())).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        else:
             self.send_response(404)
             self.end_headers()
-            return
-        snooze_until = next_sunday_noon()
-        until_str = fmt_local(snooze_until)
-        body = f"Snoozed until {until_str}\n".encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "text/plain; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-        logging.info("snooze: until=%s", until_str)
 
     def log_message(self, format, *args):
         pass
@@ -109,6 +138,7 @@ def start_http_server():
 
 
 def main():
+    global latest
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
@@ -133,6 +163,7 @@ def main():
                 if i.get("messageID")
                 and (i.get("turnipPrice") or 0) >= THRESHOLD
             ]
+            latest = build_snapshot(above, time.time())
             current_set = {i["messageID"] for i in above}
             if current_set and current_set != last_set:
                 if time.time() < snooze_until:
