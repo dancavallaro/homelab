@@ -32,13 +32,13 @@ data:
       max_query_length: 0
       # Don't enforce automatic retention (only enabled for deletion)
       retention_period: "0s"
-      deletion_mode: filter-and-delete
+      deletion_mode: filter-only
     compactor:
       # Retention (deletion) doesn't work correctly with the Thanos object client and filesystem
       # storage, because it doesn't enter this block: https://github.com/grafana/loki/blob/main/pkg/compactor/compactor.go#L348-L350.
       # The chunk files are base64-encoded because the Thanos chunk client is using the
       # FSEncoder, so the compactor can't find them without using the FSEncoder.
-      retention_enabled: false
+      retention_enabled: true
       retention_delete_delay: "1h"
       delete_request_cancel_period: "1m"
       compaction_interval: "10m"
