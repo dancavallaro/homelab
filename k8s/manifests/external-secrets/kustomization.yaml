@@ -9,8 +9,8 @@ helmCharts:
     version: 0.15.0
     includeCRDs: true
     valuesInline:
-      podAnnotations:
-        cloud.dancav.io/aws-iamra-role-profile: eso-role
-        cloud.dancav.io/aws-iamra-cert-secret: eso-cert
+      serviceAccount:
+        annotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::484396241422:role/external-secrets-operator
 resources:
   - aws-param-store.yaml

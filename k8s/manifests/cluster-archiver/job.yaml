@@ -11,10 +11,8 @@ spec:
         metadata:
           labels:
             app: cluster-archiver
-          annotations:
-            cloud.dancav.io/aws-iamra-role-profile: cluster-archiver-role
-            cloud.dancav.io/aws-iamra-cert-secret: cluster-archiver-cert
         spec:
+          serviceAccountName: cluster-archiver
           restartPolicy: OnFailure
           containers:
             - env:

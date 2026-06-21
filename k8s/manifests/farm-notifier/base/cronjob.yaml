@@ -12,10 +12,8 @@ spec:
         metadata:
           labels:
             app: farm-notifier
-          annotations:
-            cloud.dancav.io/aws-iamra-role-profile: farm-notifier-role
-            cloud.dancav.io/aws-iamra-cert-secret: farm-notifier-cert
         spec:
+          serviceAccountName: farm-notifier
           restartPolicy: OnFailure
           containers:
             - name: farm-notifier
