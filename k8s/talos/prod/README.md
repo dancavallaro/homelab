@@ -69,7 +69,6 @@ Define VM network in `talos-prod-net.xml`:
       <host mac="02:52:A7:0B:1D:89" ip="192.168.42.100" name="talos-prod-worker1" />
       <host mac="DE:6F:9F:0D:15:96" ip="192.168.42.101" name="talos-prod-worker2" />
       <host mac="12:62:54:B1:2D:B0" ip="192.168.42.102" name="talos-prod-worker3" />
-      <host mac="06:31:E2:44:ED:4C" ip="192.168.42.103" name="talos-prod-worker4" />
     </dhcp>
   </ip>
 </network>

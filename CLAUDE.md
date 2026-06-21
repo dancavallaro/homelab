@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Home infrastructure configuration repository managing a Kubernetes cluster (Talos Linux) running on 5 VMs on a NUC 11, plus Ansible automation for additional hosts. Deployments are GitOps-driven via ArgoCD—commits to main auto-sync to the cluster.
+Home infrastructure configuration repository managing a Kubernetes cluster (Talos Linux) running on 4 VMs on a NUC 11, plus Ansible automation for additional hosts. Deployments are GitOps-driven via ArgoCD—commits to main auto-sync to the cluster.
 
 ## Repository Structure
 
@@ -12,7 +12,7 @@ Home infrastructure configuration repository managing a Kubernetes cluster (Talo
   - `apps/` — ArgoCD Application resources for user-facing services
   - `infra/` — ArgoCD Application resources for infrastructure components
   - `manifests/` — Actual Kubernetes manifests (Kustomize bases, Helm values) referenced by ArgoCD apps
-  - `talos/prod/` — Talos Linux machine config and patches for the 5-VM cluster (1 CP + 4 workers)
+  - `talos/prod/` — Talos Linux machine config and patches for the 4-VM cluster (1 CP + 3 workers)
   - `app-roots/` — Top-level ArgoCD app-of-apps (`all-apps.yaml`, `all-infra.yaml`)
   - `demos/` — Debug/test pods (SSH, netshoot, kuard, nginx)
 - **ansible/** — Playbooks and roles for host provisioning (rpi, bastion, dpu-host, protectli)
