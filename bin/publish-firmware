@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Publish a firmware build for pull-OTA: copy the binary to the NAS firmware share and
+# write the per-device manifest JSON. Decoupled from the build so an ordinary compile
+# never retargets live devices.
+#
+# Usage: publish-firmware <device> <firmware.bin> <version>
+# Env:
+#   FW_ROOT  - local path to the mounted firmware share (default: /Volumes/firmware)
+#   BASE_URL - URL devices fetch from              (default: http://fw.o.cavnet.cloud)
+
+device="${1:?usage: publish-firmware <device> <firmware.bin> <version>}"
+binpath="${2:?usage: publish-firmware <device> <firmware.bin> <version>}"
+version="${3:?usage: publish-firmware <device> <firmware.bin> <version>}"
+
+FW_ROOT="${FW_ROOT:-/Volumes/firmware}"
+BASE_URL="${BASE_URL:-http://fw.o.cavnet.cloud}"
+
+[ -f "$binpath" ]  || { echo "no such file: $binpath" >&2; exit 1; }
+[ -d "$FW_ROOT" ]  || { echo "firmware share not mounted at $FW_ROOT" >&2; exit 1; }
+
+sha="$(shasum -a 256 "$binpath" | awk '{print $1}')"
+relpath="$device/$version.bin"
+
+mkdir -p "$FW_ROOT/$device"
+cp "$binpath" "$FW_ROOT/$relpath"
+
+cat > "$FW_ROOT/$device.json" <<EOF
+{
+  "version": "$version",
+  "url": "$BASE_URL/$relpath",
+  "sha256": "$sha"
+}
+EOF
+
+echo "Published $device $version"
+echo "  binary:   $FW_ROOT/$relpath"
+echo "  sha256:   $sha"
+echo "  manifest: $BASE_URL/$device.json -> $BASE_URL/$relpath"
