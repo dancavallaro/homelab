@@ -1,32 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Publish a firmware build for pull-OTA: copy the binary to the NAS firmware share and
-# write the per-device manifest JSON. Decoupled from the build so an ordinary compile
-# never retargets live devices.
+# Publish a firmware build for pull-OTA: upload the binary + per-device manifest to the
+# MinIO firmware bucket (served to devices via the nginx proxy at fw.o.cavnet.cloud).
+# Decoupled from the build so an ordinary compile never retargets live devices.
 #
 # Usage: publish-firmware <device> <firmware.bin> <version>
 # Env:
-#   FW_ROOT  - local path to the mounted firmware share (default: /Volumes/firmware)
-#   BASE_URL - URL devices fetch from              (default: http://fw.o.cavnet.cloud)
+#   MC_ALIAS - configured `mc` alias for the cluster MinIO (default: talos-prod)
+#   BUCKET   - target bucket                               (default: ota-firmware)
+#   BASE_URL - URL devices fetch from                      (default: http://fw.o.cavnet.cloud)
 
 device="${1:?usage: publish-firmware <device> <firmware.bin> <version>}"
 binpath="${2:?usage: publish-firmware <device> <firmware.bin> <version>}"
 version="${3:?usage: publish-firmware <device> <firmware.bin> <version>}"
 
-FW_ROOT="${FW_ROOT:-/Volumes/firmware}"
+MC_ALIAS="${MC_ALIAS:-talos-prod}"
+BUCKET="${BUCKET:-ota-firmware}"
 BASE_URL="${BASE_URL:-http://fw.o.cavnet.cloud}"
 
-[ -f "$binpath" ]  || { echo "no such file: $binpath" >&2; exit 1; }
-[ -d "$FW_ROOT" ]  || { echo "firmware share not mounted at $FW_ROOT" >&2; exit 1; }
+[ -f "$binpath" ] || { echo "no such file: $binpath" >&2; exit 1; }
+command -v mc >/dev/null || { echo "mc (MinIO client) not found in PATH" >&2; exit 1; }
 
 sha="$(shasum -a 256 "$binpath" | awk '{print $1}')"
 relpath="$device/$version.bin"
 
-mkdir -p "$FW_ROOT/$device"
-cp "$binpath" "$FW_ROOT/$relpath"
-
-cat > "$FW_ROOT/$device.json" <<EOF
+# Stage the manifest in a temp dir with a .json name so mc sets Content-Type: application/json.
+tmpd="$(mktemp -d)"
+trap 'rm -rf "$tmpd"' EXIT
+cat > "$tmpd/$device.json" <<EOF
 {
   "version": "$version",
   "url": "$BASE_URL/$relpath",
@@ -34,7 +36,12 @@ cat > "$FW_ROOT/$device.json" <<EOF
 }
 EOF
 
+# Upload binary first, then the manifest that points at it (so the pointer is never ahead
+# of the binary it references).
+mc cp "$binpath" "$MC_ALIAS/$BUCKET/$relpath"
+mc cp "$tmpd/$device.json" "$MC_ALIAS/$BUCKET/$device.json"
+
 echo "Published $device $version"
-echo "  binary:   $FW_ROOT/$relpath"
+echo "  binary:   $MC_ALIAS/$BUCKET/$relpath"
 echo "  sha256:   $sha"
 echo "  manifest: $BASE_URL/$device.json -> $BASE_URL/$relpath"
