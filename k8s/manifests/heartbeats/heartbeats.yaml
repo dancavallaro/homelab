@@ -34,7 +34,7 @@ spec:
     spec:
       containers:
         - name: heartbeat-exporter
-          image: ghcr.io/dancavallaro/telemetry/heartbeats:0.3.0
+          image: ghcr.io/dancavallaro/telemetry/heartbeats:0.4.0
           envFrom:
             - secretRef:
                 name: heartbeats-mqtt-creds
