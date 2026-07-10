@@ -15,6 +15,10 @@ PUSHOVER_URL = "https://api.pushover.net/1/messages.json"
 SNOOZE_URL = "https://turnips.o.cavnet.cloud/snooze"
 # Sentinel returned when no real islands match the query.
 NO_ISLANDS_CODE = "00000000"
+# Islands that we always want to exclude for various reasons
+EXCLUDED_ISLAND_NAMES = {
+    "hey_crazy_time's Island",  # Modded console, fake turnip price
+}
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:151.0) "
     "Gecko/20100101 Firefox/151.0"
@@ -65,10 +69,22 @@ def build_state(now):
     snoozed = now < snooze_until
     last_checked = latest["last_checked"]
     return {
+        "snoozed": snoozed,
         "snooze_until": fmt_local(snooze_until) if snoozed else None,
         "last_checked": fmt_local(last_checked) if last_checked is not None else None,
         "islands": latest["islands"],
     }
+
+
+def filter_islands(islands):
+    return [
+        i for i in islands
+        if i.get("turnipCode") != NO_ISLANDS_CODE
+        # Patreon-promoted entries are paid/scammy treasure-island
+        # listings, not real sellers.
+        and not i.get("patreon")
+        and i.get("name") not in EXCLUDED_ISLAND_NAMES
+    ]
 
 
 def fetch_islands():
@@ -151,13 +167,7 @@ def main():
     last_set = set()
     while True:
         try:
-            islands = [
-                i for i in fetch_islands()
-                if i.get("turnipCode") != NO_ISLANDS_CODE
-                # Patreon-promoted entries are paid/scammy treasure-island
-                # listings, not real sellers.
-                and not i.get("patreon")
-            ]
+            islands = filter_islands(fetch_islands())
             above = [
                 i for i in islands
                 if i.get("messageID")

@@ -35,6 +35,17 @@ def test_build_snapshot_missing_name_becomes_none():
     assert snap["islands"] == [{"name": None, "turnipPrice": 700}]
 
 
+def test_filter_islands_drops_sentinel_patreon_and_blocklisted():
+    islands = [
+        {"name": "Real", "turnipCode": "d24aab85", "patreon": 0},
+        {"name": "Sentinel", "turnipCode": watch.NO_ISLANDS_CODE, "patreon": 0},
+        {"name": "Promoted", "turnipCode": "aaaa1111", "patreon": 1},
+        {"name": "hey_crazy_time's Island", "turnipCode": "7b6817cf", "patreon": 0},
+    ]
+    kept = watch.filter_islands(islands)
+    assert [i["name"] for i in kept] == ["Real"]
+
+
 def test_build_state_not_snoozed_no_poll_yet():
     watch.latest = {"last_checked": None, "islands": []}
     watch.snooze_until = 0.0
