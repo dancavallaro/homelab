@@ -31,6 +31,9 @@ groups:
         for: 3h
         annotations:
           message: "ArgoCD application sync controller has been disabled for a while. Did you forget to re-enable it?"
+      - alert: ArgoCD applications not healthy
+        expr: count(argocd_app_info{health_status!="Healthy"}) > 0
+        for: 1h
       - alert: Loss of Telemetry from RPi
         expr: absent(node_boot_time_seconds{service="host_metrics", instance="rpi"})
         for: 10m
