@@ -222,3 +222,29 @@ prometheus.relabel "hass_metrics" {
     prometheus.remote_write.mimir.receiver,
   ]
 }
+
+// ----------------------------------------------------------------------------
+// ArgoCD metrics
+// ----------------------------------------------------------------------------
+
+prometheus.scrape "argocd_metrics" {
+  targets = [{"__address__" = "argocd-metrics.argocd:8082"}]
+  job_name = "integrations/kubernetes/argocd_metrics"
+  scrape_interval = "60s"
+  forward_to = [prometheus.relabel.argocd_metrics.receiver]
+}
+
+prometheus.relabel "argocd_metrics" {
+  rule {
+    source_labels = ["__name__"]
+    regex = "argocd_.*"
+    action = "keep"
+  }
+  rule {
+    replacement = "argocd_metrics"
+    target_label = "service"
+  }
+  forward_to = [
+    prometheus.remote_write.mimir.receiver,
+  ]
+}
