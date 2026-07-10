@@ -142,14 +142,18 @@ $ virt-install --name talos-prod-worker1 \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=02:52:A7:0B:1D:89
 $ virsh autostart talos-prod-worker1
-# Create worker2, attached to dtcnet and pass through the TP-Link BT USB device
+# Create worker2, attached to dtcnet and pass through the TP-Link BT USB device.
+# xpath.delete strips the resolved USB bus/device address that virt-install bakes
+# into the hostdev, so libvirt re-matches by vendor/product on every boot
+# (USB device numbers are not stable across host reboots).
 $ virt-install --name talos-prod-worker2 \
      --ram 6144 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=50,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=DE:6F:9F:0D:15:96 --network bridge=br0,mac=1e:03:e4:b3:4f:47 \
-     --hostdev 0x2357:0x0604
+     --hostdev 0x2357:0x0604 \
+     --xml xpath.delete=./devices/hostdev/source/address
 $ virsh autostart talos-prod-worker2
 # Create worker3, pass through the attached ESP32's USB serial device
 $ virt-install --name talos-prod-worker3 \
@@ -158,9 +162,20 @@ $ virt-install --name talos-prod-worker3 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=12:62:54:B1:2D:B0 \
-     --hostdev 0x0403:0x6001
+     --hostdev 0x0403:0x6001 \
+     --xml xpath.delete=./devices/hostdev/source/address
 $ virsh autostart talos-prod-worker3
 ```
+
+Verify the persistent config matches USB hostdevs by vendor/product only (no
+`<address bus=... device=.../>` inside `<source>`):
+
+```shell
+$ virsh dumpxml --inactive talos-prod-worker2 | grep -A8 '<hostdev'
+```
+
+Note: `virsh dumpxml` on a *running* domain will still show a resolved
+`<address>` — that's live state only and expected.
 
 #### Prepare config
 

@@ -5,6 +5,7 @@ In-progress (updated 3/15/26):
 
 TODOs:
 * Upgrade Talos and Kubernetes
+* Shed load from UPS - prioritize NAS, then NUC
 * Remote ESP32 firmware flashing and testing using the stick plugged into the NUC
 * Get ESP32 DNS working without needing to connect to IoT network for mDNS
 * Submit kubectl-unmount to Krew index (need to rename first)
