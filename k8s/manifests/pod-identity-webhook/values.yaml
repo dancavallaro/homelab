@@ -20,5 +20,10 @@ config:
   tokenAudience: sts.amazonaws.com
   stsRegionalEndpoint: true
 
+# Fail closed: a pod admitted while the webhook is down would silently miss its
+# AWS cred injection and never self-recover (env vars are set only at creation).
+# Failing admission instead makes controllers retry until the webhook is ready.
+# This blocks ALL pod creation while the webhook is unavailable; the webhook's
+# own pods are exempt via the chart's objectSelector, so it can't deadlock itself.
 mutatingWebhook:
-  failurePolicy: Ignore
+  failurePolicy: Fail
