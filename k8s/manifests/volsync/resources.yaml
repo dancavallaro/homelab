@@ -72,6 +72,13 @@ metadata:
 spec:
   generateExisting: true
   rules:
+    # The secret must be generated whole (data rule, not clone + admission-time
+    # mutate): Kyverno skips its own controllers' requests in the mutate webhook,
+    # so any field added by a mutate rule is silently dropped whenever the
+    # background controller re-syncs a cloned secret. This stripped
+    # RESTIC_REPOSITORY from every backup secret after the 7/9/26 outage.
+    # (Rule name kept from the old clone rule so Kyverno retains ownership of
+    # the existing generated secrets.)
     - name: clone-config-template
       match:
         any:
@@ -84,27 +91,24 @@ spec:
               selector:
                 matchLabels:
                   app.kubernetes.io/created-by: volsync
+      context:
+        - name: configTemplate
+          apiCall:
+            urlPath: /api/v1/namespaces/volsync/secrets/volsync-config-template
+            jmesPath: data
       generate:
         synchronize: true
         apiVersion: v1
         kind: Secret
         name: "volsync-config--{{request.object.metadata.name}}"
         namespace: "{{request.object.metadata.namespace}}"
-        clone:
-          namespace: volsync
-          name: volsync-config-template
-    - name: inject-volume-name-to-repo-url
-      match:
-        any:
-          - resources:
-              kinds:
-                - Secret
-              names:
-                - "volsync-config--*"
-      mutate:
-        patchStrategicMerge:
-          stringData:
-            RESTIC_REPOSITORY: "s3:https://s3.us-east-1.amazonaws.com/nuc-talos-backups/volsync/{{request.object.metadata.namespace}}--{{trim_prefix(request.object.metadata.name, 'volsync-config--')}}"
+        data:
+          type: Opaque
+          data:
+            AWS_ACCESS_KEY_ID: "{{ configTemplate.AWS_ACCESS_KEY_ID }}"
+            AWS_SECRET_ACCESS_KEY: "{{ configTemplate.AWS_SECRET_ACCESS_KEY }}"
+            RESTIC_PASSWORD: "{{ configTemplate.RESTIC_PASSWORD }}"
+            RESTIC_REPOSITORY: "{{ base64_encode(join('', ['s3:https://s3.us-east-1.amazonaws.com/nuc-talos-backups/volsync/', request.object.metadata.namespace, '--', request.object.metadata.name])) }}"
     - name: create-replication-source
       match:
         any:
