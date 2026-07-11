@@ -51,7 +51,6 @@ def test_build_state_not_snoozed_no_poll_yet():
     watch.snooze_until = 0.0
     state = watch.build_state(now=2000.0)
     assert state == {
-        "snoozed": False,
         "snooze_until": None,
         "last_checked": None,
         "islands": [],
@@ -65,7 +64,6 @@ def test_build_state_snoozed_in_future():
     }
     watch.snooze_until = 9000.0
     state = watch.build_state(now=2000.0)
-    assert state["snoozed"] is True
     assert state["snooze_until"] == watch.fmt_local(9000.0)
     assert state["last_checked"] == watch.fmt_local(1500.0)
     assert state["islands"] == [{"name": "Alpha", "turnipPrice": 612}]
@@ -75,7 +73,6 @@ def test_build_state_snooze_in_past_is_not_snoozed():
     watch.latest = {"last_checked": 1500.0, "islands": []}
     watch.snooze_until = 1000.0  # before now
     state = watch.build_state(now=2000.0)
-    assert state["snoozed"] is False
     assert state["snooze_until"] is None
     assert state["last_checked"] == watch.fmt_local(1500.0)
 
@@ -101,7 +98,7 @@ def test_state_endpoint_serves_json():
             assert resp.status == 200
             assert resp.headers["Content-Type"] == "application/json"
             data = json.load(resp)
-        assert data["snoozed"] is False
+        assert data["snooze_until"] is None
         assert data["islands"] == [{"name": "Alpha", "turnipPrice": 600}]
         assert data["last_checked"] == watch.fmt_local(1500.0)
     finally:

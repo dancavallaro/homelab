@@ -69,7 +69,6 @@ def build_state(now):
     snoozed = now < snooze_until
     last_checked = latest["last_checked"]
     return {
-        "snoozed": snoozed,
         "snooze_until": fmt_local(snooze_until) if snoozed else None,
         "last_checked": fmt_local(last_checked) if last_checked is not None else None,
         "islands": latest["islands"],
