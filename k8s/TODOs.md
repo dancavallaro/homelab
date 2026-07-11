@@ -4,13 +4,11 @@ In-progress (updated 3/15/26):
   * SwiftUI version at /Users/dan/workspace/xcode/ShoppingList, Claude-generated but not building yet
 
 TODOs:
+* Shed load from UPS to increase battery runtime - prioritize NAS first, then NUC
 * Upgrade Talos and Kubernetes
-* Shed load from UPS - prioritize NAS, then NUC
 * Remote ESP32 firmware flashing and testing using the stick plugged into the NUC
 * Get ESP32 DNS working without needing to connect to IoT network for mDNS
 * Submit kubectl-unmount to Krew index (need to rename first)
-* Storage/NAS:
-  * Migrate (some? all?) local-path PVs to Synology iSCSI
-  * Those transient Volsync PVs should (probably?) be on local-path instead of iSCSI
+* Migrate (some? all?) local-path PVs to Synology iSCSI
 * Test restoring a brand-new cluster from a cluster etcd backup
 * Set up an IPv6-only test cluster
