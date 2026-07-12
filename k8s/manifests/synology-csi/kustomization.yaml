@@ -1,13 +1,37 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: synology-csi
+helmCharts:
+  - name: synology-csi
+    repo: https://christian-schlichtherle.github.io/synology-csi-chart
+    version: 0.11.2
+    releaseName: synology-csi
+    namespace: synology-csi
+    skipTests: true
+    # The snapshotter resources are gated on this capability, which `helm
+    # template` can't discover from the cluster itself.
+    apiVersions:
+      - snapshot.storage.k8s.io/v1/VolumeSnapshotClass
+    valuesInline:
+      clientInfoSecret:
+        name: client-info-secret
+      node:
+        plugin:
+          extraArgs:
+            - --iscsiadm-path=/usr/local/sbin/iscsiadm # Talos has no /usr/bin/env to resolve it
+      storageClasses:
+        iscsi-delete: { disabled: true }
+        iscsi-retain: { disabled: true }
+        nfs-delete: { disabled: true }
+        nfs-retain: { disabled: true }
+        smb-delete: { disabled: true }
+        smb-retain: { disabled: true }
+      volumeSnapshotClasses:
+        delete: { disabled: true }
+        retain: { disabled: true }
 resources:
   - namespace.yaml
-  - https://raw.githubusercontent.com/dancavallaro/synology-csi-talos/refs/heads/main/deploy/kubernetes/v1.20/csi-driver.yaml
-  - https://raw.githubusercontent.com/dancavallaro/synology-csi-talos/refs/heads/main/deploy/kubernetes/v1.20/controller.yaml
-  - https://raw.githubusercontent.com/dancavallaro/synology-csi-talos/refs/heads/main/deploy/kubernetes/v1.20/node.yaml
   - https://github.com/kubernetes-csi/external-snapshotter/deploy/kubernetes/snapshot-controller?ref=v8.2.0
-  - https://raw.githubusercontent.com/dancavallaro/synology-csi-talos/refs/heads/main/deploy/kubernetes/v1.20/snapshotter/snapshotter.yaml
   - storageclass.yaml
   - dsm-proxy.yaml
 patches:
@@ -15,21 +39,21 @@ patches:
       kind: DaemonSet
       name: synology-csi-node
     patch: |
-      - op: replace
+      - op: add
         path: /spec/template/spec/dnsPolicy
         value: ClusterFirstWithHostNet
   - target:
       kind: StatefulSet
       name: synology-csi-controller
     patch: |
-      - op: replace
+      - op: add
         path: /spec/template/spec/dnsPolicy
         value: ClusterFirstWithHostNet
   - target:
       kind: StatefulSet
       name: synology-csi-snapshotter
     patch: |
-      - op: replace
+      - op: add
         path: /spec/template/spec/dnsPolicy
         value: ClusterFirstWithHostNet
   - target:
@@ -44,4 +68,3 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/args
         value: ["--v=5", "--leader-election=false"]
-        

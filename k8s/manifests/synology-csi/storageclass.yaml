@@ -11,7 +11,7 @@ spec:
     template:
       engineVersion: v2
       data:
-        client-info.yml: |
+        client-info.yaml: |
           clients:
             - host: dsm-data.synology-csi
               port: 5000
