@@ -13,6 +13,11 @@ helmCharts:
     apiVersions:
       - snapshot.storage.k8s.io/v1/VolumeSnapshotClass
     valuesInline:
+      images:
+        plugin:
+          # Adds fail-fast startup + webapi timeout patches (resiliency-patches branch)
+          image: ghcr.io/dancavallaro/synology-csi
+          tag: v1.3.0-patched.1
       clientInfoSecret:
         name: client-info-secret
       node:
