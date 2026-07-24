@@ -68,7 +68,12 @@ spec:
               name: hass-config
       containers:
         - name: hass
-          image: homeassistant/home-assistant:2025.4.4
+          image: homeassistant/home-assistant:2026.6.4
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
           volumeMounts:
             - mountPath: /config
               name: hass-data
