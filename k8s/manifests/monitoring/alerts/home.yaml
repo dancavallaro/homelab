@@ -12,3 +12,18 @@ groups:
       - alert: Air quality monitor disappeared
         expr: absent_over_time(homeassistant_sensor_temperature_celsius[15m])
         for: 5m
+  - name: basement-freezer
+    interval: 1m
+    rules:
+      - alert: Basement freezer plug metrics disappeared
+        expr: absent_over_time(homeassistant_sensor_current_a{entity="sensor.athom_plug_4cf682_current"}[15m])
+        for: 5m
+        annotations:
+          message: "Basement freezer plug has stopped reporting current for 15m - plug may be offline"
+      # TODO: revisit the 2h window and 0.1A threshold once we have a few days of
+      # data on this freezer's normal compressor duty cycle (set up 2026-07-24).
+      - alert: Basement freezer has no current draw
+        expr: max_over_time(homeassistant_sensor_current_a{entity="sensor.athom_plug_4cf682_current"}[2h]) < 0.1
+        for: 10m
+        annotations:
+          message: "Basement freezer has drawn no current for over 2h - freezer may have lost power or failed"
