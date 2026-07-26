@@ -1,7 +1,5 @@
-In-progress (updated 3/15/26):
-* Working on shopping list app (https://docs.google.com/document/d/1LTH-zNL13lZQ71D6qiNLJBcUhEnh0u1DU0Vdz9xBK98/edit?usp=sharing)
-  * React Expo version at /Users/dan/workspace/shopping-list, working-ish but looks crappy
-  * SwiftUI version at /Users/dan/workspace/xcode/ShoppingList, Claude-generated but not building yet
+In-progress (updated 7/26/26):
+* Working on shopping list app at ~/workspace/xcode/ShoppingList (https://docs.google.com/document/d/1LTH-zNL13lZQ71D6qiNLJBcUhEnh0u1DU0Vdz9xBK98/edit?usp=sharing)
 
 TODOs:
 * Shed load from UPS to increase battery runtime - prioritize NAS first, then NUC
