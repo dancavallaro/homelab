@@ -44,7 +44,7 @@ spec:
         fsGroup: 65532
       containers:
         - name: shopping-list-sync
-          image: ghcr.io/dancavio/shopping-list-sync/shopping-list-sync:0.1.0
+          image: ghcr.io/dancavio/shopping-list-sync/shopping-list-sync:0.2.0
           env:
             - name: DB_PATH
               value: /data/sync.sqlite
