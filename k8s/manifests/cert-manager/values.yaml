@@ -3,8 +3,3 @@ crds:
 serviceAccount:
   annotations:
     eks.amazonaws.com/role-arn: arn:aws:iam::484396241422:role/certbot-dns-updater-role
-# Needed for aws-iamram for some reason I haven't bothered looking into yet
-securityContext:
-  runAsNonRoot: false
-#global:
-#  logLevel: 4
