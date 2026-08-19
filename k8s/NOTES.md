@@ -192,12 +192,18 @@ building in the Realtek firmware system extension image which has the necessary 
    ```
    docker run -d -p 5005:5000 --restart always --name local registry:2
    ```
-2. Make kernel config changes in `pkgs` repo.
+2. **Kernel config** (`pkgs` → `kernel/build/config-amd64`): the only edit is flipping the single
+   `# CONFIG_BT is not set` line to `CONFIG_BT=m`, then `make olddefconfig` — every BT sub-option is a
+   kernel default once BT is on, so olddefconfig regenerates the whole block. Verify it against the
+   [BT config + module reference](#bt-config--module-reference) below.
 3. Build kernel image: 
    ```
    time make kernel REGISTRY=127.0.0.1:5005 PUSH=true PLATFORM=linux/amd64
    ```
-4. Update `hack/modules-amd64.txt` in `talos` repo to include new modules.
+4. **Modules** (`talos` → `hack/modules-amd64.txt`): prepend the BT module lines from the
+   [reference](#bt-config--module-reference) below. This only controls which built modules get copied
+   into the initramfs — the kernel builds all ~25 BT modules regardless. After `make kernel`, confirm
+   the listed `.ko` exist (the "BT is really in there" gate before building the imager).
 5. Build kernel and initramfs:
    ```
    time make kernel initramfs PKG_KERNEL=127.0.0.1:5005/siderolabs/kernel:<TAG> PLATFORM=linux/amd64
@@ -220,6 +226,82 @@ building in the Realtek firmware system extension image which has the necessary 
        --system-extension-image ghcr.io/siderolabs/realtek-firmware:20250211@sha256:6c22784b86d781eba07a4025b9dfb4ae5679e05e3577d54c6c4283ba5dd7cec5 \
        --system-extension-image ghcr.io/siderolabs/iscsi-tools:v0.1.6@sha256:8ad7cd682f06198a6df7906d439939cc3f5feaa8a32f38ab2563268a17862baa
    ```
+
+#### BT config + module reference
+
+Recovered ground truth for steps 2 and 4 — these lived only on the old build host and the
+`dancavallaro/talos` `v1.9.5` fork branch, so they're pinned here to survive.
+
+**Kernel config** — the BT section of `config-amd64` after `CONFIG_BT=m` + `make olddefconfig`, taken
+from a running node (`talosctl -n <ip> read /proc/config.gz | gunzip`). A newer kernel may add a
+symbol (e.g. `CONFIG_BT_INTEL_PCIE`), which is fine — the point is that BT and the RTL driver are on:
+
+```
+CONFIG_BT=m
+CONFIG_BT_BREDR=y
+CONFIG_BT_RFCOMM=m
+CONFIG_BT_RFCOMM_TTY=y
+CONFIG_BT_BNEP=m
+CONFIG_BT_BNEP_MC_FILTER=y
+CONFIG_BT_BNEP_PROTO_FILTER=y
+CONFIG_BT_HIDP=m
+CONFIG_BT_LE=y
+CONFIG_BT_LE_L2CAP_ECRED=y
+CONFIG_BT_LEDS=y
+CONFIG_BT_MSFTEXT=y
+CONFIG_BT_AOSPEXT=y
+CONFIG_BT_DEBUGFS=y
+# CONFIG_BT_SELFTEST is not set
+# CONFIG_BT_FEATURE_DEBUG is not set
+#
+# Bluetooth device drivers
+#
+CONFIG_BT_INTEL=m
+CONFIG_BT_BCM=m
+CONFIG_BT_RTL=m
+CONFIG_BT_MTK=m
+CONFIG_BT_HCIBTUSB=m
+CONFIG_BT_HCIBTUSB_AUTOSUSPEND=y
+CONFIG_BT_HCIBTUSB_POLL_SYNC=y
+CONFIG_BT_HCIBTUSB_BCM=y
+CONFIG_BT_HCIBTUSB_MTK=y
+CONFIG_BT_HCIBTUSB_RTL=y
+CONFIG_BT_HCIBTSDIO=m
+CONFIG_BT_HCIUART=m
+CONFIG_BT_HCIUART_H4=y
+CONFIG_BT_HCIUART_BCSP=y
+CONFIG_BT_HCIUART_ATH3K=y
+CONFIG_BT_HCIUART_AG6XX=y
+CONFIG_BT_HCIBCM203X=m
+# CONFIG_BT_HCIBCM4377 is not set
+CONFIG_BT_HCIBPA10X=m
+CONFIG_BT_HCIBFUSB=m
+CONFIG_BT_HCIVHCI=m
+CONFIG_BT_MRVL=m
+CONFIG_BT_MRVL_SDIO=m
+CONFIG_BT_ATH3K=m
+CONFIG_BT_MTKSDIO=m
+CONFIG_BT_VIRTIO=m
+# CONFIG_BT_INTEL_PCIE is not set
+```
+
+**Modules** — prepend to `hack/modules-amd64.txt`:
+
+```
+kernel/net/bluetooth/bluetooth.ko
+kernel/net/bluetooth/bnep/bnep.ko
+kernel/drivers/bluetooth/btusb.ko
+kernel/drivers/bluetooth/btintel.ko
+kernel/drivers/bluetooth/btbcm.ko
+kernel/drivers/bluetooth/btrtl.ko
+kernel/drivers/bluetooth/btmtk.ko
+```
+
+For the UB500 (Realtek RTL8761BU) only `bluetooth` + `btusb` + `btrtl` are functionally needed, but as
+built `btusb` links `btintel` (force-`select`ed by `CONFIG_BT_HCIBTUSB`), `btbcm`, and `btmtk` at load
+time — so those six ship and load together (confirmed via `/proc/modules` on worker2). `bnep`
+(PAN/tethering) never loads and is the one line safe to drop; don't drop the others without a matching
+config change or `btusb` fails with unresolved symbols.
 
 To upgrade a node:
 

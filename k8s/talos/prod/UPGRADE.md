@@ -110,7 +110,10 @@ docker run --rm -t -v $PWD/_out:/out 127.0.0.1:5005/siderolabs/imager:<TAG> inst
 
 **Per-version deltas to check each hop:**
 - `--base-installer-image` tag → the target Talos version.
-- Re-apply the BT kernel config against the target Talos's `pkgs`/`talos` source tags.
+- Re-apply the BT changes against the target Talos's `pkgs`/`talos` source tags: flip
+  `# CONFIG_BT is not set` → `CONFIG_BT=m` in `pkgs` `kernel/build/config-amd64` + `make olddefconfig`,
+  and prepend the BT module lines to `talos` `hack/modules-amd64.txt`. Exact config block + module
+  list + which modules the UB500 actually needs: NOTES.md §"BT config + module reference".
 - **`iscsi-tools`** → use the image from the `siderolabs/extensions` release that matches the target
   Talos tag (extensions are now co-versioned with Talos — the `v1.<N>.x` extensions release carries
   the matching `iscsi-tools`; don't reuse the old standalone `v0.1.x` pin). `realtek-firmware`
