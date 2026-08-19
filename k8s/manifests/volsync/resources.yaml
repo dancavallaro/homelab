@@ -65,7 +65,7 @@ rules:
       - list
       - watch
 ---
-apiVersion: kyverno.io/v2beta1
+apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
   name: enable-volsync-backup
