@@ -6,7 +6,7 @@ helmCharts:
     repo: https://charts.external-secrets.io
     namespace: external-secrets
     releaseName: eso
-    version: 1.0.0
+    version: 1.3.2
     includeCRDs: true
     valuesInline:
       serviceAccount:
