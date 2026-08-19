@@ -29,8 +29,6 @@ k8sServiceHost: localhost
 k8sServicePort: 7445
 l2announcements:
   enabled: true
-externalIPs:
-  enabled: true
 ingressController:
   enabled: true
   default: true

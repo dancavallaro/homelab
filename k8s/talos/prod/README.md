@@ -127,7 +127,7 @@ $ talosctl kubeconfig -n $BOOTSTRAP_IP --force-context-name talos-prod
 $ kubectl apply -k talos/prod/cilium # Install GatewayClass CRD before Cilium
 $ helm repo add cilium https://helm.cilium.io/
 $ helm repo update
-$ helm install cilium cilium/cilium --version 1.18.13 --namespace kube-system --values=cilium/values.yaml
+$ helm install cilium cilium/cilium --version 1.19.7 --namespace kube-system --values=cilium/values.yaml
 ```
 
 ### Worker nodes
