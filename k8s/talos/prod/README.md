@@ -218,7 +218,7 @@ $ kubectl apply -f talos/prod/cilium/resources.yaml
 
 ```shell
 $ kubectl create namespace argocd
-$ kubectl apply -k talos/prod/argocd
+$ kubectl apply -k k8s/talos/prod/argocd --server-side --force-conflicts
 ```
 
 ### Set up Cloudflare tunnel
