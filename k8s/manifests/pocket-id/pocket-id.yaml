@@ -3,6 +3,20 @@ kind: Namespace
 metadata:
   name: pocket-id
 ---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: pocket-id-encryption-key
+  namespace: pocket-id
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-parameter-store
+  data:
+    - secretKey: ENCRYPTION_KEY
+      remoteRef:
+        key: /talos-prod/pocket-id-encryption-key
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -24,6 +38,10 @@ metadata:
 spec:
   replicas: 1
   revisionHistoryLimit: 0
+  # RWO volume on synology-iscsi: the old pod must release the volume before
+  # the new one can attach it, so replace in place instead of surging.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: pocket-id
@@ -34,12 +52,17 @@ spec:
     spec:
       containers:
         - name: pocket-id
-          image: ghcr.io/pocket-id/pocket-id:v1.1.0
+          image: ghcr.io/pocket-id/pocket-id:v2.14.0
           env:
             - name: APP_URL
               value: https://pocket-id.o.cavnet.cloud
             - name: TRUST_PROXY
               value: "true"
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pocket-id-encryption-key
+                  key: ENCRYPTION_KEY
           ports:
             - containerPort: 1411
           volumeMounts:
