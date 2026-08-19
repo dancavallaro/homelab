@@ -227,6 +227,86 @@ To upgrade a node:
 talosctl upgrade -n <NODE IP> --image ghcr.io/dancavallaro/talos/installer:v1.9.5
 ```
 
+### Build machine (temporary EC2 spot box)
+
+**One-time IAM for SSM access** (avoids opening inbound SSH; Ubuntu's AMI ships the SSM agent). Needs
+the Session Manager plugin locally (`brew install --cask session-manager-plugin`):
+
+```bash
+aws iam create-role --role-name talos-build-ssm \
+  --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+aws iam attach-role-policy --role-name talos-build-ssm \
+  --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+aws iam create-instance-profile --instance-profile-name talos-build-ssm
+aws iam add-role-to-instance-profile --instance-profile-name talos-build-ssm --role-name talos-build-ssm
+
+# This account encrypts SSM sessions with a customer-managed KMS key (SSM-SessionManagerRunShell
+# -> kmsKeyId), so the instance role ALSO needs kms:Decrypt on that key, or the session handshake
+# fails with "AccessDeniedException ... kms:Decrypt". Confirm the key id with
+# `aws ssm get-document --name SSM-SessionManagerRunShell`.
+aws iam put-role-policy --role-name talos-build-ssm \
+  --policy-name ssm-session-kms-decrypt \
+  --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"kms:Decrypt","Resource":"arn:aws:kms:us-east-1:484396241422:key/4ed99242-e89c-4780-b289-b944a7915225"}]}'
+```
+
+**Launch** (resolve a fresh Ubuntu 24.04 amd64 AMI + a default subnet in the cheapest AZ first):
+
+```bash
+AMI=$(aws ssm get-parameter --name /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id --query Parameter.Value --output text)
+SUBNET=$(aws ec2 describe-subnets --filters Name=availability-zone,Values=us-east-1d Name=default-for-az,Values=true --query 'Subnets[0].SubnetId' --output text)
+
+aws ec2 run-instances \
+  --image-id "$AMI" --instance-type c7a.8xlarge --subnet-id "$SUBNET" \
+  --iam-instance-profile Name=talos-build-ssm \
+  --instance-market-options 'MarketType=spot,SpotOptions={SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}' \
+  --block-device-mappings 'DeviceName=/dev/sda1,Ebs={VolumeSize=200,VolumeType=gp3,Throughput=250,DeleteOnTermination=true}' \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=talos-build},{Key=purpose,Value=throwaway}]' \
+  --query 'Instances[0].InstanceId' --output text
+```
+
+`DeleteOnTermination=true` means the disk dies with the instance — no orphaned EBS. Connect and
+become root:
+
+```bash
+aws ssm start-session --target <instance-id>
+sudo -i
+```
+
+**Provision the box** — Docker with a buildx builder on the host network (so BuildKit can reach the
+local registry at `127.0.0.1:5005`):
+
+```bash
+curl -fsSL https://get.docker.com | sh          # docker-ce + buildx + compose
+apt-get update && apt-get install -y git make
+docker buildx create --name talos --driver docker-container --driver-opt network=host --use
+docker run -d -p 5005:5000 --restart always --name local registry:2
+export GHCR_PAT=<PAT with write:packages>
+echo "$GHCR_PAT" | docker login ghcr.io -u dancavallaro --password-stdin
+git clone https://github.com/siderolabs/pkgs.git
+git clone https://github.com/siderolabs/talos.git
+```
+
+Then run the build steps above once per version. Check out the matching release tag in **both**
+repos and re-apply the two BT customizations each pass (keep them as a patch/branch so it's
+mechanical): the `CONFIG_BT*` kernel-config change in `pkgs`, and the `hack/modules-amd64.txt`
+additions in `talos`. Watch `df -h` — multiple kernel trees plus the registry eat disk. `time` each
+`make` to see the per-version cost.
+
+> **Scope for the current upgrade (Aug 2026):** build only **1.10 → 1.11 → 1.12** now — K8s 1.36
+> (Talos 1.13.9) is deferred behind the Kyverno gate (see `k8s/talos/prod/UPGRADE.md`). Pin the 1.12
+> build to a patch where [talos#12951] (iscsi-tools binaries moved off `/usr/local/sbin/`, breaking
+> Synology CSI) is fixed — latest 1.12 is 1.12.11. Build 1.13.9 on a second short-lived box when 1.36
+> unblocks.
+>
+> [talos#12951]: https://github.com/siderolabs/talos/issues/12951
+
+**Tear down** when the pushed installers verify:
+
+```bash
+docker manifest inspect ghcr.io/dancavallaro/talos/installer:v1.12.11-bluetooth-iscsi   # from your Mac
+aws ec2 terminate-instances --instance-ids <instance-id>   # EBS goes with it
+```
+
 ## Loki
 
 ### Log volume analysis
