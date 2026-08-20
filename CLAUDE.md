@@ -22,7 +22,7 @@ Home infrastructure configuration repository managing a Kubernetes cluster (Talo
 
 ## Key Technologies
 
-- **Cluster**: Talos Linux v1.12.11, Cilium CNI, ArgoCD for GitOps
+- **Cluster**: Talos Linux v1.13.9, Cilium CNI, ArgoCD for GitOps
 - **Observability**: LGTM stack (Loki, Grafana, Mimir, Alloy) in `k8s/manifests/monitoring/`
 - **Storage**: MinIO (S3), Synology iSCSI, local-path-provisioner, Volsync for backups
 - **Networking**: Tailscale, Cloudflare Tunnel, k8s_gateway for private DNS (`*.o.cavnet.cloud`)
