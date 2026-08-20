@@ -81,7 +81,9 @@ spec:
             privileged: true
           args:
             - run
-            - --server.http.listen-addr=127.0.0.1:12345
+            # hostNetwork pod: keep off Cilium's Envoy proxy-port range (10000-20000)
+            # to avoid colliding with a gateway L7LB listener after a node reboot.
+            - --server.http.listen-addr=127.0.0.1:8012
             - --stability.level=experimental
             - /etc/alloy.d
           volumeMounts:
