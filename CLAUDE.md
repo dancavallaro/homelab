@@ -22,11 +22,11 @@ Home infrastructure configuration repository managing a Kubernetes cluster (Talo
 
 ## Key Technologies
 
-- **Cluster**: Talos Linux v1.9.5, Cilium CNI, ArgoCD for GitOps
+- **Cluster**: Talos Linux v1.12.11, Cilium CNI, ArgoCD for GitOps
 - **Observability**: LGTM stack (Loki, Grafana, Mimir, Alloy) in `k8s/manifests/monitoring/`
 - **Storage**: MinIO (S3), Synology iSCSI, local-path-provisioner, Volsync for backups
 - **Networking**: Tailscale, Cloudflare Tunnel, k8s_gateway for private DNS (`*.o.cavnet.cloud`)
-- **Secrets**: External Secrets Operator, AWS IAM Roles Anywhere (`aws-iamra-manager`)
+- **Secrets**: External Secrets Operator; AWS access via web-identity federation / DIY IRSA (`oidc-provider` + `pod-identity-webhook`)
 - **IaC**: Ansible (6 roles), Talos machine config patches, Kustomize
 
 ## Common Commands

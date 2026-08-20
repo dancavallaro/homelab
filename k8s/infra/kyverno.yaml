@@ -20,7 +20,6 @@ spec:
                 - key: kubernetes.io/metadata.name
                   operator: NotIn
                   values:
-                    - aws-iamram-system
                     - kube-system
                     - kyverno
           webhookLabels:

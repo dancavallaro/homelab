@@ -5,7 +5,7 @@ Publishes the cluster's service-account token issuer publicly at
 `sts:AssumeRoleWithWebIdentity` — the same mechanism EKS IRSA uses, without EKS.
 A consuming pod gets a projected SA token and the AWS SDK exchanges it for
 temporary role credentials, refreshing them automatically. No sidecar, no
-per-app cert (contrast with `aws-iamra-manager`, which stays in place for ESO).
+per-app cert.
 
 The `pod-identity-webhook` (deployed separately as `k8s/infra/pod-identity-webhook.yaml`,
 the off-EKS build of the webhook EKS itself uses) does the per-pod wiring, so a

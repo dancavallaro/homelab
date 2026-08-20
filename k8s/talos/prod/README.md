@@ -240,11 +240,12 @@ $ kubectl apply -f infra/metrics-server.yaml
 $ kubectl apply -f infra/local-storage.yaml
 $ kubectl apply -f infra/cloudflare-tunnel.yaml
 $ kubectl apply -f infra/cluster-archiver.yaml
-$ kubectl apply -f infra/aws-iamra-manager.yaml
+$ kubectl apply -f infra/oidc-provider.yaml
+$ kubectl apply -f infra/pod-identity-webhook.yaml
 $ kubectl apply -f infra/letsencrypt.yaml
 
-# Restart cert-manager -- aws-iamram should inject sidecar, and cert-manager should
-# be able to talk to Route53 and issue certs.
+# Restart cert-manager -- pod-identity-webhook injects web-identity AWS credentials, so
+# cert-manager can talk to Route53 and issue certs.
 $ kubectl -n cert-manager rollout restart deployment cert-manager
 ```
 
