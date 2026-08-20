@@ -110,10 +110,12 @@ docker run --rm -t -v $PWD/_out:/out 127.0.0.1:5005/siderolabs/imager:<TAG> inst
 
 **Per-version deltas to check each hop:**
 - `--base-installer-image` tag → the target Talos version.
-- Re-apply the BT changes against the target Talos's `pkgs`/`talos` source tags: flip
-  `# CONFIG_BT is not set` → `CONFIG_BT=m` in `pkgs` `kernel/build/config-amd64` + `make olddefconfig`,
-  and prepend the BT module lines to `talos` `hack/modules-amd64.txt`. Exact config block + module
-  list + which modules the UB500 actually needs: NOTES.md §"BT config + module reference".
+- Re-apply the BT changes against the target Talos's `pkgs`/`talos` source tags: replace
+  `# CONFIG_BT is not set` in `pkgs` `kernel/build/config-amd64` with the **full BT block** (the HCI
+  USB / RTL drivers default off, so `CONFIG_BT=m` alone isn't enough), then
+  `make kernel-olddefconfig PLATFORM=linux/amd64`; and prepend the BT module lines to `talos`
+  `hack/modules-amd64.txt`. Exact config block + module list + which modules the UB500 actually needs:
+  NOTES.md §"BT config + module reference".
 - **`iscsi-tools`** → use the image from the `siderolabs/extensions` release that matches the target
   Talos tag (extensions are now co-versioned with Talos — the `v1.<N>.x` extensions release carries
   the matching `iscsi-tools`; don't reuse the old standalone `v0.1.x` pin). `realtek-firmware`
@@ -208,13 +210,17 @@ a node — with the `talosctl` client bumped to the target minor (§0.2), this c
 schema key that changed or was removed across the minor (`machine.features`, the `PodSecurity`
 `admissionControl` block, etc.) at your desk instead of on a rebooting node:
 ```bash
+# base configs come from `talosctl gen config` (same as the README bootstrap). For validation the
+# secrets don't matter — you're schema-checking, not applying — so these are THROWAWAY. Never apply
+# a freshly-genned config to the live cluster: it mints new PKI and would break node trust.
+talosctl gen config talos-prod https://k8s.cavnet.cloud:6443   # writes controlplane.yaml, worker.yaml (+ throwaway talosconfig)
 talosctl mc patch controlplane.yaml --patch @patches/common.patch.yaml --patch @patches/cp.patch.yaml --output cp.final.yaml
 talosctl mc patch worker.yaml --patch @patches/common.patch.yaml --patch @patches/worker-common.patch.yaml --output worker.final.yaml
 talosctl mc patch worker.yaml --patch @patches/common.patch.yaml --patch @patches/worker-common.patch.yaml --patch @patches/worker-dtcnet.patch.yaml --output worker2.final.yaml
 talosctl mc patch worker.yaml --patch @patches/common.patch.yaml --patch @patches/worker-common.patch.yaml --patch @patches/worker-esp32.patch.yaml --output worker3.final.yaml
 for f in cp worker worker2 worker3; do talosctl validate -m metal -c $f.final.yaml; done
 ```
-Confirm: every config validates clean (deprecation *warnings* are fine; a hard error means a patch key changed in the target schema — fix it before upgrading).
+Confirm: every config validates clean (deprecation *warnings* are fine; a hard error means a patch key changed in the target schema — fix it before upgrading). The `gen config` output (`controlplane.yaml`, `worker.yaml`, `talosconfig`, the `*.final.yaml`) is scratch — discard it; don't apply it and don't commit it.
 
 **3. Upgrade Talos OS, one node at a time (workers first, cp1 last):**
 ```bash

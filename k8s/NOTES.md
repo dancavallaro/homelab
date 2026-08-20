@@ -192,18 +192,34 @@ building in the Realtek firmware system extension image which has the necessary 
    ```
    docker run -d -p 5005:5000 --restart always --name local registry:2
    ```
-2. **Kernel config** (`pkgs` → `kernel/build/config-amd64`): the only edit is flipping the single
-   `# CONFIG_BT is not set` line to `CONFIG_BT=m`, then `make olddefconfig` — every BT sub-option is a
-   kernel default once BT is on, so olddefconfig regenerates the whole block. Verify it against the
-   [BT config + module reference](#bt-config--module-reference) below.
+2. **Kernel config** (`pkgs` → `kernel/build/config-amd64`): replace the single `# CONFIG_BT is not set`
+   line with the full BT block from the [BT config + module reference](#bt-config--module-reference)
+   below, then canonicalize:
+   ```
+   make kernel-olddefconfig PLATFORM=linux/amd64      # pkgs target: runs olddefconfig inside the
+                                                      # kernel build container, writes config-amd64 back
+   git diff kernel/build/config-amd64                 # confirm CONFIG_BT_HCIBTUSB=m and CONFIG_BT_RTL=m
+   ```
+   Note it's `kernel-olddefconfig`, **not** bare `make olddefconfig` (not a target here). Setting only
+   `CONFIG_BT=m` is **not** enough — the HCI USB / Realtek drivers default to off and `olddefconfig`
+   won't enable them, so you'd build only `bluetooth.ko` core with no adapter. (`make kernel-menuconfig`
+   gives the interactive editor as an alternative.)
 3. Build kernel image: 
    ```
    time make kernel REGISTRY=127.0.0.1:5005 PUSH=true PLATFORM=linux/amd64
    ```
 4. **Modules** (`talos` → `hack/modules-amd64.txt`): prepend the BT module lines from the
    [reference](#bt-config--module-reference) below. This only controls which built modules get copied
-   into the initramfs — the kernel builds all ~25 BT modules regardless. After `make kernel`, confirm
-   the listed `.ko` exist (the "BT is really in there" gate before building the imager).
+   into the initramfs — the kernel builds all ~25 BT modules regardless. **Gate before the imager:**
+   the modules live in the kernel image from step 3 (a near-scratch image with no shell, so export its
+   filesystem rather than `docker run`) — confirm at least `btusb`/`btrtl`/`bluetooth` are present. If
+   they're missing, the `CONFIG_BT` edit didn't take; fix and rebuild the kernel before going further.
+   ```
+   KIMG=127.0.0.1:5005/siderolabs/kernel:<TAG>        # same ref you pass as PKG_KERNEL in step 5
+   docker create --name ktmp "$KIMG" true >/dev/null  # dummy cmd; never runs, just lets us export
+   docker export ktmp | tar -tf - | grep -iE 'bluetooth|drivers/bluetooth/bt|bnep' | sort
+   docker rm ktmp >/dev/null
+   ```
 5. Build kernel and initramfs:
    ```
    time make kernel initramfs PKG_KERNEL=127.0.0.1:5005/siderolabs/kernel:<TAG> PLATFORM=linux/amd64
@@ -232,9 +248,12 @@ building in the Realtek firmware system extension image which has the necessary 
 Recovered ground truth for steps 2 and 4 — these lived only on the old build host and the
 `dancavallaro/talos` `v1.9.5` fork branch, so they're pinned here to survive.
 
-**Kernel config** — the BT section of `config-amd64` after `CONFIG_BT=m` + `make olddefconfig`, taken
-from a running node (`talosctl -n <ip> read /proc/config.gz | gunzip`). A newer kernel may add a
-symbol (e.g. `CONFIG_BT_INTEL_PCIE`), which is fine — the point is that BT and the RTL driver are on:
+**Kernel config** — paste this whole block over the `# CONFIG_BT is not set` line in `config-amd64`,
+then run `make kernel-olddefconfig PLATFORM=linux/amd64` to canonicalize (it keeps these explicit
+values and fills in any new-kernel symbols). This is the BT section taken from a running node
+(`talosctl -n <ip> read /proc/config.gz | gunzip`); a newer kernel may add a symbol (e.g.
+`CONFIG_BT_INTEL_PCIE`), which is fine — the point is that BT **and the HCI USB / RTL drivers** are on
+(not just `CONFIG_BT=m`, which alone builds only the core):
 
 ```
 CONFIG_BT=m
@@ -359,7 +378,7 @@ local registry at `127.0.0.1:5005`):
 
 ```bash
 curl -fsSL https://get.docker.com | sh          # docker-ce + buildx + compose
-apt-get update && apt-get install -y git make
+apt-get update && apt-get install -y git make tmux
 docker buildx create --name talos --driver docker-container --driver-opt network=host --use
 docker run -d -p 5005:5000 --restart always --name local registry:2
 export GHCR_PAT=<PAT with write:packages>
@@ -367,6 +386,30 @@ echo "$GHCR_PAT" | docker login ghcr.io -u dancavallaro --password-stdin
 git clone https://github.com/siderolabs/pkgs.git
 git clone https://github.com/siderolabs/talos.git
 ```
+
+**Run builds inside tmux.** SSM sessions don't resume — if the session drops (network, laptop sleep,
+the 20-min idle timeout in `SSM-SessionManagerRunShell`), a foreground `make` is SIGHUP'd and dies.
+tmux keeps it alive server-side so you can reattach (this guards against *session* drops, not a spot
+reclaim of the whole box — that takes tmux with it):
+
+```bash
+tmux new -s build                  # you're already root via sudo -i, so the tmux server is root's
+export BUILDKIT_PROGRESS=plain     # line-by-line build output that scrolls and tees cleanly
+make kernel … 2>&1 | tee ~/build.log   # keep a log to grep (e.g. for btusb.ko/btrtl.ko)
+# detach any time: Ctrl-b then d
+```
+
+Reconnect after a drop — Run As lands you as `pi`, so become root, then reattach:
+
+```bash
+aws ssm start-session --target <instance-id>
+sudo -i
+tmux attach -t build               # build's been running the whole time
+```
+
+**Scrolling in tmux:** the wheel/arrows just print `^[[A`/`^[[B` escapes by default (tmux owns its own
+scrollback). Either enter copy mode — `Ctrl-b [`, scroll with PageUp/PageDown/arrows, `q` to exit — or
+enable the wheel with `Ctrl-b :` then `set -g mouse on` (persist it in `/root/.tmux.conf`).
 
 Then run the build steps above once per version. Check out the matching release tag in **both**
 repos and re-apply the two BT customizations each pass (keep them as a patch/branch so it's
