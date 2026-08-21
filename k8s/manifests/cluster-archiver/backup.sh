@@ -8,13 +8,14 @@ workdir_root=$(mktemp -d)
 workdir="${workdir_root}/$timestamp"
 
 MEMBERS_JSON=$(talosctl -n "$NODE_IP" get members -o json)
-ALL_IPS=$(echo "$MEMBERS_JSON" | jq -r '.spec.addresses[0]')
 CP_IP=$(echo "$MEMBERS_JSON" | jq -r 'select(.spec.machineType == "controlplane") | .spec.addresses[0]' | head -n1)
 
-# Export machine configs
+# Export machine configs, named by node hostname (addresses[0] is an unstable
+# choice on multi-homed nodes)
 mkdir -p "$workdir/machineconfig"
-for node in $ALL_IPS; do
-    talosctl -n "$node" get mc v1alpha1 -o yaml | yq eval '.spec' - > "$workdir/machineconfig/$node.yaml"
+echo "$MEMBERS_JSON" | jq -r '[.spec.addresses[0], .spec.hostname] | @tsv' |
+while IFS=$'\t' read -r node name; do
+    talosctl -n "$node" get mc v1alpha1 -o yaml | yq eval '.spec' - > "$workdir/machineconfig/$name.yaml"
 done
 
 # Take snapshot of etcd database
