@@ -11,3 +11,6 @@ controlplane.yaml
 worker.yaml
 kubeconfig
 talosconfig
+
+# Vendored cluster CRDs for IDE schema validation (bin/vendor-crds)
+.crds/
