@@ -124,7 +124,7 @@ $ talosctl kubeconfig -n $BOOTSTRAP_IP --force-context-name talos-prod
 #### Install Cilium
 
 ```shell
-$ kubectl apply -k talos/prod/cilium # Install GatewayClass CRD before Cilium
+$ kubectl apply -k k8s/talos/prod/cilium/ --server-side --force-conflicts # Install CRDs before Cilium itself
 $ helm repo add cilium https://helm.cilium.io/
 $ helm repo update
 $ helm install cilium cilium/cilium --version 1.20.1 --namespace kube-system --values=cilium/values.yaml

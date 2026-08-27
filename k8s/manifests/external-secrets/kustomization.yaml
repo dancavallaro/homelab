@@ -12,5 +12,7 @@ helmCharts:
       serviceAccount:
         annotations:
           eks.amazonaws.com/role-arn: arn:aws:iam::484396241422:role/external-secrets-operator
+      genericTargets:
+        enabled: true
 resources:
   - aws-param-store.yaml
