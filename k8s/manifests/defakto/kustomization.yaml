@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: tdd-kwtfbnrvlf
+helmCharts:
+  - name: spirl-server
+    repo: oci://ghcr.io/spirl/charts
+    version: 0.39.0
+    # Defakto requires the release name to equal trustDomainDeployment.id.
+    releaseName: tdd-kwtfbnrvlf
+    namespace: tdd-kwtfbnrvlf
+    includeCRDs: true
+    valuesInline:
+      # Adds hook/sync-wave annotations to the chart's init jobs.
+      argocd:
+        enabled: true
+      trustDomainDeployment:
+        id: tdd-kwtfbnrvlf
+        trustDomainID: td-jbrquz07yv
+        trustDomainName: self.cavallaro.dev
+        name: talos-prod
+resources:
+  - grpcroute.yaml
+patches:
+  # The agent endpoint is plaintext gRPC, but Envoy defaults to HTTP/1.1 upstream.
+  - target:
+      kind: Service
+      name: tdd-kwtfbnrvlf-spirl-server-agent
+    patch: |
+      - op: add
+        path: /spec/ports/0/appProtocol
+        value: kubernetes.io/h2c

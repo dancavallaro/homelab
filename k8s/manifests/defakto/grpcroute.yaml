@@ -1,0 +1,15 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GRPCRoute
+metadata:
+  name: spirl-server-agent
+spec:
+  parentRefs:
+    - namespace: default
+      name: private-gateway
+      sectionName: websecure
+  hostnames:
+    - defakto.o.cavnet.cloud
+  rules:
+    - backendRefs:
+        - name: tdd-kwtfbnrvlf-spirl-server-agent
+          port: 80
