@@ -26,6 +26,7 @@ data:
   openid-configuration: |-
     {
       "issuer": "https://oidc.cavnet.io",
+      "authorization_endpoint": "https://oidc.cavnet.io/authorize",
       "jwks_uri": "https://oidc.cavnet.io/openid/v1/jwks",
       "response_types_supported": ["id_token"],
       "subject_types_supported": ["public"],
