@@ -1,0 +1,9 @@
+section: AgentAttestation
+schema: v1
+spec:
+  policies:
+    - name: k8s_policy
+      requiredAttestors:
+        - type: k8s_token
+          config:
+            issuerURL: https://oidc.cavnet.io

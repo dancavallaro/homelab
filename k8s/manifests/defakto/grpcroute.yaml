@@ -1,6 +1,7 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: GRPCRoute
 metadata:
+  namespace: tdd-kwtfbnrvlf
   name: spirl-server-agent
 spec:
   parentRefs:
