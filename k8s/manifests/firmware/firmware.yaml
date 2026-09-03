@@ -14,10 +14,8 @@ data:
         listen       8080;
         server_name  _;
         location / {
-            # Prefix the bucket and reverse-proxy to MinIO's in-cluster S3 API.
-            # Literal FQDN (no variables) => nginx resolves once at startup via kube-dns;
-            # no `resolver` directive needed. Path-style: the bucket is in the path.
-            proxy_pass http://minio.minio.svc.cluster.local:9000/ota-firmware/;
+            # Prefix the bucket and reverse-proxy to RustFS's in-cluster S3 API.
+            proxy_pass http://rustfs-svc.rustfs.svc.cluster.local:9000/ota-firmware/;
         }
     }
 ---

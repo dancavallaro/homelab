@@ -1,0 +1,57 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: rustfs
+resources:
+  - resources.yaml
+helmCharts:
+  - name: rustfs
+    repo: https://charts.rustfs.com
+    releaseName: rustfs
+    version: 1.0.0-rc.5
+    namespace: rustfs
+    # Kustomize source => ArgoCD ignores helm.sh/hook, so the chart's test Pod
+    # would sync as an ordinary Pod and hold the app Degraded.
+    skipTests: true
+    valuesInline:
+      config:
+        rustfs:
+          log_level: warn
+      mode:
+        standalone:
+          enabled: true
+        distributed:
+          enabled: false
+      storageclass:
+        name: local-path-v2
+        dataStorageSize: 10Gi
+        logStorageSize: 1Gi
+      secret:
+        existingSecret: rustfs-secret-config
+      ingress:
+        enabled: false
+      gatewayApi:
+        enabled: false
+      extraEnv:
+        - name: RUSTFS_IDENTITY_OPENID_ENABLE
+          value: "on"
+        - name: RUSTFS_OUTBOUND_ALLOW_ORIGINS
+          value: https://pocket-id.o.cavnet.cloud
+        - name: RUSTFS_IDENTITY_OPENID_CONFIG_URL
+          value: https://pocket-id.o.cavnet.cloud/.well-known/openid-configuration
+        - name: RUSTFS_IDENTITY_OPENID_DISPLAY_NAME
+          value: Pocket ID
+        - name: RUSTFS_IDENTITY_OPENID_CLIENT_ID
+          value: 536e6ca9-1383-486b-8efa-5d468aa1333b
+        - name: RUSTFS_IDENTITY_OPENID_ROLE_POLICY
+          value: consoleAdmin
+        - name: RUSTFS_IDENTITY_OPENID_USERNAME_CLAIM
+          value: preferred_username
+        # Provider for k8s api server
+        - name: RUSTFS_IDENTITY_OPENID_CONFIG_URL_k8s
+          value: https://oidc.cavnet.io/.well-known/openid-configuration
+        - name: RUSTFS_IDENTITY_OPENID_HIDE_FROM_UI_k8s
+          value: "on"
+        - name: RUSTFS_IDENTITY_OPENID_CLIENT_ID_k8s
+          value: rustfs
+        - name: RUSTFS_IDENTITY_OPENID_CLAIM_NAME_k8s
+          value: sub

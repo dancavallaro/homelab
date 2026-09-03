@@ -24,17 +24,13 @@ spec:
                 - name: AWS_DEFAULT_REGION
                   value: us-east-1
                 - name: S3_ENDPOINT_URL
-                  value: http://minio.minio:9000
-                - name: S3_ACCESS_KEY_ID
-                  valueFrom:
-                    secretKeyRef:
-                      name: minio-creds
-                      key: access-key
-                - name: S3_SECRET_ACCESS_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: minio-creds
-                      key: secret-key
+                  value: http://rustfs-svc.rustfs:9000
+                - name: AWS_ENDPOINT_URL_STS
+                  value: http://rustfs-svc.rustfs:9000
+                - name: AWS_ROLE_ARN
+                  value: arn:aws:iam::000000000000:role/rustfs
+                - name: AWS_WEB_IDENTITY_TOKEN_FILE
+                  value: /var/run/secrets/rustfs/token
                 - name: SOURCE_BUCKET_NAME
                   value: farm-notifier-website-source
                 - name: EMAILS_ENABLED
@@ -44,7 +40,16 @@ spec:
               volumeMounts:
                 - mountPath: /farm-notifier/data
                   name: farm-notifier-data
+                - mountPath: /var/run/secrets/rustfs
+                  name: rustfs-token
           volumes:
             - name: farm-notifier-data
               persistentVolumeClaim:
                 claimName: farm-notifier-data
+            - name: rustfs-token
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      audience: rustfs
+                      expirationSeconds: 3600
+                      path: token

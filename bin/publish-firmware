@@ -2,12 +2,12 @@
 set -euo pipefail
 
 # Publish a firmware build for pull-OTA: upload the binary + per-device manifest to the
-# MinIO firmware bucket (served to devices via the nginx proxy at fw.o.cavnet.cloud).
+# RustFS firmware bucket (served to devices via the nginx proxy at fw.o.cavnet.cloud).
 # Decoupled from the build so an ordinary compile never retargets live devices.
 #
 # Usage: publish-firmware <device> <firmware.bin> <version>
 # Env:
-#   MC_ALIAS - configured `mc` alias for the cluster MinIO (default: talos-prod)
+#   PROFILE - configured AWS profile to use                (default: rustfs-admin)
 #   BUCKET   - target bucket                               (default: ota-firmware)
 #   BASE_URL - URL devices fetch from                      (default: http://fw.o.cavnet.cloud)
 
@@ -15,12 +15,11 @@ device="${1:?usage: publish-firmware <device> <firmware.bin> <version>}"
 binpath="${2:?usage: publish-firmware <device> <firmware.bin> <version>}"
 version="${3:?usage: publish-firmware <device> <firmware.bin> <version>}"
 
-MC_ALIAS="${MC_ALIAS:-talos-prod}"
+PROFILE="${PROFILE:-rustfs-admin}"
 BUCKET="${BUCKET:-ota-firmware}"
 BASE_URL="${BASE_URL:-http://fw.o.cavnet.cloud}"
 
 [ -f "$binpath" ] || { echo "no such file: $binpath" >&2; exit 1; }
-command -v mc >/dev/null || { echo "mc (MinIO client) not found in PATH" >&2; exit 1; }
 
 sha="$(shasum -a 256 "$binpath" | awk '{print $1}')"
 relpath="$device/$version.bin"
@@ -38,10 +37,10 @@ EOF
 
 # Upload binary first, then the manifest that points at it (so the pointer is never ahead
 # of the binary it references).
-mc cp "$binpath" "$MC_ALIAS/$BUCKET/$relpath"
-mc cp "$tmpd/$device.json" "$MC_ALIAS/$BUCKET/$device.json"
+aws --profile "$PROFILE" s3 cp "$binpath" "s3://$BUCKET/$relpath"
+aws --profile "$PROFILE" s3 cp "$tmpd/$device.json" "s3://$BUCKET/$device.json"
 
 echo "Published $device $version"
-echo "  binary:   $MC_ALIAS/$BUCKET/$relpath"
+echo "  binary:   s3://$BUCKET/$relpath"
 echo "  sha256:   $sha"
 echo "  manifest: $BASE_URL/$device.json -> $BASE_URL/$relpath"
