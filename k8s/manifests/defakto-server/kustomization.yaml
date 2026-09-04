@@ -7,7 +7,6 @@ helmCharts:
     # Defakto requires the release name to equal trustDomainDeployment.id.
     releaseName: &tdd tdd-h0efqszxk9
     namespace: *tdd
-    # Both charts ship the same data.spirl.com CRD; the server chart owns it.
     includeCRDs: true
     valuesInline:
       # Adds hook/sync-wave annotations to the chart's init jobs.
