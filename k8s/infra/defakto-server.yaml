@@ -11,7 +11,7 @@ spec:
     path: k8s/manifests/defakto-server
   destination:
     server: https://kubernetes.default.svc
-    namespace: tdd-kwtfbnrvlf
+    namespace: tdd-h0efqszxk9
   syncPolicy:
     automated:
       selfHeal: true

@@ -1,7 +1,6 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: GRPCRoute
 metadata:
-  namespace: tdd-kwtfbnrvlf
   name: spirl-server-agent
 spec:
   parentRefs:
@@ -12,5 +11,6 @@ spec:
     - defakto.o.cavnet.cloud
   rules:
     - backendRefs:
-        - name: tdd-kwtfbnrvlf-spirl-server-agent
+        # kustomize prepends the chart's release name; see kustomization.yaml.
+        - name: spirl-server-agent
           port: 80

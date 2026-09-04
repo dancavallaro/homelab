@@ -5,8 +5,8 @@ helmCharts:
     repo: oci://ghcr.io/spirl/charts
     version: 0.39.0
     # Defakto requires the release name to equal trustDomainDeployment.id.
-    releaseName: tdd-kwtfbnrvlf
-    namespace: tdd-kwtfbnrvlf
+    releaseName: &tdd tdd-h0efqszxk9
+    namespace: *tdd
     # Both charts ship the same data.spirl.com CRD; the server chart owns it.
     includeCRDs: true
     valuesInline:
@@ -14,18 +14,34 @@ helmCharts:
       argocd:
         enabled: true
       trustDomainDeployment:
-        id: tdd-kwtfbnrvlf
-        trustDomainID: td-jbrquz07yv
-        trustDomainName: self.cavallaro.dev
+        id: *tdd
+        trustDomainID: td-tn4hsa850h
+        trustDomainName: prod.cavallaro.local
         name: talos-prod
+# Applies to grpcroute.yaml and anything the chart left unqualified.
+namespace: *tdd
 resources:
   - grpcroute.yaml
 patches:
   # The agent endpoint is plaintext gRPC, but Envoy defaults to HTTP/1.1 upstream.
   - target:
       kind: Service
-      name: tdd-kwtfbnrvlf-spirl-server-agent
+      name: .*-spirl-server-agent
     patch: |
       - op: add
         path: /spec/ports/0/appProtocol
         value: kubernetes.io/h2c
+replacements:
+  # Derive the Service name from the chart's release-prefixed Deployment so the
+  # trust domain deployment ID appears only once, above.
+  - source:
+      kind: Deployment
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: GRPCRoute
+        fieldPaths:
+          - spec.rules.0.backendRefs.0.name
+        options:
+          delimiter: "-agent"
+          index: 0

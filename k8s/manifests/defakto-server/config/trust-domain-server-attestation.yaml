@@ -5,5 +5,5 @@ spec:
     - type: k8s_token
       config:
         issuerURL: https://oidc.cavnet.io
-        serviceAccountNamespace: tdd-kwtfbnrvlf
-        serviceAccountName: tdd-kwtfbnrvlf-spirl-server
+        serviceAccountNamespace: tdd-h0efqszxk9
+        serviceAccountName: tdd-h0efqszxk9-spirl-server
