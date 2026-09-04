@@ -2,19 +2,23 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   namespace: argocd
-  name: defakto
+  name: defakto-agent
 spec:
   project: default
   source:
     repoURL: https://github.com/dancavallaro/rpi-config
     targetRevision: HEAD
-    path: k8s/manifests/defakto
+    path: k8s/manifests/defakto-agent
   destination:
     server: https://kubernetes.default.svc
-    namespace: tdd-kwtfbnrvlf
+    namespace: spirl-system
   syncPolicy:
     automated:
       selfHeal: true
       prune: true
     syncOptions:
       - CreateNamespace=true
+    managedNamespaceMetadata:
+      labels:
+        # The agent DaemonSet and CSI driver need host mounts and privileged pods.
+        pod-security.kubernetes.io/enforce: privileged

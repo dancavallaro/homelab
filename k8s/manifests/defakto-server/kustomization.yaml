@@ -7,6 +7,7 @@ helmCharts:
     # Defakto requires the release name to equal trustDomainDeployment.id.
     releaseName: tdd-kwtfbnrvlf
     namespace: tdd-kwtfbnrvlf
+    # Both charts ship the same data.spirl.com CRD; the server chart owns it.
     includeCRDs: true
     valuesInline:
       # Adds hook/sync-wave annotations to the chart's init jobs.
@@ -17,25 +18,8 @@ helmCharts:
         trustDomainID: td-jbrquz07yv
         trustDomainName: self.cavallaro.dev
         name: talos-prod
-  - name: spirl-system
-    repo: oci://ghcr.io/spirl/charts
-    version: 0.44.0
-    releaseName: spirl-system
-    namespace: spirl-system
-    # Both charts ship the same data.spirl.com CRD; the server chart owns it here.
-    includeCRDs: false
-    valuesInline:
-      argocd:
-        enabled: true
-      agent:
-        endpoint:
-          endpoint: defakto.o.cavnet.cloud:443
-        auth:
-          attestationMethod: k8s_psat
-          clusterName: talos-prod
 resources:
   - grpcroute.yaml
-  - spirl-system-namespace.yaml
 patches:
   # The agent endpoint is plaintext gRPC, but Envoy defaults to HTTP/1.1 upstream.
   - target:
@@ -45,12 +29,3 @@ patches:
       - op: add
         path: /spec/ports/0/appProtocol
         value: kubernetes.io/h2c
-  # The chart's configmap.yaml omits the namespace its sibling templates all set,
-  # so under Argo it would land in the Application's destination namespace.
-  - target:
-      kind: ConfigMap
-      name: spirl-agent-config-map
-    patch: |
-      - op: add
-        path: /metadata/namespace
-        value: spirl-system
