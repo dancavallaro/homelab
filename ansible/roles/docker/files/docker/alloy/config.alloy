@@ -9,7 +9,7 @@ livedebugging {
 
 prometheus.remote_write "mimir" {
   endpoint {
-    url = "http://172.16.42.2/api/v1/push"
+    url = "http://mimir.o.cavnet.cloud/api/v1/push"
   }
 }
 

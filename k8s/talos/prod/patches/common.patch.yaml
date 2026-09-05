@@ -6,6 +6,8 @@ machine:
       - talos.logging.kernel=tcp://127.0.0.1:32412/
   network:
     nameservers:
+      # This allows pods to resolve *.o.cavnet.cloud and *.lan DNS names, without needing
+      # to customize Talos's CoreDNS config (and allows apiserver to resolve *.o.cavnet.cloud at all).
       - 10.42.42.1
   kubelet:
     nodeIP:

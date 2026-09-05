@@ -1,22 +1,3 @@
-## Note on DNS delegation
-
-Delegation of the k.cavnet.cloud zone from Route 53 to my private k8s_gateway nameserver
-at 172.16.42.53 doesn't work when using a typical public recursive resolver (e.g. ISP),
-even if the client is on the private network -- it only works when using a recursive
-resolver with access to the private nameserver. For now I'm just relying on Tailscale's
-DNS delegation since all of my clients are running Tailscale anyway, but if I ever want
-this to work for non-Tailscale clients on the LAN (e.g. open it to the home network)
-I'll need to run a recursive resolver and vend that via DHCP (Mikrotik's built-in "resolver"
-only forwards and caches, it doesn't do recursion itself, so the queries will still fail
-when a public resolver tries to reach the k.cavnet.cloud zone).
-
-After that, I'd left the k.cavnet.cloud DNS record in Route54 since it seemed harmless
-and at some point I want to get this working with non-Tailscale clients on the LAN.
-But it was a problem for the LetsEncrypt validation, since it was trying to query the
-private nameserver. So I deleted the NS record, and I actually don't think I'll need
-it again. When I set up a private recursive resolver I won't need any actual delegation
-from Route53, I can just return whatever I want from the resolver.
-
 ## TLS certs w/ LetsEncrypt and certbot
 
 certbot-dns-updater-role with certbot-dns-updater-policy:

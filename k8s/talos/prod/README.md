@@ -262,23 +262,3 @@ $ kubectl apply -f apps/unifi.yaml
 $ kubectl apply -f app-roots/all-apps.yaml
 $ kubectl apply -f app-roots/all-infra.yaml
 ```
-
-## OIDC w/ Keycloak
-
-Install Keycloak:
-
-```shell
-$ kubectl apply -f infra/keycloak.yaml
-```
-
-Add public DNS record in Route53 pointing to Pocket ID's ingress IP (needed for OIDC in apiserver):
-
-```
-pocket-id.o.cavnet.cloud. 300	IN	A	172.16.42.4
-```
-
-Patch apiserver to enable OIDC auth:
-
-```shell
-$ talosctl -n 192.168.42.10 patch mc -p @talos/prod/patches/oidc.patch.yaml
-```

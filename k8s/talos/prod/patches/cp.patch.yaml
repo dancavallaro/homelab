@@ -37,6 +37,11 @@ cluster:
     certSANs:
       - k8s.cavnet.cloud
     extraArgs:
+      # Allow PocketID identities to auth to apiserver.
+      oidc-issuer-url: https://pocket-id.o.cavnet.cloud
+      oidc-client-id: 816acb21-3d87-470c-8d90-8c17ee9da65c
+      oidc-groups-claim: groups
+      oidc-username-claim: email
       # Publish a public OIDC issuer for AWS IAM web-identity federation (see
       # k8s/manifests/oidc-provider). The issuer + jwks-uri must exactly match
       # what oidc.cavnet.io serves and the AWS IAM OIDC provider URL.
