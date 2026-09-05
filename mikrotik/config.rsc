@@ -1,4 +1,4 @@
-# 2025-09-29 11:35:23 by RouterOS 7.14.1
+# 2026-09-04 20:46:31 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -75,8 +75,9 @@ add address=10.42.42.2 name=dpu-host
 add address=192.168.6.40 name=dtcnet-netgear
 add address=10.42.42.16 name=protectli
 add address=10.42.42.12 name=nas
-add address=10.42.42.42 name=bastion
-add address=10.42.42.5 name=rpi
+add address=10.42.42.42 name=bastion.lan
+add address=10.42.42.5 name=rpi.lan
+add forward-to=172.16.42.53 match-subdomain=yes name=o.cavnet.cloud type=FWD
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"

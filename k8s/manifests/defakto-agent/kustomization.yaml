@@ -18,17 +18,3 @@ helmCharts:
           attestors:
             - type: k8s_token
           clusterName: talos-prod
-patches:
-  # Cluster DNS forwards to the nodes' public resolvers, which don't serve
-  # o.cavnet.cloud, so the agent can't resolve the gateway. Stopgap until the
-  # server terminates its own TLS and the agent can dial the Service directly.
-  - target:
-      kind: DaemonSet
-      name: spirl-agent
-    patch: |
-      - op: add
-        path: /spec/template/spec/hostAliases
-        value:
-          - ip: 172.16.42.4
-            hostnames:
-              - defakto.o.cavnet.cloud

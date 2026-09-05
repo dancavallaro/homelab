@@ -1,0 +1,28 @@
+section: AgentAttestation
+schema: v1
+spec:
+  policies:
+    - name: linux_policy
+      requiredAttestors:
+        - type: http_dns
+          config:
+            allowedHostnames:
+              - "*.lan"
+            allowedPorts:
+              - 8080
+---
+section: WorkloadAttestation
+schema: v1
+spec:
+  kubernetes:
+    enabled: false
+  docker:
+    enabled: true
+  linux:
+    enabled: true
+---
+section: SVIDIssuancePolicy
+schema: v1
+spec:
+  policy:
+    pathTemplate: "/{{node_group.name}}/{{http_dns.hostname}}"

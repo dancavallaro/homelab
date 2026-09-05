@@ -6,8 +6,7 @@ machine:
       - talos.logging.kernel=tcp://127.0.0.1:32412/
   network:
     nameservers:
-      - 1.1.1.1
-      - 8.8.8.8
+      - 10.42.42.1
   kubelet:
     nodeIP:
       validSubnets:
