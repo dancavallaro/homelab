@@ -24,3 +24,20 @@ services:
       - "1514:1514"
     volumes:
       - ./promtail:/etc/promtail
+{% if enable_defakto_agent %}
+  spirl-agent:
+    container_name: spirl-agent
+    image: ghcr.io/spirl/spirl-agent:v0.44.0
+    command: [ "/spirl-agent", "--config-file-path", "/etc/spirl/agent-config.yaml" ]
+    pid: host
+    ports:
+      - 8080:80
+    volumes:
+      # Make the agent's workload endpoint socket available to the host
+      - /var/run/spirl:/var/run/spirl
+      # Make the host's Docker socket available to the agent (for Docker workload attestation)
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./defakto:/etc/spirl
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+{% endif %}

@@ -25,4 +25,4 @@ section: SVIDIssuancePolicy
 schema: v1
 spec:
   policy:
-    pathTemplate: "/{{node_group.name}}/{{http_dns.hostname}}"
+    pathTemplate: "/{{node_group.name}}/{{http_dns.hostname}}/{{docker.container.label[com.docker.compose.service]}}"

@@ -1,0 +1,8 @@
+spirl-endpoint: defakto.o.cavnet.cloud:443
+cluster-name: linux-servers
+agent-attestors:
+  - type: http_dns
+    config:
+      hostname: "{{ ansible_host }}"
+      port: 80
+      advertisedPort: 8080
