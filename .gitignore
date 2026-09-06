@@ -14,3 +14,10 @@ talosconfig
 
 # Vendored cluster CRDs for IDE schema validation (bin/vendor-crds)
 .crds/
+
+# Terraform
+.terraform.lock
+.terraform.lock.hcl
+.terraform
+terraform.tfstate
+terraform.tfstate.backup

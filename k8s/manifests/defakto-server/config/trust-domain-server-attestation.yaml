@@ -1,9 +1,0 @@
-section: TrustDomainServerAttestation
-schema: v1
-spec:
-  requiredAttestors:
-    - type: k8s_token
-      config:
-        issuerURL: https://oidc.cavnet.io
-        serviceAccountNamespace: tdd-h0efqszxk9
-        serviceAccountName: tdd-h0efqszxk9-spirl-server
