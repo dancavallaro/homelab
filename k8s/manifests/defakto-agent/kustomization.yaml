@@ -18,3 +18,5 @@ helmCharts:
           attestors:
             - type: k8s_token
           clusterName: talos-prod
+      telemetry:
+        enabled: true
