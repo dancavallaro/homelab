@@ -17,6 +17,9 @@ helmCharts:
         trustDomainID: td-tn4hsa850h
         trustDomainName: prod.cavallaro.local
         name: talos-prod
+        serviceAccount:
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::484396241422:role/defakto-signing-role
 # Applies to grpcroute.yaml and anything the chart left unqualified.
 namespace: *tdd
 resources:

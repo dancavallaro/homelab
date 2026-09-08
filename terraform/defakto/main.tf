@@ -53,6 +53,15 @@ resource "spirl_trust_domain_deployment_config" "prod" {
               serviceAccountNamespace: ${spirl_trust_domain_deployment.prod.id}
               serviceAccountName: ${spirl_trust_domain_deployment.prod.id}-spirl-server
     YAML
+
+    KeyManager = <<-YAML
+      section: KeyManager
+      schema: v1
+      spec:
+        extensions:
+          awsKMS:
+            region: us-east-1
+    YAML
   }
 }
 
