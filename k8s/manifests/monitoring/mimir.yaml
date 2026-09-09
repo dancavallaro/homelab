@@ -28,6 +28,8 @@ data:
       backend: filesystem
       filesystem:
         dir: /mimir/ruler
+    limits:
+      cardinality_analysis_enabled: true
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
