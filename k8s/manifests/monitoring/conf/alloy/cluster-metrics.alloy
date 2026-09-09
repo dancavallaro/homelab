@@ -253,9 +253,35 @@ prometheus.relabel "argocd_metrics" {
 // Defakto Server metrics
 // ----------------------------------------------------------------------------
 
+discovery.kubernetes "defakto_servers" {
+  role = "pod"
+  selectors {
+    role = "pod"
+    label = "app.kubernetes.io/name=spirl-server"
+  }
+  namespaces {
+    names = ["tdd-h0efqszxk9"] // TODO: Get the hardcoded TDD ID out of here
+  }
+}
+
+discovery.relabel "defakto_server_metrics" {
+  targets = discovery.kubernetes.defakto_servers.targets
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_port_name"]
+    regex = "metrics"
+    action = "keep"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    separator = ";"
+    target_label = "pod"
+    replacement = "$1"
+    action = "replace"
+  }
+}
+
 prometheus.scrape "defakto_server_metrics" {
-  // TODO: Get the hardcoded TDD ID out of here
-  targets = [{"__address__" = "tdd-h0efqszxk9-spirl-server-metrics.tdd-h0efqszxk9:9090"}]
+  targets = discovery.relabel.defakto_server_metrics.output
   job_name = "integrations/kubernetes/defakto_server_metrics"
   scrape_interval = "60s"
   forward_to = [prometheus.relabel.defakto_server_metrics.receiver]
@@ -292,6 +318,13 @@ discovery.relabel "defakto_agents_metrics" {
     source_labels = ["__meta_kubernetes_pod_container_port_name"]
     regex = "metrics"
     action = "keep"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    separator = ";"
+    target_label = "pod"
+    replacement = "$1"
+    action = "replace"
   }
 }
 
