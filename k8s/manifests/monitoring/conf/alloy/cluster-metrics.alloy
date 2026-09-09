@@ -286,8 +286,17 @@ discovery.kubernetes "defakto_agents" {
   }
 }
 
-prometheus.scrape "defakto_agents_metrics" {
+discovery.relabel "defakto_agents_metrics" {
   targets = discovery.kubernetes.defakto_agents.targets
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_port_name"]
+    regex = "metrics"
+    action = "keep"
+  }
+}
+
+prometheus.scrape "defakto_agents_metrics" {
+  targets = discovery.relabel.defakto_agents_metrics.output
   job_name = "integrations/kubernetes/defakto_agent_metrics"
   scrape_interval = "60s"
   forward_to = [prometheus.relabel.defakto_agent_metrics.receiver]
