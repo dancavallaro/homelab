@@ -3,6 +3,7 @@ In-progress (updated 8/20/26):
 
 TODOs:
 * Upgrade Jellyfin to the latest
+* Revamp LGTM deployment: upgrade versions, revamp config (e.g. annotation-driven), use real storage, consider HA
 * Shed load from UPS to increase battery runtime - prioritize NAS first, then NUC
 * Remote ESP32 firmware flashing and testing using the stick plugged into the NUC
 * Submit kubectl-unmount to Krew index (need to rename first)

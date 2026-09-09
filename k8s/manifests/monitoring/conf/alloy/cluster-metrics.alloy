@@ -248,3 +248,57 @@ prometheus.relabel "argocd_metrics" {
     prometheus.remote_write.mimir.receiver,
   ]
 }
+
+// ----------------------------------------------------------------------------
+// Defakto Server metrics
+// ----------------------------------------------------------------------------
+
+prometheus.scrape "defakto_server_metrics" {
+  // TODO: Get the hardcoded TDD ID out of here
+  targets = [{"__address__" = "tdd-h0efqszxk9-spirl-server-metrics.tdd-h0efqszxk9:9090"}]
+  job_name = "integrations/kubernetes/defakto_server_metrics"
+  scrape_interval = "60s"
+  forward_to = [prometheus.relabel.defakto_server_metrics.receiver]
+}
+
+prometheus.relabel "defakto_server_metrics" {
+  rule {
+    replacement = "defakto_server_metrics"
+    target_label = "service"
+  }
+  forward_to = [
+    prometheus.remote_write.mimir.receiver,
+  ]
+}
+
+// ----------------------------------------------------------------------------
+// Defakto Agent metrics
+// ----------------------------------------------------------------------------
+
+discovery.kubernetes "defakto_agents" {
+  role = "pod"
+  selectors {
+    role = "pod"
+    label = "app=spirl-agent"
+  }
+  namespaces {
+    names = ["spirl-system"]
+  }
+}
+
+prometheus.scrape "defakto_agents_metrics" {
+  targets = discovery.kubernetes.defakto_agents.targets
+  job_name = "integrations/kubernetes/defakto_agent_metrics"
+  scrape_interval = "60s"
+  forward_to = [prometheus.relabel.defakto_agent_metrics.receiver]
+}
+
+prometheus.relabel "defakto_agent_metrics" {
+  rule {
+    replacement = "defakto_agent_metrics"
+    target_label = "service"
+  }
+  forward_to = [
+    prometheus.remote_write.mimir.receiver,
+  ]
+}
