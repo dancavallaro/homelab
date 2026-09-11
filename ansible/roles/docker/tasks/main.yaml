@@ -27,18 +27,21 @@
 
 - name: Copy Docker config files
   become: true
+  notify: Recreate containers
   ansible.builtin.copy:
     src: docker
     dest: /usr/local/rpi-config/
 
 - name: Render Docker Compose template
   become: true
+  notify: Recreate containers
   ansible.builtin.template:
     src: docker/compose.yaml.j2
     dest: /usr/local/rpi-config/docker/compose.yaml
 
 - name: Render Defakto Agent config file
   become: true
+  notify: Recreate containers
   ansible.builtin.template:
     src: docker/defakto/agent-config.yaml.j2
     dest: /usr/local/rpi-config/docker/defakto/agent-config.yaml
@@ -49,4 +52,4 @@
   register: docker_gid
 
 - name: Launch containers
-  ansible.builtin.command: docker compose -f /usr/local/rpi-config/docker/compose.yaml up -d
+  ansible.builtin.command: docker compose -f /usr/local/rpi-config/docker/compose.yaml up -d --remove-orphans

@@ -71,3 +71,49 @@ prometheus.relabel "hostmetrics" {
     prometheus.remote_write.mimir.receiver,
   ]
 }
+
+loki.write "loki" {
+  endpoint {
+    url = "http://loki.o.cavnet.cloud/loki/api/v1/push"
+  }
+}
+
+loki.relabel "syslog" {
+  // Rules export only: __syslog_* labels don't reach components later in the chain
+  forward_to = []
+
+  rule {
+    action = "replace"
+    source_labels = ["__syslog_message_hostname"]
+    target_label = "host"
+  }
+  rule {
+    action = "replace"
+    source_labels = ["__syslog_message_severity"]
+    target_label = "level"
+  }
+  rule {
+    action = "replace"
+    source_labels = ["__syslog_message_app_name"]
+    target_label = "application"
+  }
+  rule {
+    action = "replace"
+    source_labels = ["__syslog_message_facility"]
+    target_label = "facility"
+  }
+}
+
+loki.source.syslog "local" {
+  listener {
+    address = "127.0.0.1:1514"
+    protocol = "tcp"
+    labels = {service_name = "host.syslog"}
+    // Long idle timeout to avoid timeout log noise during quiet periods
+    idle_timeout = "24h"
+  }
+  relabel_rules = loki.relabel.syslog.rules
+  forward_to = [
+    loki.write.loki.receiver,
+  ]
+}

@@ -3,3 +3,6 @@
   ansible.builtin.systemd_service:
     name: docker
     state: restarted
+
+- name: Recreate containers
+  ansible.builtin.command: docker compose -f /usr/local/rpi-config/docker/compose.yaml up -d --force-recreate
