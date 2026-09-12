@@ -88,6 +88,7 @@ spec:
     metadata:
       labels:
         app: loki
+        k8s.spirl.com/spiffe-csi: enabled
     spec:
       containers:
         - name: loki
@@ -104,6 +105,17 @@ spec:
             - name: loki-data
               mountPath: /loki
               readOnly: false
+        - name: spiffe-proxy
+          image: ghostunnel/ghostunnel:v1.11.3-distroless
+          args:
+            - server
+            - --listen=0.0.0.0:8443
+            - --target=127.0.0.1:3100
+            - --use-workload-api
+            - --allow-uri=spiffe://prod.cavallaro.local/linux-servers/*/loki-proxy
+          ports:
+            - name: mtls
+              containerPort: 8443
       volumes:
         - name: loki-conf
           configMap:
@@ -125,5 +137,9 @@ spec:
   selector:
     app: loki
   ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: http
+    - name: mtls
+      port: 443
+      targetPort: mtls

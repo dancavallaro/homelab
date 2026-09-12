@@ -59,6 +59,7 @@ spec:
     metadata:
       labels:
         app: mimir
+        k8s.spirl.com/spiffe-csi: enabled
     spec:
       containers:
         - name: mimir
@@ -75,6 +76,17 @@ spec:
             - name: mimir-data
               mountPath: /mimir
               readOnly: false
+        - name: spiffe-proxy
+          image: ghostunnel/ghostunnel:v1.11.3-distroless
+          args:
+            - server
+            - --listen=0.0.0.0:8443
+            - --target=127.0.0.1:8080
+            - --use-workload-api
+            - --allow-uri=spiffe://prod.cavallaro.local/linux-servers/*/mimir-proxy
+          ports:
+            - name: mtls
+              containerPort: 8443
       volumes:
         - name: mimir-conf
           configMap:
@@ -96,5 +108,9 @@ spec:
   selector:
     app: mimir
   ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: http
+    - name: mtls
+      port: 443
+      targetPort: mtls
