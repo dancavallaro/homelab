@@ -16,7 +16,7 @@ spec:
     - ReadWriteMany
   resources:
     requests:
-      storage: 1Gi
+      storage: 5Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -50,7 +50,7 @@ spec:
             readOnly: true
       containers:
         - name: jellyfin
-          image: jellyfin/jellyfin:2025032405
+          image: jellyfin/jellyfin:12.0
           volumeMounts:
             - mountPath: /config
               name: jellyfin-config
