@@ -9,7 +9,12 @@ livedebugging {
 
 prometheus.remote_write "mimir" {
   endpoint {
+{% if enable_spiffe %}
+    // Local ghostunnel client tunnel; mTLS to Mimir with a SPIFFE SVID
+    url = "http://127.0.0.1:9009/api/v1/push"
+{% else %}
     url = "http://mimir.o.cavnet.cloud/api/v1/push"
+{% endif %}
   }
 }
 
@@ -74,7 +79,12 @@ prometheus.relabel "hostmetrics" {
 
 loki.write "loki" {
   endpoint {
+{% if enable_spiffe %}
+    // Local ghostunnel client tunnel; mTLS to Loki with a SPIFFE SVID
+    url = "http://127.0.0.1:3100/loki/api/v1/push"
+{% else %}
     url = "http://loki.o.cavnet.cloud/loki/api/v1/push"
+{% endif %}
   }
 }
 

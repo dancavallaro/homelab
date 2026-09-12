@@ -73,6 +73,12 @@ spec:
     requests:
       storage: 20Gi
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: loki
+  namespace: monitoring
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -90,6 +96,7 @@ spec:
         app: loki
         k8s.spirl.com/spiffe-csi: enabled
     spec:
+      serviceAccountName: loki
       containers:
         - name: loki
           image: grafana/loki:3.4.2

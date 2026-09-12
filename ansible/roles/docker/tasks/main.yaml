@@ -39,6 +39,13 @@
     src: docker/compose.yaml.j2
     dest: /usr/local/rpi-config/docker/compose.yaml
 
+- name: Render Alloy config file
+  become: true
+  notify: Recreate containers
+  ansible.builtin.template:
+    src: docker/alloy/config.alloy.j2
+    dest: /usr/local/rpi-config/docker/alloy/config.alloy
+
 - name: Render Defakto Agent config file
   become: true
   notify: Recreate containers

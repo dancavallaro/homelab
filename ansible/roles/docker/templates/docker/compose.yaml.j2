@@ -15,7 +15,7 @@ services:
       - /sys:/host/sys:ro
       - /run/udev/data:/host/udev:ro
       - ./alloy:/etc/alloy.d
-{% if enable_defakto_agent %}
+{% if enable_spiffe %}
   spirl-agent:
     container_name: spirl-agent
     image: ghcr.io/spirl/spirl-agent:v0.44.0
@@ -31,4 +31,36 @@ services:
       - ./defakto:/etc/spirl
       - /etc/passwd:/etc/passwd:ro
       - /etc/group:/etc/group:ro
+
+  mimir-proxy:
+    container_name: mimir-proxy
+    restart: unless-stopped
+    network_mode: host
+    image: ghostunnel/ghostunnel:v1.11.3-distroless
+    command:
+      - client
+      - --listen=127.0.0.1:9009
+      - --target=mimir.o.cavnet.cloud:443
+      - --use-workload-api-addr=unix:///var/run/spirl/spiffe.sock
+      - --verify-uri=spiffe://prod.cavallaro.local/talos-prod/ns/monitoring/sa/mimir
+    volumes:
+      - /var/run/spirl:/var/run/spirl
+    depends_on:
+      - spirl-agent
+
+  loki-proxy:
+    container_name: loki-proxy
+    restart: unless-stopped
+    network_mode: host
+    image: ghostunnel/ghostunnel:v1.11.3-distroless
+    command:
+      - client
+      - --listen=127.0.0.1:3100
+      - --target=loki.o.cavnet.cloud:443
+      - --use-workload-api-addr=unix:///var/run/spirl/spiffe.sock
+      - --verify-uri=spiffe://prod.cavallaro.local/talos-prod/ns/monitoring/sa/loki
+    volumes:
+      - /var/run/spirl:/var/run/spirl
+    depends_on:
+      - spirl-agent
 {% endif %}
