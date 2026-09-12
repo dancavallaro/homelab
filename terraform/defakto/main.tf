@@ -23,6 +23,21 @@ resource "spirl_trust_domain" "prod" {
   domain_name = "prod.cavallaro.local"
 }
 
+resource "spirl_trust_domain_config" "prod" {
+  trust_domain_id = spirl_trust_domain.prod.id
+  sections = {
+    TokenExchangePolicy = <<-YAML
+      section: TokenExchangePolicy
+      schema: v1
+      spec:
+        allowlist:
+          - issuer: https://pocket-id.o.cavnet.cloud
+            audiences:
+              - 816acb21-3d87-470c-8d90-8c17ee9da65c
+    YAML
+  }
+}
+
 resource "spirl_trust_domain_deployment" "prod" {
   trust_domain_id = spirl_trust_domain.prod.id
   name            = "talos-prod"
