@@ -4,6 +4,23 @@ terraform {
       source = "registry.opentofu.org/spirl/spirl"
       version = ">= 0.14.0"
     }
+    kubernetes = {
+      source = "hashicorp/kubernetes"
+      version = ">= 2.0.0"
+    }
+  }
+}
+
+provider "kubernetes" {
+  config_path = "~/.kube/config"
+}
+
+# The webhook's serving cert is issued by cluster-ca-issuer; reading its CA here
+# rather than pasting it means cert-manager renewals can't silently drift.
+data "kubernetes_secret_v1" "cluster_ca" {
+  metadata {
+    name      = "self-signed-issuer-ca"
+    namespace = "cert-manager"
   }
 }
 
@@ -35,6 +52,31 @@ resource "spirl_trust_domain_config" "prod" {
             audiences:
               - 816acb21-3d87-470c-8d90-8c17ee9da65c
     YAML
+
+    # yamlencode rather than a heredoc because caCerts is interpolated, and
+    # heredoc indent-stripping does not apply to interpolated content.
+    ServerlessAttestation = yamlencode({
+      section = "ServerlessAttestation"
+      schema  = "v1"
+      spec = {
+        policies = [{
+          name = "esp32_policy"
+          svidPolicy = {
+            pathTemplate = "/iot/{{custom.device_id}}"
+          }
+          requiredAttestors = [{
+            type = "extension"
+            config = {
+              webhookURL = "https://esp32-attestor.defakto-webhook.svc.cluster.local:8443/attest"
+              timeout    = "5s"
+              # nonsensitive: a CA certificate is public, and marking it sensitive
+              # would hide this whole section from terraform plan output.
+              caCerts = nonsensitive(data.kubernetes_secret_v1.cluster_ca.data["tls.crt"])
+            }
+          }]
+        }]
+      }
+    })
   }
 }
 
