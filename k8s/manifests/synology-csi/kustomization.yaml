@@ -15,9 +15,10 @@ helmCharts:
     valuesInline:
       images:
         plugin:
-          # Adds fail-fast startup + webapi timeout patches (resiliency-patches branch)
+          # Adds fail-fast startup + webapi timeout patches, and fixes the
+          # iscsiadm session parser panic that leaked iSCSI sessions
           image: ghcr.io/dancavallaro/synology-csi
-          tag: v1.3.0-patched.1
+          tag: v1.3.1-patched.1
       clientInfoSecret:
         name: client-info-secret
       node:
