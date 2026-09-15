@@ -148,3 +148,50 @@ resource "spirl_cluster_config" "linux-servers" {
     YAML
   }
 }
+
+resource "spirl_cluster" "networking-secure" {
+  trust_domain_id = spirl_trust_domain.prod.id
+  name            = "networking-secure"
+  platform        = "linux"
+}
+
+resource "spirl_cluster_config" "networking-secure" {
+  cluster_id = spirl_cluster.networking-secure.id
+  sections = {
+    AgentAttestation = <<-YAML
+      section: AgentAttestation
+      schema: v1
+      spec:
+        policies:
+          - name: bf3_policy
+            requiredAttestors:
+              - type: tpm_ek
+                config:
+                  allowedHashes:
+                    # The BF3 has no manufacturer EK cert in NV, so we have to pin the EK public key directly.
+                    - "98fb69a90a9325d28ec352c24842beeb677c27afddbe84c017af70d125fe0ce2"
+    YAML
+
+    WorkloadAttestation = <<-YAML
+      section: WorkloadAttestation
+      schema: v1
+      spec:
+        kubernetes:
+          enabled: false
+        docker:
+          enabled: false
+        linux:
+          enabled: true
+        systemd:
+          enabled: true
+    YAML
+
+    SVIDIssuancePolicy = <<-YAML
+      section: SVIDIssuancePolicy
+      schema: v1
+      spec:
+        policy:
+          pathTemplate: "/{{node_group.name}}/{{tpm_ek.public_hash}}/{{systemd.id}}"
+    YAML
+  }
+}
