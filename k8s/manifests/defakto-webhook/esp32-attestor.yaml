@@ -23,6 +23,21 @@ spec:
     kind: ClusterIssuer
     group: cert-manager.io
 ---
+# One JSON object of device_id -> {secret, model}, surfaced as a single file.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: esp32-enrollment
+  namespace: defakto-webhook
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-parameter-store
+  data:
+    - secretKey: enrollment.json
+      remoteRef:
+        key: /talos-prod/esp32-enrollment
+---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -41,12 +56,15 @@ spec:
     spec:
       containers:
         - name: esp32-attestor
-          image: ghcr.io/dancavallaro/telemetry/esp32-attestor:0.1.0
+          image: ghcr.io/dancavallaro/telemetry/esp32-attestor:0.2.0
           ports:
             - containerPort: 8443
           volumeMounts:
             - name: tls
               mountPath: /tls
+              readOnly: true
+            - name: enrollment
+              mountPath: /enrollment
               readOnly: true
           readinessProbe:
             httpGet:
@@ -57,6 +75,9 @@ spec:
         - name: tls
           secret:
             secretName: esp32-attestor-tls
+        - name: enrollment
+          secret:
+            secretName: esp32-enrollment
 ---
 apiVersion: v1
 kind: Service
