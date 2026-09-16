@@ -142,6 +142,17 @@ resource "spirl_cluster_config" "talos-prod" {
                 config:
                   issuerURL: https://oidc.cavnet.io
     YAML
+
+    SVIDIssuancePolicy = <<-YAML
+      section: SVIDIssuancePolicy
+      schema: v1
+      spec:
+        policy:
+          pathTemplate: "/{{cluster.name}}/ns/{{kubernetes.pod.namespace}}/sa/{{kubernetes.pod.service_account}}"
+          x509:
+            dnsNames:
+              - "{{kubernetes.pod.service_account}}.o.cavnet.cloud"
+    YAML
   }
 }
 

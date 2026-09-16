@@ -120,6 +120,7 @@ spec:
             - --target=127.0.0.1:3100
             - --use-workload-api
             - --allow-uri=spiffe://prod.cavallaro.local/linux-servers/*/loki-proxy
+            - --allow-uri=spiffe://prod.cavallaro.local/iot/*
           ports:
             - name: mtls
               containerPort: 8443
