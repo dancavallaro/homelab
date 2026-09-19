@@ -1,4 +1,4 @@
-# 2026-09-04 20:46:31 by RouterOS 7.14.1
+# 2026-09-19 18:38:34 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -8,13 +8,14 @@ add admin-mac=78:9A:18:BD:BF:20 auto-mac=no comment=defconf name=bridge port-cos
 add comment="bridges some ports to \"WAN\" (dtcnet/home LAN) on ether1" name=dtcnet_bridge
 add comment="Private IoT network for ESP32 devices" name=iotnet_bridge
 /interface ethernet
-set [ find default-name=ether1 ] comment="talos-host (2.5GbE)"
+set [ find default-name=ether1 ] comment="talos-host (NUC)"
 set [ find default-name=ether2 ] comment="Laptop docking station"
 set [ find default-name=ether3 ] comment="PoE switch to Ubiquiti APs"
 set [ find default-name=ether4 ] comment=Protectli
 set [ find default-name=ether5 ] comment="eero (uplink to dtcnet LAN)"
-set [ find default-name=ether6 ] comment="RPi4 (bastion.local)"
+set [ find default-name=ether6 ] comment="RPi4 (bastion.lan)"
 set [ find default-name=ether7 ] comment="dtcnet Netgear switch"
+set [ find default-name=ether8 ] comment="RPi5 (rpi.lan)"
 set [ find default-name=sfp-sfpplus1 ] comment="Synology NAS"
 /interface vlan
 add comment="WiFi SSID for labnet" interface=ether3 name=vlan10 vlan-id=10
@@ -58,32 +59,35 @@ add address=192.168.20.1/24 interface=iotnet_bridge network=192.168.20.0
 add interface=dtcnet_bridge
 /ip dhcp-server lease
 add address=10.42.42.10 client-id=work-laptop comment="Work MBP" mac-address=90:8D:6E:35:11:38 server=defconf
-add address=10.42.42.16 comment=Protectli mac-address=00:E0:67:30:D6:DE
+add address=10.42.42.16 comment=Protectli mac-address=00:E0:67:30:D6:DE server=defconf
 add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-address=90:8D:6E:35:11:38 server=defconf
 add address=10.42.42.42 client-id=1:e4:5f:1:ef:d7:10 comment="bastion RPi" mac-address=E4:5F:01:EF:D7:10 server=defconf
-add address=10.42.42.2 comment="talos-host br0" mac-address=92:B9:36:6D:7F:97 server=defconf
+add address=10.42.42.2 comment="talos-host (NUC)" mac-address=92:B9:36:6D:7F:97 server=defconf
 add address=10.42.42.12 client-id=1:90:9:d0:66:1f:3b comment="Synology NAS" mac-address=90:09:D0:66:1F:3B server=defconf
 add address=10.42.42.5 client-id=1:d8:3a:dd:c8:db:3c comment="RPi 5" mac-address=D8:3A:DD:C8:DB:3C server=defconf
+add address=10.42.42.3 comment="dpu-host (GMKtek with Proxmox)" mac-address=84:47:09:92:3E:97 server=defconf
 /ip dhcp-server network
 add address=10.42.0.0/16 comment="Office network" dns-server=10.42.42.1 gateway=10.42.42.1 netmask=16
-add address=192.168.20.0/24 comment="Private IoT network" dns-server=172.16.42.53 gateway=192.168.20.1
+add address=192.168.20.0/24 comment="Private IoT network" dns-server=10.42.42.1 gateway=192.168.20.1
 /ip dns
 set allow-remote-requests=yes servers=8.8.8.8,8.8.4.4
 /ip dns static
 add address=10.42.42.1 comment=defconf name=router.lan
-add address=10.42.42.2 name=dpu-host
+add address=10.42.42.2 name=talos-host.lan
 add address=192.168.6.40 name=dtcnet-netgear
-add address=10.42.42.16 name=protectli
+add address=10.42.42.16 name=protectli.lan
 add address=10.42.42.12 name=nas
 add address=10.42.42.42 name=bastion.lan
 add address=10.42.42.5 name=rpi.lan
 add forward-to=172.16.42.53 match-subdomain=yes name=o.cavnet.cloud type=FWD
+add address=10.42.42.3 name=dpu-host.lan
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
 add action=accept chain=input comment="defconf: accept ICMP" protocol=icmp
 add action=accept chain=input comment="defconf: accept to local loopback (for CAPsMAN)" dst-address=127.0.0.1
 add action=accept chain=input comment="Allow SNMP from RPi for monitoring" dst-port=161 protocol=udp src-address=192.168.5.238
+add action=accept chain=input comment="Allow DNS from ESP32 network" dst-port=53 protocol=udp src-address=192.168.20.0/24
 add action=drop chain=input comment="defconf: drop all not coming from LAN" in-interface-list=!LAN
 add action=accept chain=forward comment="Accept traffic from RPi towards k8s LB IPs" dst-address=172.16.42.0/24 src-address=192.168.5.100
 add action=accept chain=forward comment="defconf: accept in ipsec policy" ipsec-policy=in,ipsec
