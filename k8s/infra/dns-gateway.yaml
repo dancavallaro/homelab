@@ -6,9 +6,9 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: https://k8s-gateway.github.io/k8s_gateway
-      chart: k8s-gateway
-      targetRevision: 3.2.0
+    - repoURL: oci://codeberg.org/k8s-gateway/charts/k8s-gateway
+      path: .
+      targetRevision: 3.7.3
       helm:
         valueFiles:
           - $values/k8s/manifests/k8s_gateway/values.yaml
