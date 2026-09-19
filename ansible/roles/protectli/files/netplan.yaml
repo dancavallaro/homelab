@@ -1,0 +1,13 @@
+network:
+  version: 2
+  ethernets:
+    enp1s0: {dhcp4: no, dhcp6: no}
+    enp2s0: {dhcp4: no, dhcp6: no}
+    enp3s0: {dhcp4: no, dhcp6: no}
+    enp4s0: {dhcp4: no, dhcp6: no}
+  bridges:
+    br0:
+      interfaces: [enp1s0, enp2s0, enp3s0, enp4s0]
+      macaddress: 00:e0:67:30:d6:de
+      dhcp4: yes
+      dhcp6: no

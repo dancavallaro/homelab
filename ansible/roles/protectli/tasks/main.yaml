@@ -1,0 +1,9 @@
+- name: Install netplan config
+  become: true
+  ansible.builtin.copy:
+    src: netplan.yaml
+    dest: /etc/netplan/99-dan.yaml
+    owner: root
+    group: root
+    mode: '0600'
+  notify: Apply netplan
