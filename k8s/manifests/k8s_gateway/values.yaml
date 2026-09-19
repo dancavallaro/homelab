@@ -3,7 +3,7 @@ watchedResources:
   - Ingress
   - Service
   - HTTPRoute
-  - TLSRoute
+  #- TLSRoute
   - GRPCRoute
 service:
   annotations:
