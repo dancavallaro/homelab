@@ -8,7 +8,7 @@ add admin-mac=78:9A:18:BD:BF:20 auto-mac=no comment=defconf name=bridge port-cos
 add comment="bridges some ports to \"WAN\" (dtcnet/home LAN) on ether1" name=dtcnet_bridge
 add comment="Private IoT network for ESP32 devices" name=iotnet_bridge
 /interface ethernet
-set [ find default-name=ether1 ] comment="NUC (2.5GbE)"
+set [ find default-name=ether1 ] comment="talos-host (2.5GbE)"
 set [ find default-name=ether2 ] comment="Laptop docking station"
 set [ find default-name=ether3 ] comment="PoE switch to Ubiquiti APs"
 set [ find default-name=ether4 ] comment=Protectli
@@ -19,7 +19,7 @@ set [ find default-name=sfp-sfpplus1 ] comment="Synology NAS"
 /interface vlan
 add comment="WiFi SSID for labnet" interface=ether3 name=vlan10 vlan-id=10
 add comment="WiFi SSID for IoT network" interface=ether3 name=vlan20 vlan-id=20
-add comment="NUC -> dtcnet bridge" interface=ether1 name=vlan192 vlan-id=192
+add comment="talos-host -> dtcnet bridge" interface=ether1 name=vlan192 vlan-id=192
 /interface list
 add comment=defconf name=WAN
 add comment=defconf name=LAN
@@ -38,7 +38,7 @@ add bridge=bridge comment="Synology NAS" interface=sfp-sfpplus1 internal-path-co
 add bridge=bridge interface=ether4
 add bridge=bridge interface=ether1
 add bridge=dtcnet_bridge interface=ether5
-add bridge=dtcnet_bridge comment="Bridges dpu-host to dtcnet" interface=vlan192
+add bridge=dtcnet_bridge comment="Bridges talos-host to dtcnet" interface=vlan192
 add bridge=dtcnet_bridge interface=ether3
 add bridge=dtcnet_bridge interface=ether7
 add bridge=bridge comment="Bridges WiFi APs to office network" interface=vlan10
@@ -61,7 +61,7 @@ add address=10.42.42.10 client-id=work-laptop comment="Work MBP" mac-address=90:
 add address=10.42.42.16 comment=Protectli mac-address=00:E0:67:30:D6:DE
 add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-address=90:8D:6E:35:11:38 server=defconf
 add address=10.42.42.42 client-id=1:e4:5f:1:ef:d7:10 comment="bastion RPi" mac-address=E4:5F:01:EF:D7:10 server=defconf
-add address=10.42.42.2 comment="NUC br0" mac-address=92:B9:36:6D:7F:97 server=defconf
+add address=10.42.42.2 comment="talos-host br0" mac-address=92:B9:36:6D:7F:97 server=defconf
 add address=10.42.42.12 client-id=1:90:9:d0:66:1f:3b comment="Synology NAS" mac-address=90:09:D0:66:1F:3B server=defconf
 add address=10.42.42.5 client-id=1:d8:3a:dd:c8:db:3c comment="RPi 5" mac-address=D8:3A:DD:C8:DB:3C server=defconf
 /ip dhcp-server network

@@ -49,8 +49,8 @@ sudo kubectl create secret tls o.cavnet-wildcard-cert \
 
 ## Multi-homing with homenet
 
-On the Mikrotik I created a new VLAN interface on the port connected to dpu-host, tagged
-with VLAN 192, and bridged to dtcnet. Then on dpu-host, I create a tagged interface:
+On the Mikrotik I created a new VLAN interface on the port connected to talos-host, tagged
+with VLAN 192, and bridged to dtcnet. Then on talos-host, I create a tagged interface:
 
 ```shell
 sudo ip link add link br0 name dtcnet0 type vlan id 192

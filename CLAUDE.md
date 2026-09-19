@@ -15,7 +15,7 @@ Home infrastructure configuration repository managing a Kubernetes cluster (Talo
   - `talos/prod/` — Talos Linux machine config and patches for the 4-VM cluster (1 CP + 3 workers)
   - `app-roots/` — Top-level ArgoCD app-of-apps (`all-apps.yaml`, `all-infra.yaml`)
   - `demos/` — Debug/test pods (SSH, netshoot, kuard, nginx)
-- **ansible/** — Playbooks and roles for host provisioning (rpi, bastion, dpu-host, protectli)
+- **ansible/** — Playbooks and roles for host provisioning (rpi, bastion, talos-host, protectli)
 - **bin/** — Utility scripts (power control, temperature sensors, backups, WoL)
 - **mikrotik/** — MikroTik RB5009 switch configuration (RouterOS)
 - **dotfiles/** — Shell/git/vim configuration files
