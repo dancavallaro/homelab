@@ -32,8 +32,15 @@ groups:
         annotations:
           message: "ArgoCD application sync controller has been disabled for a while. Did you forget to re-enable it?"
       - alert: ArgoCD applications not healthy
-        expr: count(argocd_app_info{health_status!="Healthy"}) > 0
-        for: 1h
+        expr: argocd_app_info{health_status!="Healthy"}
+        for: 30m
+        annotations:
+          message: "ArgoCD application {{ $labels.name }} has health status {{ $labels.health_status }}."
+      - alert: ArgoCD application out of sync
+        expr: argocd_app_info{sync_status!="Synced"}
+        for: 30m
+        annotations:
+          message: "ArgoCD application {{ $labels.name }} has sync status {{ $labels.sync_status }}."
       - alert: Loss of Telemetry from RPi
         expr: absent(node_boot_time_seconds{service="host_metrics", instance="rpi"})
         for: 10m
