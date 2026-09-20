@@ -28,7 +28,7 @@ groups:
     rules:
       - alert: ArgoCD Sync Disabled
         expr: kube_statefulset_status_replicas_current{cluster="talos-prod", namespace="argocd", statefulset="argocd-application-controller"} == 0
-        for: 3h
+        for: 4h
         annotations:
           message: "ArgoCD application sync controller has been disabled for a while. Did you forget to re-enable it?"
       - alert: ArgoCD applications not healthy
