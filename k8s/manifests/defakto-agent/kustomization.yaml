@@ -1,5 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+resources:
+  - ledger-auth.yaml
 helmCharts:
   - name: spirl-system
     repo: oci://ghcr.io/spirl/charts
@@ -20,3 +22,10 @@ helmCharts:
           clusterName: talos-prod
       telemetry:
         enabled: true
+      ledger:
+        enabled: true
+        ingest:
+          endpoint: ledger.edge.defakto.security:443
+        id: sc-98lvlelq6p
+        auth:
+          suppliedSecretName: ledger-scanner-key

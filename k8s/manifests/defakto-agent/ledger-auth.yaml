@@ -1,0 +1,19 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ledger-scanner-key
+  namespace: spirl-system
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-parameter-store
+  target:
+    name: ledger-scanner-key
+    template:
+      data:
+        scanner.id: sck-frmjewq1d6
+        scanner.key: "{{ .key }}"
+  data:
+    - secretKey: key
+      remoteRef:
+        key: /talos-prod/defakto-agent/ledger-scanner-key
