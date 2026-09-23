@@ -1,0 +1,9 @@
+# No validate: Proxmox's `ifup --syntax-check` rejects the `bridge-fd 0` its own installer writes.
+- name: Install network interfaces config
+  become: true
+  ansible.builtin.template:
+    src: interfaces.j2
+    dest: /etc/network/interfaces
+    mode: '0644'
+    backup: true
+  notify: Reload network interfaces

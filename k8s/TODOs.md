@@ -2,7 +2,7 @@ In-progress (updated 8/20/26):
 * Working on shopping list app at ~/workspace/xcode/ShoppingList (https://docs.google.com/document/d/1LTH-zNL13lZQ71D6qiNLJBcUhEnh0u1DU0Vdz9xBK98/edit?usp=sharing)
 
 TODOs:
-* Revamp/simplify Kubernetes cluster network architecture
+* Revamp/simplify Kubernetes cluster network architecture (see last section of docs/network.md)
 * Revamp LGTM deployment: upgrade versions, revamp config (e.g. annotation-driven), use real storage, enable retention, consider HA
 * Shed load from UPS to increase battery runtime - prioritize NAS first, then NUC
 * Remote ESP32 firmware flashing and testing using the stick plugged into the NUC

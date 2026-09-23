@@ -1,0 +1,4 @@
+# Detached from the SSH session, which can drop while vmbr0 reconfigures.
+- name: Reload network interfaces
+  become: true
+  ansible.builtin.command: systemd-run --collect --unit=ifreload /usr/sbin/ifreload -a

@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+auto lo
+iface lo inet loopback
+
+iface eno1 inet manual
+
+auto vmbr0
+iface vmbr0 inet dhcp
+      bridge-ports eno1
+      bridge-stp off
+      bridge-fd 0
+      bridge-vlan-aware yes
+      # VLAN for the guest VMs, configured on the Protectli
+      bridge-vids 4
+
+iface enp3s0 inet manual
+
+iface wlp2s0 inet manual
+
+
+source /etc/network/interfaces.d/*

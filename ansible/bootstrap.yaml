@@ -1,5 +1,5 @@
 - name: Bootstrap host
-  hosts: all
+  hosts: all:!proxmox
   pre_tasks:
     - name: Sanity check
       tags:
@@ -13,3 +13,9 @@
     - {role: ups, tags: ups, when: monitor_ups}
     - {role: console, tags: console, when: enable_console}
     - {role: protectli, tags: protectli, when: inventory_hostname == 'protectli.lan'}
+
+# Proxmox hosts get only the roles listed here, none of the defaults above.
+- name: Configure Proxmox host
+  hosts: proxmox
+  roles:
+    - {role: proxmox, tags: proxmox}
