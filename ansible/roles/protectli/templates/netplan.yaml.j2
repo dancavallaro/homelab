@@ -1,0 +1,29 @@
+# {{ ansible_managed }}
+network:
+  version: 2
+  ethernets:
+    {{ protectli_uplink.interface }}:
+      dhcp4: false
+      dhcp6: false
+      addresses: [{{ protectli_uplink.address }}]
+      routes:
+        - to: default
+          via: {{ protectli_uplink.gateway }}
+      nameservers:
+        addresses: [{{ protectli_dns }}]
+{% for s in protectli_segments if '.' not in s.interface %}
+    {{ s.interface }}:
+      dhcp4: false
+      dhcp6: false
+      # An RA from an untrusted segment would route the Protectli's own IPv6 through it.
+      accept-ra: false
+      addresses: [{{ s.address }}]
+{% endfor %}
+  vlans:
+{% for s in protectli_segments if '.' in s.interface %}
+    {{ s.interface }}:
+      id: {{ s.interface.split('.')[1] }}
+      link: {{ s.interface.split('.')[0] }}
+      accept-ra: false
+      addresses: [{{ s.address }}]
+{% endfor %}

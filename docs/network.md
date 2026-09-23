@@ -1,15 +1,15 @@
 # Network architecture
 
 Two parts. The sections up to [What is verified here](#what-is-verified-here-and-what-is-not)
-describe the network as it runs on 2026-09-22, drawn from config rather than memory.
+describe the network as it runs on 2026-09-23, drawn from config rather than memory.
 The sections headed **Proposed** describe designs that have not been built.
 
 These are architecture, not migration plans: they state the target shape and the reasoning
 behind it. Sequencing lives outside the repo. Work is tracked in DAN-24.
 
-Read from: `mikrotik/config.rsc` (RouterOS export, 2026-09-21), the patches under
-`k8s/talos/prod/patches/`, `k8s/talos/prod/README.md`, `k8s/talos/prod/cilium/`, and the
-live cluster. See [What is verified here](#what-is-verified-here-and-what-is-not) at the
+Read from: `mikrotik/config.rsc` (RouterOS export, 2026-09-23), the patches under
+`k8s/talos/prod/patches/`, `k8s/talos/prod/README.md`, `k8s/talos/prod/cilium/`,
+`ansible/host_vars/protectli.lan.yaml` and `ansible/roles/protectli/`, and the live systems. See [What is verified here](#what-is-verified-here-and-what-is-not) at the
 end for the boundary.
 
 ## Networks
@@ -22,6 +22,14 @@ end for the boundary.
 | Talos VMs | `192.168.42.0/24` | `192.168.42.1` | libvirt `virbr4` on talos-host | Yes, static route via `10.42.42.100` |
 | LoadBalancer | `172.16.42.0/24` | none | Cilium LB-IPAM | Yes, static route via `10.42.42.100` |
 | Service CIDR | `10.96.0.0/12` | none | Kubernetes | Yes, static route via `10.42.42.100` |
+| DPU transit | `10.255.0.0/30` | — | MikroTik `ether4` ↔ Protectli `enp1s0` | Yes, connected |
+| Host management | `10.255.1.0/24` | `10.255.1.1` | Protectli `enp2s0` | Admin hosts only |
+| DPU management | `10.255.2.0/24` | `10.255.2.1` | Protectli `enp3s0` | Admin hosts only |
+| DPU data path | `10.255.3.0/24` | `10.255.3.1` | Protectli `enp4s0` | Yes |
+| Proxmox guests | `10.255.4.0/24` | `10.255.4.1` | Protectli `enp2s0.4`, VLAN 4 | Yes |
+
+The five `10.255` networks sit behind one MikroTik summary route, `10.255.0.0/16` via
+`10.255.0.2`. The Protectli firewalls them; see [Inside the Protectli](#inside-the-protectli).
 
 Versions: MikroTik RB5009UG+S+ on RouterOS 7.14.1; Talos v1.13.9; Kubernetes v1.36.4;
 Cilium v1.20.1.
@@ -41,6 +49,7 @@ flowchart TD
         home["dtcnet_bridge<br>WAN list · MikroTik leg 192.168.6.67<br>home network — gateway is the eero"]
         lab["bridge<br>LAN list · 10.42.42.1/16<br>DHCP 10.42.42.2-.254"]
         iot["iotnet_bridge<br>192.168.20.1/24<br>DHCP 192.168.20.2-.254"]
+        tr["ether4 · DPUNET list<br>10.255.0.1/30 — routed, in no bridge"]
     end
 
     home ---|ether3| poe["Unmanaged PoE switch"]
@@ -54,7 +63,7 @@ flowchart TD
 
     lab ---|ether1| th["talos-host — NUC 11<br>10.42.42.2 · 4 Talos VMs"]
     lab ---|sfp-sfpplus1| nas10["Synology NAS — 10 GbE<br>10.42.42.12 · iSCSI"]
-    lab ---|ether4| prot["Protectli · 10.42.42.16<br>its ports are bridged; dpu-host 10.42.42.3 sits behind it"]
+    tr ---|"transit /30"| prot["Protectli · 10.255.0.2<br>router for 10.255.0.0/16<br>dpu-host, BF3, Proxmox guests behind it"]
     lab ---|"ether6 / ether8 / ether2"| misc["bastion.lan 10.42.42.42<br>rpi.lan 10.42.42.5<br>laptop docking station"]
 
     nas1 -.->|one device| nas10
@@ -72,7 +81,7 @@ the home network for DSM management.
 | `ether1` | `bridge`, plus `vlan192` → `dtcnet_bridge` | talos-host (NUC 11) |
 | `ether2` | `bridge` | Laptop docking station |
 | `ether3` | `dtcnet_bridge`, plus `vlan10` → `bridge` and `vlan20` → `iotnet_bridge` | PoE switch → 2× UniFi U7 Pro Wall |
-| `ether4` | `bridge` | Protectli — its own ports are bridged together, so dpu-host (`10.42.42.3`) sits behind it on the same L2 |
+| `ether4` | none — routed, `10.255.0.1/30`, list `DPUNET` | Protectli uplink (`enp1s0`, `10.255.0.2`) |
 | `ether5` | `dtcnet_bridge` | Office eero — the uplink |
 | `ether6` | `bridge` | RPi 4 — `bastion.lan` |
 | `ether7` | `dtcnet_bridge` | Netgear switch — 4-port expansion; also carries the Synology's 1 GbE leg |
@@ -135,6 +144,128 @@ can reach a VM behind libvirt NAT otherwise.
 talos-host also runs Tailscale as a subnet router, advertising `10.42.0.0/16`,
 `10.96.0.0/12` and `172.16.42.0/24`, and as an exit node (`bin/tailscale-up`).
 
+## Inside the Protectli
+
+The Protectli (Ubuntu 24.04, four 1 GbE ports) routes a segment for the BlueField-3 DPU and
+`dpu-host`. The DPU is treated as trusted networking infrastructure and the host as an
+untrusted carrier of workloads. `terraform/defakto/main.tf` attests the BF3 against a pinned
+TPM EK hash, so the host cannot forge the DPU's identity. The network's job is to stop the
+host reaching the DPU's management plane. Everything below is rendered by
+`ansible/roles/protectli` from `ansible/host_vars/protectli.lan.yaml`.
+
+| Port | Address | Segment | Attached | Addressing |
+| --- | --- | --- | --- | --- |
+| `enp1s0` | `10.255.0.2/30` | Transit | MikroTik `ether4` | Static |
+| `enp2s0` | `10.255.1.1/24` | Host management | `dpu-host` `vmbr0`, untagged | Reservation `.10` |
+| `enp2s0.4` | `10.255.4.1/24` | Proxmox guests, VLAN 4 | Guests with `tag=4` (`cletus` at `.20`) | Pool `.100`–`.199` plus reservations |
+| `enp3s0` | `10.255.2.1/24` | DPU management | BF3 BMC (`.10`) and SoC `oob_net0` (`.11`) — two MACs, one wire | Reservations |
+| `enp4s0` | `10.255.3.1/24` | DPU data path | BF3 P0 | Reservation `.10`, no default route |
+
+```mermaid
+flowchart TD
+    mt["MikroTik ether4 · 10.255.0.1/30<br>route 10.255.0.0/16 via 10.255.0.2"]
+
+    subgraph prot["Protectli — no bridge, default-drop forward"]
+        up["enp1s0 · 10.255.0.2/30"]
+        p2["enp2s0 · 10.255.1.1/24<br>enp2s0.4 · 10.255.4.1/24"]
+        p3["enp3s0 · 10.255.2.1/24"]
+        p4["enp4s0 · 10.255.3.1/24"]
+    end
+
+    mt --- up
+    p2 --- host["dpu-host · Proxmox<br>vmbr0 VLAN-aware<br>untagged: host · VLAN 4: guests"]
+    p3 --- oob["BF3 OOB port<br>BMC + SoC oob_net0"]
+
+    subgraph bf3["BlueField-3 — DPU mode"]
+        p0["p0 — uplink representor"]
+        br1["ovsbr1"]
+        sf["SF enp3s0f0s0<br>the Arm's data-path NIC<br>10.255.3.10"]
+        hpf["pf0hpf — representor<br>of the host's PF0"]
+        p0 --- br1
+        br1 --- sf
+        br1 --- hpf
+    end
+
+    p4 --- p0
+    host -.->|"Thunderbolt — Akitio Node Titan"| hpf
+```
+
+In DPU mode the card's ConnectX is a switch programmed from the Arm through OVS. `p0` is the
+physical port as a switch port, not an endpoint. The endpoints on the data path are the Arm's
+scalable function (`enp3s0f0s0`) and, later, the host's PF0 behind `pf0hpf`. `ovsbr2` does the
+same for `p1`, which is not cabled. The SF gets no default route, so the SoC's own egress stays
+on `oob_net0`.
+
+### Why each segment is separate
+
+Host management and DPU management are different subnets because ARP is not a boundary.
+Putting the host's NIC on the same L2 as the DPU's management interfaces would make it
+adjacent to the management plane of the device that polices it. Routing puts the Protectli in
+the path, where a rule can refuse it.
+
+The uplink is a two-host transit subnet, outside labnet's `/16`. Had the Protectli stayed on
+labnet, it would hold a connected route to `10.42.0.0/16`. Replies to labnet would then skip
+the MikroTik, which is the asymmetry described under
+[How a LoadBalancer request reaches a pod](#how-a-loadbalancer-request-reaches-a-pod).
+
+The guest VLAN is applied by Proxmox, so guest isolation is only as strong as the host. That
+fits the trust model: a compromised host owns its guests anyway, and the boundary that must
+hold against the host is DPU management, which is a separate physical port.
+
+### Firewall
+
+Two layers. The MikroTik treats `10.255.0.0/16` as one zone (`DPUNET`) and protects labnet from
+it. The Protectli enforces per-segment rules in its own nftables table, `inet router`.
+
+Protectli forward policy, new connections (established and related are always accepted):
+
+| From ↓ / To → | Host mgmt | DPU mgmt | Data path | Guests | DNS `10.42.42.1:53` | Cluster LBs `:443` | Other RFC 1918 | Internet |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Admin hosts, via uplink | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
+| Other labnet or Tailnet | ✗ | ✗ | ✓ | ✓ | — | — | — | — |
+| `dpu-host` | — | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✓ |
+| BF3 SoC `10.255.2.11` | ✗ | — | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ |
+| BF3 BMC `10.255.2.10` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Data path | ✗ | ✗ | — | ✗ | ✓ | ✗ | ✗ | ✓ |
+| Guests | ✗ | ✗ | ✗ | — | ✓ | ✗ | ✗ | ✓ |
+| `tailscale0` (exit node) | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ |
+
+The admin hosts are `10.42.42.10`, `.11` and `.42` (`protectli_admin_hosts`). Tailnet clients
+and worker pods both arrive as talos-host's `10.42.42.2`, so neither can be told apart from the
+other; reach the management planes from the Tailnet by way of `bastion.lan`. Exit-node traffic
+to other private ranges leaves as `10.255.0.2` and is dropped by the MikroTik's zone rules.
+
+Details that are easy to break:
+
+- **Docker** runs with `"ip-forward-no-drop": true`, so it no longer sets `FORWARD` to DROP.
+  Every Docker DROP is scoped to its own bridges, and a drop in any table is final, so Docker
+  can add drops but never open the router.
+- **`nftables.service`** ships with `ExecStop=nft flush ruleset`, which would delete Docker's
+  and Tailscale's tables. A drop-in replaces it with `nft destroy table inet router`, and
+  `/etc/nftables.conf` replaces only its own table.
+- **The input chain** is policy accept, with explicit drops from the downstream ports, so a
+  mistake there cannot cut off SSH over the uplink or Tailscale.
+- **Router advertisements** are ignored on the downstream ports (`accept-ra: false`), so an
+  untrusted segment cannot become the Protectli's IPv6 gateway.
+
+MikroTik `DPUNET` rules: the segment may reach the internet (non-RFC 1918 destinations only,
+which keeps it off the home network), the LoadBalancers on TCP 80 and 443, and the MikroTik's
+DNS. Labnet may initiate into it, and the Protectli applies the per-source rules. Everything
+else in or out of `DPUNET` is dropped explicitly, because RouterOS accepts what falls off the
+end of a chain.
+
+### DHCP
+
+dnsmasq on the Protectli serves DHCP only (`port=0`), and hands out `10.42.42.1` as the DNS
+server, so the MikroTik stays the one resolver and the one authority for `*.lan`. `port=0`
+must be in `/etc/dnsmasq.conf` itself. Debian's start hook greps that file for it before
+registering `127.0.0.1` as the host's resolver. Every segment leases only to reserved MACs
+except the guest VLAN, which also has a pool.
+
+`ansible/roles/protectli/tests/run` renders the role and exercises the forward matrix and the
+DHCP reservations in network namespaces inside a throwaway container. Run it after any change
+to the role or its `host_vars`.
+
 ## How a LoadBalancer request reaches a pod
 
 Not the way the config suggests. `l2announcements` is enabled in
@@ -181,20 +312,26 @@ silence, `dig @172.16.42.53` answers, and `curl -k https://172.16.42.3` returns 
 
 ## Where `*.o.cavnet.cloud` resolves
 
-Three client locations, three different paths to the same answer — except the home
-network, which has none.
+Four client locations. Three reach the same answer by different paths; the home network
+gets none.
 
 ```mermaid
 flowchart LR
     c1["Client on labnet"] --> r1["MikroTik resolver 10.42.42.1<br>FWD, match-subdomain"] --> k1["k8s_gateway<br>172.16.42.53"]
     c2["Client on the Tailnet"] --> r2["Tailscale MagicDNS<br>split DNS for o.cavnet.cloud"] --> k2["k8s_gateway<br>172.16.42.53<br>via the subnet routers"]
     c3["Client on the home network<br>cavnet / cavnet_iot / dtcnet"] --> r3["eero resolver<br>no forward configured"] --> x3["No answer<br>unless the client is also on the Tailnet"]
+    c4["Client behind the Protectli"] -->|"DNS server from dnsmasq"| r1
 ```
 
 Pods resolve through the Talos nameserver `10.42.42.1`
 (`k8s/talos/prod/patches/common.patch.yaml`) — the same MikroTik forward as the first
 row. The MikroTik forward is recent; before it, even labnet clients depended on Tailscale
 DNS for these names.
+
+The Protectli itself runs Tailscale with `accept-dns=false`. With it on, `systemd-resolved`
+routed `~o.cavnet.cloud` to MagicDNS, which queries `172.16.42.53:53` directly. From the
+Protectli's transit address, that query crosses the MikroTik's `DPUNET` zone, which allows only
+TCP 80 and 443 to the LoadBalancer range. This setting lives on the host, not in this repo.
 
 ## What crosses the boundary today
 
@@ -210,6 +347,10 @@ Each of these is a thing the rearchitecture has to carry over or deliberately dr
 | All pods | `10.42.42.1` | DNS for `*.o.cavnet.cloud` and `*.lan` | `k8s/talos/prod/patches/common.patch.yaml` |
 | MikroTik resolver | `172.16.42.53` | `o.cavnet.cloud` forward | `mikrotik/config.rsc` |
 | Route53 | `10.42.42.100` | `k8s.cavnet.cloud` A record | AWS, outside this repo |
+| Everything behind the Protectli | `10.42.42.1:53` | DNS | `ansible/roles/protectli/templates/`, `mikrotik/config.rsc` |
+| BF3 SoC `10.255.2.11` | `172.16.42.0/24:443` | Cluster services; no telemetry runs on the BF3 today | `ansible/roles/protectli/templates/nftables.conf.j2` |
+| Protectli host | `mimir`, `loki` on `:80` | Alloy, plain HTTP (no `enable_spiffe`) | `ansible/roles/docker/templates/docker/alloy/config.alloy.j2` |
+| Tailnet | `10.255.0.0/16` | Subnet route via talos-host | `bin/tailscale-up` |
 
 ## Config that exists only because the VMs are NAT'd
 
@@ -239,17 +380,36 @@ has no matching policy and does nothing. It carried over from the original Metal
 install, whose `L2Advertisement` was equally inert — `172.16.42.0/24` has never been
 on-link for any client, so nothing has ever ARPed for it.
 
+## Known gaps
+
+- **IoT can initiate into labnet.** `iotnet_bridge` belongs to neither `LAN` nor `WAN`, and
+  RouterOS accepts what falls off the end of the forward chain.
+- **One source address for two populations.** Tailnet clients (subnet-router SNAT) and worker
+  pods (Cilium masquerade, then libvirt NAT) both arrive as `10.42.42.2`. Fixed by
+  `--snat-subnet-routes=false` or by the cluster network redesign below.
+- **`DPUNET` reaches every LoadBalancer on 80 and 443.** Tighten to specific addresses once
+  the segment's cluster dependencies settle.
+- **The Protectli fails open at boot.** If `nftables.service` fails, the kernel forwards
+  between segments unfiltered. The ruleset is validated with `nft -c` before install and loads
+  atomically.
+- **The data-path SF's MAC may not survive a reimage.** `02:90:ef:4f:75:ed` is locally
+  administered. If it changes, `dpu-p0`'s reservation stops matching.
+
 ## What is verified here, and what is not
 
 Read from config or the live system:
 
-- **MikroTik** — the RouterOS export at `mikrotik/config.rsc`, exported 2026-09-21.
+- **MikroTik** — the RouterOS export at `mikrotik/config.rsc`, exported 2026-09-23.
 - **Talos** — all five patches under `k8s/talos/prod/patches/` and the bootstrap README.
 - **Cilium** — `k8s/talos/prod/cilium/values.yaml` and `resources.yaml`.
 - **Live cluster** — `kubectl get nodes -o wide`, `kubectl get svc -A`, and
   `kubectl get ciliuml2announcementpolicies -A`, which returned no resources.
 - **Reachability** — `traceroute`, `dig` and `curl` against LoadBalancer IPs from a laptop
   on labnet.
+- **Protectli segment** — the forward matrix probed on 2026-09-23 from a laptop in the admin
+  set, from `rpi.lan`, and from `dpu-host`. Every deny was paired with an allow of the same
+  target from an admin host, so a closed port can't pass for a drop. The same matrix, and the
+  DHCP reservations, run against the rendered config in `ansible/roles/protectli/tests/run`.
 
 Taken on report, not inspected:
 
@@ -259,113 +419,28 @@ Taken on report, not inspected:
   controller's own config was not read.
 - **Tailscale.** MagicDNS split-DNS settings live in the admin console. Only
   `bin/tailscale-up`, which covers talos-host, was read — what the RPis advertise is
-  unconfirmed.
+  unconfirmed. The Protectli's own Tailscale settings (exit node, `accept-dns=false`) were
+  set by hand.
+- **The BF3's internal switch.** Which OVS bridge holds which port lives on the DPU, not in
+  this repo. See [Inside the Protectli](#inside-the-protectli).
 - **talos-host's netplan.** Taken from `k8s/talos/prod/README.md`, not from the host.
-- **Two physical placements.** The Synology's 1 GbE leg on the Netgear switch, and
-  dpu-host behind the Protectli, are recorded from direct report. No config file here
-  captures either one.
+- **The Synology's 1 GbE leg on the Netgear switch.** Recorded from direct report. No
+  config file here captures it.
 
-## Proposed — Protectli / BF3 segment
+## Proposed — workloads behind the DPU
 
-**Not implemented.** Today the Protectli bridges all four ports into `br0`
-(`ansible/roles/protectli/files/netplan.yaml`) and acts as a switch on labnet.
+**Not implemented.** The segment in [Inside the Protectli](#inside-the-protectli) exists;
+workloads on it do not. `cletus` runs on the guest VLAN, which the host enforces, not behind
+the DPU.
 
-Purpose: a routed, firewalled segment for the BlueField-3 DPU and `dpu-host`, treating the
-DPU as trusted networking infrastructure and the host as an untrusted carrier of workloads.
-Half the trust model already exists — `terraform/defakto/main.tf` attests the BF3 against a
-pinned TPM EK public-key hash and issues SVIDs pathed by `tpm_ek.public_hash`, so the DPU's
-identity is rooted in its own TPM and the host cannot forge it. The network design has to
-preserve that, which means the host must not reach the DPU's management plane.
+### What is open
 
-### Shape
-
-The Protectli becomes a router with four routed ports and no bridge.
-
-| Port | Segment | Address | Holds |
-| --- | --- | --- | --- |
-| `enp1s0` | transit to the MikroTik | `10.43.0.2/30` | uplink only, no hosts |
-| `enp2s0` | host management | `10.43.1.1/24` | `dpu-host` |
-| `enp3s0` | DPU management | `10.43.2.1/24` | BF3 BMC and SoC `oob_net0` — two MACs, one wire |
-| `enp4s0` | workload data path | `10.43.3.1/24` | BF3 P0 |
-
-```mermaid
-flowchart TD
-    mt["MikroTik ether4 · 10.43.0.1/30<br>routed port, not in any bridge<br>route 10.43.0.0/16 via 10.43.0.2"]
-
-    subgraph prot["Protectli — router, no bridge, default-drop forward"]
-        up["enp1s0 · 10.43.0.2/30<br>transit"]
-        p2["enp2s0 · 10.43.1.1/24<br>host management"]
-        p3["enp3s0 · 10.43.2.1/24<br>DPU management"]
-        p4["enp4s0 · 10.43.3.1/24<br>workload data path"]
-    end
-
-    mt ---|"transit subnet, two hosts"| up
-
-    p2 --- host["dpu-host · GMKtek M6 Ultra<br>Proxmox · untrusted workloads"]
-    p3 --- oob["BF3 OOB port<br>BMC and SoC, two MACs on one wire"]
-    p4 --- p0["BF3 P0"]
-
-    dpu["BlueField-3 B3220<br>trusted infrastructure<br>TPM-attested SPIFFE identity"]
-    host -.->|"Thunderbolt — Akitio Node Titan"| dpu
-    dpu --- oob
-    dpu --- p0
-```
-
-The whole segment lives in `10.43.0.0/16`, so the MikroTik needs one summary route and
-Tailscale one more advertisement. It sits outside `10.42.0.0/16` deliberately: labnet hosts
-carry a `/16` mask, so anything numbered inside that range looks on-link to them and never
-reaches a router.
-
-### Why host management and DPU management are separate subnets
-
-Putting `dpu-host`'s physical NIC on the same network as the DPU's OOB interfaces would
-make an untrusted host L2-adjacent to the management plane of the device policing it, and
-ARP is not a boundary. Separate subnets put the Protectli in the path, where a rule can
-state that host management may not initiate to DPU management.
-
-Routing also dissolves the reason port 4 is unplugged today. Separate L3 segments mean
-separate DHCP scopes, so the OOB interfaces and the dataport stop competing for one
-broadcast domain.
-
-### Why the uplink gets its own transit subnet
-
-`ether4` comes out of `bridge` on the MikroTik and becomes an L3 port. Without this, the
-Protectli's uplink stays on labnet at `10.42.42.16/16` and therefore holds a directly
-connected route to `10.42.0.0/16`. Replies to labnet clients would match that connected
-route and go straight back over L2, bypassing the MikroTik — the same asymmetry documented
-under [How a LoadBalancer request reaches a pod](#how-a-loadbalancer-request-reaches-a-pod),
-and the same `notrack` workaround.
-
-A dedicated two-host subnet removes the connected route. Replies fall through to the default
-route, return via the MikroTik, and conntrack stays intact. It also makes ICMP redirects
-impossible, so the path stops depending on whether a given client honors them.
-
-### What changes
-
-- `ansible/roles/protectli/files/netplan.yaml` — four static `ethernets`, no bridge. The
-  `macaddress` pin on `br0` exists only so the MikroTik's DHCP reservation matches, and goes
-  away with it.
-- Protectli gains `net.ipv4.ip_forward`, an `nftables` ruleset with a default-drop forward
-  policy, and `dnsmasq` for DHCP and DNS on the three downstream segments, forwarding
-  `o.cavnet.cloud` to `172.16.42.53` the way the MikroTik does.
-- `mikrotik/config.rsc` — remove `ether4` from `bridge`, address it `10.43.0.1/30`, add the
-  summary route, drop the Protectli's DHCP reservation and the `protectli.lan` static DNS
-  entry, and move `dpu-host.lan` to its new address.
-
-### The firewall is the real work
-
-The defconf ruleset is built entirely around the `LAN` and `WAN` interface lists. A routed
-port belongs to neither, and both chains misbehave as a result.
-
-The input chain drops anything not arriving from `LAN`, so the segment loses access to the
-MikroTik's own services including DNS. Adding `ether4` to `LAN` would hand the DPU segment
-the same trust as labnet and defeat the purpose, so it needs explicit input rules instead —
-the existing rule permitting UDP/53 from the ESP32 network is the template.
-
-The forward chain only drops new connections arriving from `WAN`. RouterOS has no
-configurable chain policy, so traffic falling off the end of a chain is accepted, and a
-routed `ether4` would get unrestricted forward access to labnet by default. The new zone
-needs its own ruleset.
+Whether workloads reach the data path through the host's PF0 (behind `pf0hpf` in `ovsbr1`),
+through DPU-managed virtual interfaces, or through an overlay is not decided. With one DPU and
+one host there is no fabric to span, so the Protectli is designed not to care: `10.255.3.0/24`
+is plain routed transport either way, and a VTEP subnet can be added later without touching
+the router. PF0 currently fails to probe on `dpu-host` (`mlx5_core ... error -110`); PF1
+probes.
 
 ### Exposing workloads
 
@@ -377,10 +452,8 @@ points at a workload's address on the data path subnet and inherits the wildcard
 Tailnet, PocketID for auth, and the Cloudflare tunnel for anything that should be public.
 
 The cost is path length — every request crosses the cluster and traverses cp1. That
-bottleneck is cp1's single labnet leg, which the cluster network redesign below removes.
-
-This requires stable addresses on the data path subnet, so use reservations or statics
-rather than a dynamic pool.
+bottleneck is cp1's single labnet leg, which the cluster network redesign below removes. The
+Protectli would also need a rule admitting the cluster to the workload's port.
 
 ### Constraints worth knowing
 
@@ -389,21 +462,10 @@ at 1 Gb. Fine for a chat stream, painful for pulling model weights off the NAS. 
 if it bites is not a bigger Protectli — it is the SFP+ ports on a future basement router,
 giving P1 a path that skips this box entirely.
 
-With transit, host management, DPU management and P0 assigned, the Protectli is full. The
-second dataport has nowhere to land in this topology.
+The Thunderbolt link is a second ceiling. It trains at PCIe x1, 2.5 GT/s (2 Gb/s), and the
+kernel reports insufficient slot power (27 W).
 
-`br_netfilter` stops mattering once `br0` is gone. No bridge, no question about whether
-bridged frames traverse `FORWARD`.
-
-### Deliberately left open
-
-Whether workloads sit directly on `10.43.3.0/24` or behind DPU-managed virtual interfaces,
-and whether any overlay is involved, is not decided here. With one DPU and one host there is
-no fabric to span, so the Protectli is designed not to care: `10.43.3.0/24` is plain routed
-transport either way, and a VTEP subnet can be added later without touching the router.
-
-How the DPU presents virtual interfaces to Proxmox over Thunderbolt is unverified and is the
-point of the experiment.
+The Protectli is full: transit, host management, DPU management and P0 use all four ports.
 
 ## Proposed — Kubernetes cluster network
 

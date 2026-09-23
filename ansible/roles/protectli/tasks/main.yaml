@@ -1,9 +1,91 @@
-- name: Install netplan config
+- name: Enable IPv4 forwarding
+  become: true
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_file: /etc/sysctl.d/90-enable-forwarding.conf
+
+# Clears the DROP policy Docker set before ip-forward-no-drop; Docker no longer re-sets it.
+- name: Reset FORWARD policy
+  become: true
+  ansible.builtin.iptables:
+    chain: FORWARD
+    policy: ACCEPT
+
+# Installed first so both configs can be validated before the dnsmasq package starts the service.
+- name: Install nftables and dnsmasq binary
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    pkg:
+      - nftables
+      - dnsmasq-base
+
+- name: Create nftables drop-in directory
+  become: true
+  ansible.builtin.file:
+    path: /etc/systemd/system/nftables.service.d
+    state: directory
+    mode: '0755'
+
+- name: Install nftables drop-in
   become: true
   ansible.builtin.copy:
-    src: netplan.yaml
-    dest: /etc/netplan/99-dan.yaml
-    owner: root
-    group: root
+    src: nftables-override.conf
+    dest: /etc/systemd/system/nftables.service.d/override.conf
+    mode: '0644'
+
+- name: Install router ruleset
+  become: true
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    mode: '0644'
+    validate: nft -c -f %s
+  notify: Reload nftables
+
+- name: Enable nftables
+  become: true
+  ansible.builtin.systemd_service:
+    name: nftables
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Install dnsmasq config
+  become: true
+  ansible.builtin.template:
+    src: dnsmasq.conf.j2
+    dest: /etc/dnsmasq.conf
+    mode: '0644'
+    validate: dnsmasq --test --conf-file=%s
+  notify: Restart dnsmasq
+
+- name: Install dnsmasq service
+  become: true
+  ansible.builtin.apt:
+    pkg: dnsmasq
+
+- name: Enable dnsmasq
+  become: true
+  ansible.builtin.systemd_service:
+    name: dnsmasq
+    enabled: true
+    state: started
+
+- name: Remove cloud-init's netplan file
+  become: true
+  ansible.builtin.file:
+    path: /etc/netplan/50-cloud-init.yaml
+    state: absent
+  notify: Apply netplan
+
+- name: Install netplan config
+  become: true
+  ansible.builtin.template:
+    src: netplan.yaml.j2
+    dest: /etc/netplan/99-custom-networking.yaml
     mode: '0600'
+    backup: true
   notify: Apply netplan

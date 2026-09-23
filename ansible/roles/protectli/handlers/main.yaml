@@ -1,3 +1,16 @@
+# Delayed so the play finishes before the uplink address changes under it.
 - name: Apply netplan
   become: true
-  ansible.builtin.command: netplan apply
+  ansible.builtin.command: systemd-run --collect --unit=netplan-apply-delayed --on-active=10 /usr/sbin/netplan apply
+
+- name: Reload nftables
+  become: true
+  ansible.builtin.systemd_service:
+    name: nftables
+    state: reloaded
+
+- name: Restart dnsmasq
+  become: true
+  ansible.builtin.systemd_service:
+    name: dnsmasq
+    state: restarted

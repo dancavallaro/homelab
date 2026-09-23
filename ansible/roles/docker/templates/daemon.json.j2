@@ -1,0 +1,11 @@
+{
+  "log-driver": "loki",
+  "log-opts": {
+    "loki-url": "http://loki.o.cavnet.cloud/loki/api/v1/push",
+    "loki-retries": "5",
+    "loki-external-labels": "service_name=host.container_logs,container_name={% raw %}{{.Name}}{% endraw %}"
+  }{{ ',' if docker_ip_forward_no_drop | bool else '' }}
+{% if docker_ip_forward_no_drop | bool %}
+  "ip-forward-no-drop": true
+{% endif %}
+}

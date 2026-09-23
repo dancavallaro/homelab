@@ -21,8 +21,8 @@
 - name: Install Docker daemon config with Loki logging
   become: true
   notify: Restart dockerd
-  ansible.builtin.copy:
-    src: daemon.json
+  ansible.builtin.template:
+    src: daemon.json.j2
     dest: /etc/docker/daemon.json
 
 - name: Copy Docker config files

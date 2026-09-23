@@ -1,8 +1,0 @@
-{
-  "log-driver": "loki",
-  "log-opts": {
-    "loki-url": "http://loki.o.cavnet.cloud/loki/api/v1/push",
-    "loki-retries": "5",
-    "loki-external-labels": "service_name=host.container_logs,container_name={{.Name}}"
-  }
-}

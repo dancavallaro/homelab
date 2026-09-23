@@ -1,4 +1,4 @@
-# 2026-09-21 10:54:04 by RouterOS 7.14.1
+# 2026-09-23 13:32:37 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -24,6 +24,7 @@ add comment="talos-host -> dtcnet bridge" interface=ether1 name=vlan192 vlan-id=
 /interface list
 add comment=defconf name=WAN
 add comment=defconf name=LAN
+add comment="Routed DPU segment behind the Protectli" name=DPUNET
 /interface wireless security-profiles
 set [ find default=yes ] supplicant-identity=MikroTik
 /ip pool
@@ -36,7 +37,6 @@ add address-pool=iotnet comment="DHCP for private IoT network" interface=iotnet_
 add bridge=bridge comment=defconf interface=ether2 internal-path-cost=10 path-cost=10
 add bridge=bridge interface=ether6 internal-path-cost=10 path-cost=10
 add bridge=bridge comment="Synology NAS" interface=sfp-sfpplus1 internal-path-cost=10 path-cost=10
-add bridge=bridge interface=ether4
 add bridge=bridge interface=ether1
 add bridge=dtcnet_bridge interface=ether5
 add bridge=dtcnet_bridge comment="Bridges talos-host to dtcnet" interface=vlan192
@@ -52,20 +52,20 @@ set discover-interface-list=LAN
 /interface list member
 add comment=defconf interface=bridge list=LAN
 add comment=defconf interface=dtcnet_bridge list=WAN
+add interface=ether4 list=DPUNET
 /ip address
 add address=10.42.42.1/16 comment=defconf interface=bridge network=10.42.0.0
 add address=192.168.20.1/24 interface=iotnet_bridge network=192.168.20.0
+add address=10.255.0.1/30 comment="Transit to Protectli" interface=ether4 network=10.255.0.0
 /ip dhcp-client
 add interface=dtcnet_bridge
 /ip dhcp-server lease
-add address=10.42.42.10 client-id=work-laptop comment="Work MBP" mac-address=90:8D:6E:35:11:38 server=defconf
-add address=10.42.42.16 comment=Protectli mac-address=00:E0:67:30:D6:DE server=defconf
 add address=10.42.42.11 client-id=personal-laptop comment="Personal MBP" mac-address=90:8D:6E:35:11:38 server=defconf
 add address=10.42.42.42 client-id=1:e4:5f:1:ef:d7:10 comment="bastion RPi" mac-address=E4:5F:01:EF:D7:10 server=defconf
 add address=10.42.42.2 comment="talos-host (NUC)" mac-address=92:B9:36:6D:7F:97 server=defconf
 add address=10.42.42.12 client-id=1:90:9:d0:66:1f:3b comment="Synology NAS" mac-address=90:09:D0:66:1F:3B server=defconf
 add address=10.42.42.5 client-id=1:d8:3a:dd:c8:db:3c comment="RPi 5" mac-address=D8:3A:DD:C8:DB:3C server=defconf
-add address=10.42.42.3 comment="dpu-host (GMKtek with Proxmox)" mac-address=84:47:09:92:3E:97 server=defconf
+add address=10.42.42.10 client-id=work-laptop comment="Defakto MBP" mac-address=90:8D:6E:35:11:38 server=defconf
 /ip dhcp-server network
 add address=10.42.0.0/16 comment="Office network" dns-server=10.42.42.1 gateway=10.42.42.1 netmask=16
 add address=192.168.20.0/24 comment="Private IoT network" dns-server=10.42.42.1 gateway=192.168.20.1
@@ -75,18 +75,29 @@ set allow-remote-requests=yes servers=8.8.8.8,8.8.4.4
 add address=10.42.42.1 comment=defconf name=router.lan
 add address=10.42.42.2 name=talos-host.lan
 add address=192.168.6.40 name=dtcnet-netgear
-add address=10.42.42.16 name=protectli.lan
+add address=10.255.0.2 name=protectli.lan
 add address=10.42.42.12 name=nas
 add address=10.42.42.42 name=bastion.lan
 add address=10.42.42.5 name=rpi.lan
 add forward-to=172.16.42.53 match-subdomain=yes name=o.cavnet.cloud type=FWD
-add address=10.42.42.3 name=dpu-host.lan
+add address=10.255.1.10 name=dpu-host.lan
+add address=10.255.2.10 name=dpu-bmc.lan
+add address=10.255.2.11 name=dpu.lan
+add address=10.255.3.10 name=dpu-p0.lan
+add address=10.255.4.20 name=cletus.lan
+/ip firewall address-list
+add address=10.0.0.0/8 list=private
+add address=172.16.0.0/12 list=private
+add address=192.168.0.0/16 list=private
+add address=100.64.0.0/10 list=private
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
 add action=accept chain=input comment="defconf: accept ICMP" protocol=icmp
 add action=accept chain=input comment="defconf: accept to local loopback (for CAPsMAN)" dst-address=127.0.0.1
 add action=accept chain=input comment="Allow DNS from ESP32 network" dst-port=53 protocol=udp src-address=192.168.20.0/24
+add action=accept chain=input comment="DPUNET: DNS" dst-port=53 in-interface-list=DPUNET protocol=tcp
+add action=accept chain=input comment="DPUNET: DNS" dst-port=53 in-interface-list=DPUNET protocol=udp
 add action=drop chain=input comment="defconf: drop all not coming from LAN" in-interface-list=!LAN
 add action=accept chain=forward comment="defconf: accept in ipsec policy" ipsec-policy=in,ipsec
 add action=accept chain=forward comment="defconf: accept out ipsec policy" ipsec-policy=out,ipsec
@@ -94,6 +105,11 @@ add action=fasttrack-connection chain=forward comment="defconf: fasttrack" conne
 add action=accept chain=forward comment="defconf: accept established,related, untracked" connection-state=established,related,untracked
 add action=drop chain=forward comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalid]"
 add action=drop chain=forward comment="defconf: drop all from WAN not DSTNATed" connection-nat-state=!dstnat connection-state=new in-interface-list=WAN
+add action=accept chain=forward comment="DPUNET: internet" dst-address-list=!private in-interface-list=DPUNET out-interface-list=WAN
+add action=accept chain=forward comment="DPUNET: cluster LBs" dst-address=172.16.42.0/24 dst-port=80,443 in-interface-list=DPUNET protocol=tcp
+add action=accept chain=forward comment="labnet -> DPUNET" in-interface-list=LAN out-interface-list=DPUNET
+add action=drop chain=forward comment="DPUNET: drop rest" in-interface-list=DPUNET
+add action=drop chain=forward comment="-> DPUNET: drop rest" out-interface-list=DPUNET
 /ip firewall nat
 add action=masquerade chain=srcnat comment="defconf: masquerade" ipsec-policy=out,none out-interface-list=WAN
 /ip firewall raw
@@ -104,6 +120,7 @@ add action=notrack chain=prerouting comment="Disable conntrack for traffic betwe
 add comment="Route for k8s LBs" disabled=no distance=1 dst-address=172.16.42.0/24 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
 add comment="Route for k8s cluster" disabled=no distance=1 dst-address=10.96.0.0/12 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
 add comment="Route for k8s VM private subnet" disabled=no distance=1 dst-address=192.168.42.0/24 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
+add comment="DPU segment via Protectli" disabled=no distance=1 dst-address=10.255.0.0/16 gateway=10.255.0.2 pref-src="" routing-table=main suppress-hw-offload=no
 /ipv6 firewall address-list
 add address=::/128 comment="defconf: unspecified address" list=bad_ipv6
 add address=::1/128 comment="defconf: lo" list=bad_ipv6

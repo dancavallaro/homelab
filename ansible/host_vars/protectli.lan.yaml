@@ -1,0 +1,26 @@
+protectli_uplink:
+  interface: enp1s0
+  address: 10.255.0.2/30
+  gateway: 10.255.0.1
+
+protectli_dns: 10.42.42.1
+protectli_cluster_lb_cidr: 172.16.42.0/24
+
+protectli_admin_hosts:
+  - 10.42.42.10  # Work MBP
+  - 10.42.42.11  # Personal MBP
+  - 10.42.42.42  # bastion.lan
+
+protectli_segments:
+  - {name: host, interface: enp2s0, address: 10.255.1.1/24, subnet: 10.255.1.0}
+  - {name: guests, interface: enp2s0.4, address: 10.255.4.1/24, subnet: 10.255.4.0,
+     pool: [10.255.4.100, 10.255.4.199], open_to_labnet: true}
+  - {name: dpu, interface: enp3s0, address: 10.255.2.1/24, subnet: 10.255.2.0}
+  - {name: p0, interface: enp4s0, address: 10.255.3.1/24, subnet: 10.255.3.0, open_to_labnet: true}
+
+protectli_dhcp_hosts:
+  - {mac: "84:47:09:92:3e:97", ip: 10.255.1.10, name: dpu-host}
+  - {mac: "a0:88:c2:4d:4d:6b", ip: 10.255.2.10, name: dpu-bmc}
+  - {mac: "a0:88:c2:4d:4d:6a", ip: 10.255.2.11, name: dpu}
+  - {mac: "bc:24:11:71:96:44", ip: 10.255.4.20, name: cletus}
+  - {mac: "02:90:ef:4f:75:ed", ip: 10.255.3.10, name: dpu-p0, set_hostname: false, router: false}

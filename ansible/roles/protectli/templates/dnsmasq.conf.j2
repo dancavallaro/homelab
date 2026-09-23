@@ -1,0 +1,25 @@
+# {{ ansible_managed }}
+# DHCP only. port=0 must be in this file: Debian's start hook greps /etc/dnsmasq.conf for it
+# before registering 127.0.0.1 as the host's resolver.
+port=0
+bind-dynamic
+{% for s in protectli_segments %}
+interface={{ s.interface }}
+{% endfor %}
+dhcp-authoritative
+log-dhcp
+dhcp-option=option:dns-server,{{ protectli_dns }}
+
+# Every segment leases only to reserved MACs; the guest VLAN also has a pool.
+{% for s in protectli_segments %}
+dhcp-range={{ s.subnet }},static,255.255.255.0,12h
+{% if s.pool is defined %}
+dhcp-range={{ s.pool[0] }},{{ s.pool[1] }},255.255.255.0,12h
+{% endif %}
+{% endfor %}
+
+{% for h in protectli_dhcp_hosts %}
+dhcp-host={{ h.mac }},{{ '' if h.router | default(true) else 'set:no-router,' }}{{ h.ip }}{{ "," + h.name if h.set_hostname | default(true) }}
+{% endfor %}
+# An empty router option sends no default route.
+dhcp-option=tag:no-router,option:router

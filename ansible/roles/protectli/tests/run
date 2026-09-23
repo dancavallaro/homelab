@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Renders the Protectli's templates and checks them in a throwaway Ubuntu 24.04 container.
+set -euo pipefail
+cd "$(dirname "$0")"
+RENDER_DIR=$(mktemp -d)
+trap 'rm -rf "$RENDER_DIR"' EXIT
+export RENDER_DIR
+ansible-playbook -i ../../../inventory.ini render.yaml
+docker run --rm --privileged \
+  -v "$RENDER_DIR:/rendered:ro" \
+  -v "$PWD/..:/role:ro" \
+  ubuntu:24.04 bash /role/tests/check.sh

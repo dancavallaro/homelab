@@ -1,0 +1,39 @@
+# Renders templates for check.sh. Run through ./run, not directly.
+- name: Render templates locally
+  hosts: protectli.lan:rpi.lan
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    out: "{{ lookup('ansible.builtin.env', 'RENDER_DIR') }}/{{ inventory_hostname }}"
+  tasks:
+    # Stands in for the docker role's defaults, which this playbook doesn't load.
+    - name: Default docker_ip_forward_no_drop
+      ansible.builtin.set_fact:
+        docker_ip_forward_no_drop: false
+      when: docker_ip_forward_no_drop is not defined
+
+    - name: Create output directory
+      ansible.builtin.file:
+        path: "{{ out }}"
+        state: directory
+
+    - name: Render daemon.json
+      ansible.builtin.template:
+        src: ../../docker/templates/daemon.json.j2
+        dest: "{{ out }}/daemon.json"
+
+    - name: Render daemon.json with the flag given as the string "false"
+      ansible.builtin.template:
+        src: ../../docker/templates/daemon.json.j2
+        dest: "{{ out }}/daemon.false-string.json"
+      vars:
+        docker_ip_forward_no_drop: "false"
+      when: inventory_hostname == 'protectli.lan'
+
+    - name: Render Protectli templates
+      ansible.builtin.template:
+        src: "../templates/{{ item }}.j2"
+        dest: "{{ out }}/{{ item }}"
+      loop: [nftables.conf, dnsmasq.conf, netplan.yaml]
+      when: inventory_hostname == 'protectli.lan'
