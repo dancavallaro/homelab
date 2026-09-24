@@ -29,6 +29,10 @@ k8sServiceHost: localhost
 k8sServicePort: 7445
 l2announcements:
   enabled: true
+# L2 announcement leases renew every 5s per LoadBalancer service; the default 5 QPS is shared with everything else.
+k8sClientRateLimit:
+  qps: 10
+  burst: 20
 ingressController:
   enabled: true
   default: true
