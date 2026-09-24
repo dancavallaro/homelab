@@ -1,4 +1,4 @@
-# 2026-09-24 13:07:55 by RouterOS 7.14.1
+# 2026-09-24 20:16:44 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -90,13 +90,13 @@ add address=10.255.2.10 name=dpu-bmc.lan
 add address=10.255.2.11 name=dpu.lan
 add address=10.255.3.10 name=dpu-p0.lan
 add address=10.255.4.20 name=cletus.lan
+add address=10.11.0.10 comment="API server during internet outages; must match Route53" name=k8s.cavnet.cloud
 /ip firewall address-list
 add address=10.0.0.0/8 list=private
 add address=172.16.0.0/12 list=private
 add address=192.168.0.0/16 list=private
 add address=100.64.0.0/10 list=private
-add address=10.42.42.10 comment="Work MBP" list=cluster-admins
-add address=10.42.42.11 comment="Personal MBP" list=cluster-admins
+add address=10.42.42.0/24 comment="Labnet (including SNATed Tailscale traffic)" list=cluster-admins
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
@@ -128,8 +128,8 @@ add action=accept chain=forward comment="CLUSTER: internet" dst-address-list=!pr
 add action=accept chain=forward comment="CLUSTER: NAS - iSCSI, NFS, DSM" dst-address=10.42.42.12 in-interface-list=CLUSTER
 add action=accept chain=forward comment="CLUSTER: NUT on rpi.lan" dst-address=10.42.42.5 dst-port=3493 in-interface-list=CLUSTER protocol=tcp
 add action=accept chain=forward comment="CLUSTER: Defakto http_dns attestation callback" dst-address=10.42.42.0/24 dst-port=3470 in-interface-list=CLUSTER protocol=tcp
-add action=log chain=forward comment="CLUSTER: rest - log, then drop" in-interface-list=CLUSTER log-prefix="[cluster-out]"
-add action=log chain=forward comment="-> CLUSTER: rest - log, then drop" log-prefix="[cluster-in]" out-interface-list=CLUSTER
+add action=drop chain=forward comment="CLUSTER: log and drop rest" in-interface-list=CLUSTER log=yes log-prefix="[cluster-out]"
+add action=drop chain=forward comment="-> CLUSTER: log and drop rest" log=yes log-prefix="[cluster-in]" out-interface-list=CLUSTER
 /ip firewall nat
 add action=masquerade chain=srcnat comment="defconf: masquerade" ipsec-policy=out,none out-interface-list=WAN
 /ip route

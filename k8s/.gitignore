@@ -1,4 +1,6 @@
 talosconfig
 controlplane.yaml
 worker.yaml
+# Rendered from the secrets bundle; they carry the cluster CAs and tokens in plaintext.
+*.final.yaml
 **/charts/

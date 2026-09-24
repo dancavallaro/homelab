@@ -7,8 +7,20 @@
   when: tailscale_firewall_mode | length > 0
   notify: Restart tailscaled
 
+# Tailscale's docs have subnet routers and exit nodes set these; this adopts the file they name.
+- name: Enable forwarding for subnet routes and the exit node
+  become: true
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: '1'
+    sysctl_file: /etc/sysctl.d/99-tailscale.conf
+  loop: [net.ipv4.ip_forward, net.ipv6.conf.all.forwarding]
+
+# Config holds the node's private keys; they are dropped on the host so they never reach a log.
 - name: Read Tailscale prefs
-  ansible.builtin.command: tailscale debug prefs
+  ansible.builtin.shell: >-
+    tailscale debug prefs | python3 -c 'import json, sys; p = json.load(sys.stdin);
+    [p.pop(k, None) for k in ("Config", "Persist")]; print(json.dumps(p))'
   register: tailscale_prefs
   changed_when: false
   check_mode: false

@@ -148,9 +148,11 @@ on the same full-duplex cable. Node-to-node traffic is switched inside `br11` an
 the router, so a MikroTik reboot cuts the cluster off without breaking it.
 
 `br_netfilter` is loaded and `bridge-nf-call-iptables` is 1, so bridged VM frames traverse the
-host's `FORWARD` chain. Its policy is ACCEPT: Docker 27 leaves it alone. Docker 28 would set it
-to DROP unless `ip-forward-no-drop` is set, as it is on the Protectli; check `br11` forwarding
-after any Docker upgrade.
+host's `FORWARD` chain, and its policy must stay ACCEPT. Docker sets it to DROP when it has to
+enable `ip_forward` itself at startup; it leaves it alone here because
+`/etc/sysctl.d/99-tailscale.conf`, managed by `ansible/roles/tailscale`, enables forwarding
+first. Removing that file, or upgrading to Docker 28 without `ip-forward-no-drop`, would stop
+all VM traffic on `br11`.
 
 ## Cluster network
 
@@ -245,7 +247,8 @@ Patches layer `common` → `cp` or `worker-common` → the optional role patches
 The control-plane endpoint is `https://k8s.cavnet.cloud:6443`, on every node; it is in
 `certSANs`, talosconfig and the kubeconfig. Its Route53 A record holds `10.11.0.10`: a private
 address in public DNS, because the name must resolve from labnet, the Tailnet and inside the
-cluster, and Route53 is the resolver all three share. A Talos VIP would add nothing with one
+cluster, and Route53 is the resolver all three share. The MikroTik also holds a static entry
+for it, so nodes find the API server during an internet outage; the two must change together. A Talos VIP would add nothing with one
 control-plane node.
 
 Configs render from the age-encrypted secrets bundle,
@@ -285,15 +288,15 @@ add chain=forward action=accept in-interface-list=CLUSTER out-interface-list=WAN
 add chain=forward action=accept in-interface-list=CLUSTER dst-address=10.42.42.12 comment="CLUSTER: NAS - iSCSI, NFS, DSM"
 add chain=forward action=accept in-interface-list=CLUSTER dst-address=10.42.42.5 protocol=tcp dst-port=3493 comment="CLUSTER: NUT on rpi.lan"
 add chain=forward action=accept in-interface-list=CLUSTER dst-address=10.42.42.0/24 protocol=tcp dst-port=3470 comment="CLUSTER: Defakto http_dns attestation callback"
-add chain=forward action=log in-interface-list=CLUSTER log-prefix="[cluster-out]" comment="CLUSTER: rest - log, then drop"
-add chain=forward action=log out-interface-list=CLUSTER log-prefix="[cluster-in]" comment="-> CLUSTER: rest - log, then drop"
+add chain=forward action=drop in-interface-list=CLUSTER log=yes log-prefix="[cluster-out]" comment="CLUSTER: log and drop rest"
+add chain=forward action=drop out-interface-list=CLUSTER log=yes log-prefix="[cluster-in]" comment="-> CLUSTER: log and drop rest"
 ```
 
-- **The last two rules only log**, since 2026-09-24. The outbound allow list came from the
-  addresses hard-coded in `k8s/manifests`; Home Assistant's integrations live in its UI and may
-  reach hosts the repo does not show. The log has already surfaced one flow the repo did not:
-  the SPIRL server calling host agents back on `:3470`. Once the log is quiet, both rules become
-  `drop`, and each expected deny is paired with an allow of the same target from a laptop.
+- **The last two rules drop and log.** The outbound allow list came from the addresses
+  hard-coded in `k8s/manifests`; Home Assistant's integrations live in its UI and may reach
+  hosts the repo does not show, so `/log print where message~"cluster-"` is where a missing
+  rule shows up. A short logging-only period on 2026-09-24 surfaced one such flow: the SPIRL
+  server calling host agents back.
 - **The Defakto callback** is the `http_dns` attestor: the SPIRL server in the cluster connects
   to each host agent's advertised port to verify it (`agent-config.yaml.j2`, `compose.yaml.j2`).
   It is open to all of labnet, so a new host with `enable_spiffe` needs no rule.
@@ -509,8 +512,6 @@ MikroTik too; see [Tailscale](#tailscale).
 
 - **IoT can initiate into labnet.** `iotnet_bridge` belongs to neither `LAN` nor `WAN`, and
   RouterOS accepts what falls off the end of the forward chain.
-- **The cluster zone only logs.** Its final two rules log instead of dropping; see
-  [The cluster zone on the MikroTik](#the-cluster-zone-on-the-mikrotik).
 - **Tailnet clients arrive as the primary subnet router.** The MikroTik cannot tell them from
   that host, which is why `cluster-admins` admits no Tailnet clients.
   `--snat-subnet-routes=false` would preserve their addresses, at the cost of a return route to
