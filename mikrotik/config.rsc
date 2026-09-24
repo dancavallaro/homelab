@@ -1,4 +1,4 @@
-# 2026-09-24 09:25:47 by RouterOS 7.14.1
+# 2026-09-24 13:07:55 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -61,6 +61,7 @@ add address=10.42.42.1/16 comment=defconf interface=bridge network=10.42.0.0
 add address=192.168.20.1/24 interface=iotnet_bridge network=192.168.20.0
 add address=10.255.0.1/30 comment="Transit to Protectli" interface=ether4 network=10.255.0.0
 add address=10.11.0.1/24 interface=vlan11 network=10.11.0.0
+add address=172.16.42.254/24 comment="Makes the LB subnet on-link for L2 announcements" interface=vlan11 network=172.16.42.0
 /ip dhcp-client
 add interface=dtcnet_bridge
 /ip dhcp-server lease
@@ -96,7 +97,6 @@ add address=192.168.0.0/16 list=private
 add address=100.64.0.0/10 list=private
 add address=10.42.42.10 comment="Work MBP" list=cluster-admins
 add address=10.42.42.11 comment="Personal MBP" list=cluster-admins
-add address=10.42.42.2 comment="talos-host: Tailnet clients, SNAT'd" list=cluster-admins
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
@@ -127,18 +127,12 @@ add action=accept chain=forward comment="labnet -> nodes: ping" in-interface-lis
 add action=accept chain=forward comment="CLUSTER: internet" dst-address-list=!private in-interface-list=CLUSTER out-interface-list=WAN
 add action=accept chain=forward comment="CLUSTER: NAS - iSCSI, NFS, DSM" dst-address=10.42.42.12 in-interface-list=CLUSTER
 add action=accept chain=forward comment="CLUSTER: NUT on rpi.lan" dst-address=10.42.42.5 dst-port=3493 in-interface-list=CLUSTER protocol=tcp
+add action=accept chain=forward comment="CLUSTER: Defakto http_dns attestation callback" dst-address=10.42.42.0/24 dst-port=3470 in-interface-list=CLUSTER protocol=tcp
 add action=log chain=forward comment="CLUSTER: rest - log, then drop" in-interface-list=CLUSTER log-prefix="[cluster-out]"
 add action=log chain=forward comment="-> CLUSTER: rest - log, then drop" log-prefix="[cluster-in]" out-interface-list=CLUSTER
 /ip firewall nat
 add action=masquerade chain=srcnat comment="defconf: masquerade" ipsec-policy=out,none out-interface-list=WAN
-/ip firewall raw
-add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and k8s subnet" dst-address=10.96.0.0/12 src-address=10.42.0.0/16
-add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and k8s LB subnet" dst-address=172.16.42.0/24 src-address=10.42.0.0/16
-add action=notrack chain=prerouting comment="Disable conntrack for traffic between labnet and k8s VM subnet" dst-address=192.168.42.0/24 src-address=10.42.0.0/16
 /ip route
-add comment="Route for k8s LBs" disabled=no distance=1 dst-address=172.16.42.0/24 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
-add comment="Route for k8s cluster" disabled=no distance=1 dst-address=10.96.0.0/12 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
-add comment="Route for k8s VM private subnet" disabled=no distance=1 dst-address=192.168.42.0/24 gateway=10.42.42.100 pref-src="" routing-table=main suppress-hw-offload=no
 add comment="DPU segment via Protectli" disabled=no distance=1 dst-address=10.255.0.0/16 gateway=10.255.0.2 pref-src="" routing-table=main suppress-hw-offload=no
 /ipv6 firewall address-list
 add address=::/128 comment="defconf: unspecified address" list=bad_ipv6

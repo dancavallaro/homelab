@@ -9,7 +9,6 @@ protectli_cluster_lb_cidr: 172.16.42.0/24
 protectli_admin_hosts:
   - 10.42.42.10  # Work MBP
   - 10.42.42.11  # Personal MBP
-  - 10.42.42.42  # bastion.lan
 
 protectli_segments:
   - {name: host, interface: enp2s0, address: 10.255.1.1/24, subnet: 10.255.1.0}
