@@ -4,6 +4,10 @@ network:
   ethernets:
     enp89s0:
       dhcp4: false
+  vlans:
+    vlan11:
+      id: 11
+      link: enp89s0
   bridges:
     br0:
       dhcp4: true
@@ -15,3 +19,10 @@ network:
           via: 10.42.42.100
         - to: 10.96.0.0/12
           via: 10.42.42.100
+    # The cluster VLAN; the host deliberately has no address, not even link-local, on it.
+    br11:
+      interfaces:
+        - vlan11
+      dhcp4: false
+      accept-ra: false
+      link-local: []
