@@ -1,5 +1,5 @@
 - name: Bootstrap host
-  hosts: all:!proxmox
+  hosts: all:!proxmox:!inference_vms
   pre_tasks:
     - name: Sanity check
       tags:
@@ -14,8 +14,19 @@
     - {role: console, tags: console, when: enable_console}
     - {role: protectli, tags: protectli, when: inventory_hostname == 'protectli.lan'}
 
-# Proxmox hosts get only the roles listed here, none of the defaults above.
+# Proxmox hosts and their guests get only the roles listed here, none of the defaults above.
 - name: Configure Proxmox host
   hosts: proxmox
   roles:
     - {role: proxmox, tags: proxmox}
+
+- name: Configure inference containers
+  hosts: inference_vms
+  gather_facts: false
+  pre_tasks:
+    - name: Wait for the container to boot
+      tags: always
+      ansible.builtin.wait_for_connection:
+        timeout: 120
+  roles:
+    - {role: llama, tags: llama}

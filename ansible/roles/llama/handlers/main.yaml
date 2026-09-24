@@ -1,0 +1,7 @@
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+# No instance is enabled by default, so only restart the ones already running.
+- name: Restart llama-server instances
+  ansible.builtin.command: systemctl try-restart 'llama-server@*.service'

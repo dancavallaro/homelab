@@ -1,0 +1,5 @@
+llama_cpp_build: 11095
+llama_cpp_sha256: 1c83318b7ccea5505c21e39218d930794e4a6bdadb541ba5f2650e6a42d4f9e7
+
+# name → {model: <HF repo:quant>, ctx: <optional>, extra_args: <optional>}; run as llama-server@<name>.
+llama_models: {}

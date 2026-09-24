@@ -7,3 +7,49 @@
     mode: '0644'
     backup: true
   notify: Reload network interfaces
+
+- name: Create shared models volume
+  become: true
+  community.general.lvol:
+    vg: pve
+    thinpool: data
+    lv: models
+    size: "{{ proxmox_models_size }}"
+    resizefs: true
+    shrink: false
+  register: models_lv
+
+# In check mode lvol only predicts the LV, so there is no device to inspect yet.
+- name: Create filesystem on shared models volume
+  when: not (ansible_check_mode and models_lv is changed)
+  become: true
+  community.general.filesystem:
+    fstype: ext4
+    dev: /dev/pve/models
+
+# nofail is safe: the unmounted directory underneath is root-owned, so CTs can't write into pve-root.
+- name: Mount shared models volume
+  become: true
+  ansible.posix.mount:
+    path: "{{ shared_models_dir }}"
+    src: /dev/pve/models
+    fstype: ext4
+    opts: defaults,nofail
+    state: mounted
+
+# Unprivileged CTs map uid N to 100000 + N on the host.
+- name: Hand shared models volume to the CT llama user
+  become: true
+  ansible.builtin.file:
+    path: "{{ shared_models_dir }}"
+    state: directory
+    owner: "{{ 100000 + llama_uid }}"
+    group: "{{ 100000 + llama_gid }}"
+    mode: '0755'
+
+- name: Configure LXC containers
+  ansible.builtin.include_tasks: lxc.yaml
+  loop: "{{ proxmox_lxcs }}"
+  loop_control:
+    loop_var: lxc
+    label: "{{ lxc.vmid }} {{ lxc.options.hostname }}"

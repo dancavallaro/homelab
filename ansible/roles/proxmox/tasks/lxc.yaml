@@ -1,0 +1,45 @@
+- name: Read config of CT {{ lxc.vmid }}
+  become: true
+  ansible.builtin.command: pct config {{ lxc.vmid }}
+  register: lxc_config
+  check_mode: false
+  changed_when: false
+  failed_when: lxc_config.rc not in [0, 2]
+
+# A missing CT has no current config, so every option counts as drifted and goes to `pct create`.
+- name: Diff config of CT {{ lxc.vmid }}
+  vars:
+    current: "{{ lxc_config.stdout | from_yaml if lxc_config.rc == 0 else {} }}"
+  ansible.builtin.set_fact:
+    lxc_drift: >-
+      {%- set args = [] -%}
+      {%- for key, value in lxc.options.items() if current[key] | default('') | string != value | string -%}
+      {%- set _ = args.extend(['--' ~ key, value | string]) -%}
+      {%- endfor -%}
+      {{ args }}
+
+- name: Create CT {{ lxc.vmid }}
+  when: lxc_config.rc != 0
+  block:
+    # pct create reads keys from a file on the host.
+    - name: Stage SSH key for CT {{ lxc.vmid }}
+      become: true
+      ansible.builtin.copy:
+        content: "{{ proxmox_lxc_ssh_key }}\n"
+        dest: /root/lxc-ssh-key.pub
+        mode: '0644'
+
+    - name: Run pct create for CT {{ lxc.vmid }}
+      become: true
+      ansible.builtin.command:
+        argv: "{{ ['pct', 'create', lxc.vmid | string, lxc.template,
+                   '--rootfs', lxc.rootfs,
+                   '--ssh-public-keys', '/root/lxc-ssh-key.pub',
+                   '--start', '1'] + lxc_drift }}"
+
+# Options that can't be hot-plugged into a running CT stay pending until it restarts.
+- name: Update config of CT {{ lxc.vmid }}
+  when: lxc_config.rc == 0 and lxc_drift | length > 0
+  become: true
+  ansible.builtin.command:
+    argv: "{{ ['pct', 'set', lxc.vmid | string] + lxc_drift }}"

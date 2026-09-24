@@ -1,0 +1,5 @@
+# Shared between the proxmox role (host side of the bind mount) and the llama role (inside the CT).
+shared_models_dir: /srv/models
+llama_uid: 999
+llama_gid: 990
+render_gid: 993

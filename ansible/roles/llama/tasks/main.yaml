@@ -1,0 +1,77 @@
+# The gid must match dev0 on the Proxmox host, or llama can't open the render node.
+- name: Create render group
+  ansible.builtin.group:
+    name: render
+    gid: "{{ render_gid }}"
+    system: true
+
+- name: Create llama group
+  ansible.builtin.group:
+    name: llama
+    gid: "{{ llama_gid }}"
+    system: true
+
+- name: Create llama user
+  ansible.builtin.user:
+    name: llama
+    uid: "{{ llama_uid }}"
+    group: llama
+    groups: render
+    system: true
+    home: /var/lib/llama
+    shell: /usr/sbin/nologin
+
+- name: Install Vulkan runtime
+  ansible.builtin.apt:
+    update_cache: true
+    pkg:
+      - mesa-vulkan-drivers
+      - vulkan-tools
+      - libgomp1
+
+- name: Create llama.cpp install directory
+  ansible.builtin.file:
+    path: /opt/llama.cpp
+    state: directory
+    mode: '0755'
+
+- name: Download llama.cpp b{{ llama_cpp_build }}
+  ansible.builtin.get_url:
+    url: "https://github.com/ggml-org/llama.cpp/releases/download/b{{ llama_cpp_build }}/llama-b{{ llama_cpp_build }}-bin-ubuntu-vulkan-x64.tar.gz"
+    dest: /opt/llama.cpp/llama-b{{ llama_cpp_build }}-bin-ubuntu-vulkan-x64.tar.gz
+    checksum: "sha256:{{ llama_cpp_sha256 }}"
+    mode: '0644'
+
+- name: Unpack llama.cpp b{{ llama_cpp_build }}
+  ansible.builtin.unarchive:
+    src: /opt/llama.cpp/llama-b{{ llama_cpp_build }}-bin-ubuntu-vulkan-x64.tar.gz
+    dest: /opt/llama.cpp
+    remote_src: true
+    owner: root
+    group: root
+    creates: /opt/llama.cpp/llama-b{{ llama_cpp_build }}/llama-server
+
+- name: Create model config directory
+  ansible.builtin.file:
+    path: /etc/llama
+    state: directory
+    mode: '0755'
+
+- name: Render model configs
+  ansible.builtin.template:
+    src: model.env.j2
+    dest: /etc/llama/{{ item.key }}.env
+    mode: '0644'
+  loop: "{{ llama_models | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  notify: Restart llama-server instances
+
+- name: Install llama-server unit
+  ansible.builtin.template:
+    src: llama-server@.service.j2
+    dest: /etc/systemd/system/llama-server@.service
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart llama-server instances

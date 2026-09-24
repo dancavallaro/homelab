@@ -1,0 +1,19 @@
+# {{ ansible_managed }}
+[Unit]
+Description=llama.cpp server (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=llama
+Environment=CTX=16384
+Environment=HF_HUB_CACHE={{ shared_models_dir }}/huggingface/hub
+EnvironmentFile=/etc/llama/%i.env
+# $EXTRA_ARGS is unbraced so systemd splits it into separate arguments;
+# ${MODEL} and ${CTX} always expand to exactly one argument each.
+ExecStart=/opt/llama.cpp/llama-b{{ llama_cpp_build }}/llama-server -hf ${MODEL} -c ${CTX} -ngl 99 \
+    --host 0.0.0.0 --port 8080 $EXTRA_ARGS
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
