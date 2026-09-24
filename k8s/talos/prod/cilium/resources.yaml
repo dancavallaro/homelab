@@ -89,3 +89,13 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: cluster-vlan
+spec:
+  loadBalancerIPs: true
+  # Only the cluster VLAN NIC, so worker2 does not answer ARP on its home-network leg.
+  interfaces:
+    - ^enp1s0$

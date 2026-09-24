@@ -608,9 +608,12 @@ Addresses are static in machine config, not DHCP reservations. The node IP is et
 address and appears in kubelet and apiserver certificates; a lease expiring during a router
 reboot should not also cost etcd its address. The cluster VLAN runs no DHCP server.
 
-- A per-node patch for each of the four nodes, holding only its interface: selected by MAC,
-  its address, and a default route via `10.11.0.1`. cp1's interface block moves out of
-  `cp.patch.yaml` into its node patch.
+- A per-node patch for each of the four nodes, holding its interface — selected by MAC, its
+  address, and a default route via `10.11.0.1` — and its hostname. libvirt's DHCP supplied the
+  hostnames until now, and local-path PVs are pinned to them. The hostname uses
+  `machine.network.hostname`, because the v1.9-contract configs set
+  `machine.features.stableHostname`, which rejects a `HostnameConfig` document. cp1's interface
+  block leaves `cp.patch.yaml`.
 - `common.patch.yaml`: `nameservers` becomes `10.11.0.1`, the router's address on the nodes'
   own subnet, so DNS does not depend on labnet's addressing. `kubelet.nodeIP.validSubnets`
   becomes `10.11.0.0/24`.

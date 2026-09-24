@@ -1,0 +1,13 @@
+# Static, because the cluster VLAN has no DHCP; the hostname was DHCP-supplied under libvirt NAT.
+machine:
+  network:
+    hostname: talos-prod-worker2
+    interfaces:
+      - deviceSelector:
+          hardwareAddr: 'de:6f:9f:0d:15:96'
+        dhcp: false
+        addresses:
+          - 10.11.0.101/24
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 10.11.0.1

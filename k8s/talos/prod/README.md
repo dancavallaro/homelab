@@ -2,28 +2,12 @@
 
 ### Networking config
 
-In `/etc/netplan/50-cloud-init.yaml`:
+`ansible/roles/talos_host` manages the host's netplan: `br0` for the host's own labnet address,
+and `br11` for the cluster VLAN (VLAN 11), where the host has no address. See `docs/network.md`.
 
-```yaml
-network:
-    ethernets:
-        enp89s0:
-            dhcp4: false
-    bridges:
-        br0:
-            dhcp4: true
-            macaddress: "92:B9:36:6D:7F:97"
-            interfaces:
-              - enp89s0
-            routes:
-              - to: 172.16.42.0/24
-                via: 10.42.42.100
-              - to: 10.96.0.0/12
-                via: 10.42.42.100
-    version: 2
+```shell
+cd ansible && ansible-playbook -i inventory.ini bootstrap.yaml --limit talos-host.lan --tags talos_host
 ```
-
-Then `sudo netplan apply` (will kill SSH session)
 
 ### Bluetooth
 
@@ -52,42 +36,16 @@ Then reboot the host.
 
 ## Provision VMs and bootstrap cluster
 
-Define VM network in `talos-prod-net.xml`:
-
-```xml
-<network>
-  <name>talos-prod-net</name>
-  <forward mode="nat">
-    <nat>
-      <port start="1024" end="65535"/>
-    </nat>
-  </forward>
-  <bridge name="virbr4" />
-  <ip address="192.168.42.1" netmask="255.255.255.0">
-    <dhcp>
-      <host mac="02:C0:77:B4:28:80" ip="192.168.42.10" name="talos-prod-cp1" />
-      <host mac="02:52:A7:0B:1D:89" ip="192.168.42.100" name="talos-prod-worker1" />
-      <host mac="DE:6F:9F:0D:15:96" ip="192.168.42.101" name="talos-prod-worker2" />
-      <host mac="12:62:54:B1:2D:B0" ip="192.168.42.102" name="talos-prod-worker3" />
-    </dhcp>
-  </ip>
-</network>
-```
-
-Then:
-
-```shell
-$ virsh net-define talos-prod-net.xml --validate
-$ virsh net-start talos-prod-net
-$ virsh net-autostart talos-prod-net
-```
+The VMs attach to `br11`, the cluster VLAN, which has no DHCP. Each VM gets its maintenance-mode
+address from an `ip=` kernel argument, and its permanent address from its `node-*.patch.yaml`.
 
 Constants:
 
 ```shell
 IMAGE_PATH=/usr/local/images/metal-amd64_v1.9.2.iso
-VM_BRIDGE=virbr4
-BOOTSTRAP_IP=10.42.42.100
+VM_BRIDGE=br11
+BOOTSTRAP_IP=10.11.0.10
+GATEWAY=10.11.0.1
 ```
 
 ### CP node
@@ -99,16 +57,22 @@ $ virt-install --name talos-prod-cp1 \
      --ram 6144 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=20,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
-     --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
-     --network bridge="$VM_BRIDGE",mac=02:C0:77:B4:28:80 --network bridge=br0,mac=02:7F:50:1E:B0:55
+     --extra-args="console=ttyS0 talos.platform=metal slab_nomerge pti=on ip=$BOOTSTRAP_IP::$GATEWAY:255.255.255.0::enp1s0:off" --noautoconsole \
+     --network bridge="$VM_BRIDGE",mac=02:C0:77:B4:28:80
 $ virsh autostart talos-prod-cp1
 ```
 
 #### Prepare config
 
 ```shell
-$ talosctl gen config talos-prod https://$BOOTSTRAP_IP:6443
-$ talosctl mc patch controlplane.yaml --patch @patches/common.patch.yaml --patch @patches/cp.patch.yaml --output cp.final.yaml
+# The secrets bundle is age-encrypted in talos-prod-secrets.yaml.age; the passphrase is in the password manager.
+# The v1.9 contract matches how the running cluster was generated.
+$ age -d talos-prod-secrets.yaml.age > /tmp/secrets.yaml
+$ talosctl gen config talos-prod https://k8s.cavnet.cloud:6443 --with-secrets /tmp/secrets.yaml \
+    --talos-version v1.9 --kubernetes-version <current> --with-docs=false --with-examples=false
+$ rm /tmp/secrets.yaml
+$ talosctl mc patch controlplane.yaml --patch @patches/common.patch.yaml --patch @patches/cp.patch.yaml \
+    --patch @patches/node-cp1.patch.yaml --output cp.final.yaml
 $ talosctl config merge ./talosconfig
 $ talosctl config endpoint k8s.cavnet.cloud
 ```
@@ -116,7 +80,7 @@ $ talosctl config endpoint k8s.cavnet.cloud
 #### Bootstrap Talos and k8s
 
 ```shell
-$ talosctl apply-config --insecure -n 192.168.42.10 --file cp.final.yaml
+$ talosctl apply-config --insecure -n $BOOTSTRAP_IP --file cp.final.yaml
 $ talosctl bootstrap -n $BOOTSTRAP_IP
 $ talosctl kubeconfig -n $BOOTSTRAP_IP --force-context-name talos-prod
 ```
@@ -139,7 +103,7 @@ $ virt-install --name talos-prod-worker1 \
      --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=50,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
-     --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
+     --extra-args="console=ttyS0 talos.platform=metal slab_nomerge pti=on ip=10.11.0.100::$GATEWAY:255.255.255.0::enp1s0:off" --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=02:52:A7:0B:1D:89
 $ virsh autostart talos-prod-worker1
 # Create worker2, attached to dtcnet and pass through the TP-Link BT USB device.
@@ -150,7 +114,7 @@ $ virt-install --name talos-prod-worker2 \
      --ram 6144 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=50,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
-     --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
+     --extra-args="console=ttyS0 talos.platform=metal slab_nomerge pti=on ip=10.11.0.101::$GATEWAY:255.255.255.0::enp1s0:off" --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=DE:6F:9F:0D:15:96 --network bridge=br0,mac=1e:03:e4:b3:4f:47 \
      --hostdev 0x2357:0x0604 \
      --xml xpath.delete=./devices/hostdev/source/address
@@ -160,7 +124,7 @@ $ virt-install --name talos-prod-worker3 \
      --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=50,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
-     --extra-args='console=ttyS0 talos.platform=metal slab_nomerge pti=on' --noautoconsole \
+     --extra-args="console=ttyS0 talos.platform=metal slab_nomerge pti=on ip=10.11.0.102::$GATEWAY:255.255.255.0::enp1s0:off" --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=12:62:54:B1:2D:B0 \
      --hostdev 0x0403:0x6001 \
      --xml xpath.delete=./devices/hostdev/source/address
@@ -183,25 +147,28 @@ Note: `virsh dumpxml` on a *running* domain will still show a resolved
 $ talosctl mc patch worker.yaml \
     --patch @patches/common.patch.yaml \
     --patch @patches/worker-common.patch.yaml \
-    --output worker.final.yaml
+    --patch @patches/node-worker1.patch.yaml \
+    --output worker1.final.yaml
 $ talosctl mc patch worker.yaml \
     --patch @patches/common.patch.yaml \
     --patch @patches/worker-common.patch.yaml \
     --patch @patches/worker-dtcnet.patch.yaml \
+    --patch @patches/node-worker2.patch.yaml \
     --output worker2.final.yaml
 $ talosctl mc patch worker.yaml \
     --patch @patches/common.patch.yaml \
     --patch @patches/worker-common.patch.yaml \
     --patch @patches/worker-esp32.patch.yaml \
+    --patch @patches/node-worker3.patch.yaml \
     --output worker3.final.yaml
 ```
 
 #### Apply config and join nodes to cluster
 
 ```shell
-$ talosctl apply-config --insecure -n 192.168.42.100 --file worker.final.yaml
-$ talosctl apply-config --insecure -n 192.168.42.101 --file worker2.final.yaml
-$ talosctl apply-config --insecure -n 192.168.42.102 --file worker3.final.yaml
+$ talosctl apply-config --insecure -n 10.11.0.100 --file worker1.final.yaml
+$ talosctl apply-config --insecure -n 10.11.0.101 --file worker2.final.yaml
+$ talosctl apply-config --insecure -n 10.11.0.102 --file worker3.final.yaml
 ```
 
 ## Final manual bootstrapping

@@ -6,14 +6,13 @@ machine:
       - talos.logging.kernel=tcp://127.0.0.1:32412/
   network:
     nameservers:
-      # This allows pods to resolve *.o.cavnet.cloud and *.lan DNS names, without needing
-      # to customize Talos's CoreDNS config (and allows apiserver to resolve *.o.cavnet.cloud at all).
-      - 10.42.42.1
+      # The MikroTik on the cluster VLAN; it forwards *.o.cavnet.cloud and serves *.lan, which
+      # CoreDNS and the apiserver both need.
+      - 10.11.0.1
   kubelet:
     nodeIP:
       validSubnets:
-        # Make sure the kubelet gets assigned an IP from the VM subnet
-        - 192.168.42.0/24
+        - 10.11.0.0/24
   features:
     nodeAddressSortAlgorithm: v2
   logging:
