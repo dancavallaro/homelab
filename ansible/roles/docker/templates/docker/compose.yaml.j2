@@ -22,7 +22,7 @@ services:
     command: [ "/spirl-agent", "--config-file-path", "/etc/spirl/agent-config.yaml" ]
     pid: host
     ports:
-      - 8080:80
+      - 3470:80
     volumes:
       # Make the agent's workload endpoint socket available to the host
       - /var/run/spirl:/var/run/spirl

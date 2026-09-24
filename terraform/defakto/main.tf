@@ -177,7 +177,7 @@ resource "spirl_cluster_config" "linux-servers" {
                   allowedHostnames:
                     - "*.lan"
                   allowedPorts:
-                    - 8080
+                    - 3470
     YAML
 
     WorkloadAttestation = <<-YAML
