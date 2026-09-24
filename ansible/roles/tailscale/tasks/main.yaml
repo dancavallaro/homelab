@@ -1,0 +1,42 @@
+- name: Set tailscaled's firewall mode
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/default/tailscaled
+    regexp: '^TS_DEBUG_FIREWALL_MODE='
+    line: "TS_DEBUG_FIREWALL_MODE={{ tailscale_firewall_mode }}"
+  when: tailscale_firewall_mode | length > 0
+  notify: Restart tailscaled
+
+- name: Read Tailscale prefs
+  ansible.builtin.command: tailscale debug prefs
+  register: tailscale_prefs
+  changed_when: false
+  check_mode: false
+
+- name: Compare prefs with the desired state
+  ansible.builtin.set_fact:
+    tailscale_actual: "{{ tailscale_prefs.stdout | from_json }}"
+
+- name: Report drift
+  ansible.builtin.debug:
+    msg:
+      actual: "{{ tailscale_actual_view }}"
+      desired: "{{ tailscale_desired_view }}"
+  when: tailscale_drift | bool
+  changed_when: true
+
+# --reset returns every unspecified setting to its default, so this is the complete desired state.
+- name: Apply Tailscale settings
+  become: true
+  ansible.builtin.command: >-
+    tailscale up --reset --timeout=30s
+    --advertise-routes={{ tailscale_advertise_routes | join(',') }}
+    --advertise-exit-node={{ tailscale_exit_node | lower }}
+    --ssh={{ tailscale_ssh | lower }}
+    --accept-dns={{ tailscale_accept_dns | lower }}
+  when: tailscale_drift | bool
+
+- name: Keep auto-updates on
+  become: true
+  ansible.builtin.command: tailscale set --auto-update=true
+  when: tailscale_drift | bool

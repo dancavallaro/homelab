@@ -23,3 +23,6 @@ protectli_dhcp_hosts:
   - {mac: "a0:88:c2:4d:4d:6a", ip: 10.255.2.11, name: dpu}
   - {mac: "bc:24:11:71:96:44", ip: 10.255.4.20, name: cletus}
   - {mac: "02:90:ef:4f:75:ed", ip: 10.255.3.10, name: dpu-p0, set_hostname: false, router: false}
+
+# Exit node only: DPUNET cannot reach labnet or the cluster, so it must never become their subnet router.
+tailscale_advertise_routes: []

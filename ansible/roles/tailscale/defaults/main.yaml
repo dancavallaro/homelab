@@ -1,0 +1,7 @@
+# The subnet routers' settings; hosts that differ override them in host_vars.
+tailscale_advertise_routes: [10.42.0.0/16, 10.11.0.0/16, 172.16.42.0/24, 10.255.0.0/16]
+tailscale_exit_node: true
+tailscale_ssh: true
+tailscale_accept_dns: false
+# "nftables" works around https://github.com/tailscale/tailscale/issues/13863.
+tailscale_firewall_mode: ""

@@ -10,6 +10,7 @@
     - {role: users, tags: users}
     - {role: docker, tags: docker}
     - {role: logging, tags: logging}
+    - {role: tailscale, tags: tailscale}
     - {role: ups, tags: ups, when: monitor_ups}
     - {role: console, tags: console, when: enable_console}
     - {role: protectli, tags: protectli, when: inventory_hostname == 'protectli.lan'}

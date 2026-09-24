@@ -1,0 +1,20 @@
+# Login state, not settings; `tailscale up --reset` leaves these alone.
+tailscale_identity_prefs: [Config, Persist, ControlURL, LoggedOut, InternalExitNodePrior]
+
+# Every setting `tailscale up --reset` plus the tasks below produce; anything else non-empty is drift.
+tailscale_desired_prefs:
+  AdvertiseRoutes: "{{ tailscale_advertise_routes + (['0.0.0.0/0', '::/0'] if tailscale_exit_node else []) }}"
+  AppConnector: {Advertise: false}
+  AutoUpdate: {Check: true, Apply: true}
+  CorpDNS: "{{ tailscale_accept_dns }}"
+  NetfilterMode: 2
+  NoStatefulFiltering: true
+  RunSSH: "{{ tailscale_ssh }}"
+  WantRunning: true
+
+# Compared views drop identity keys and empty/false values, and sort routes.
+tailscale_actual_set: "{{ tailscale_actual | dict2items | rejectattr('key', 'in', tailscale_identity_prefs) | selectattr('value') | items2dict }}"
+tailscale_desired_set: "{{ tailscale_desired_prefs | dict2items | selectattr('value') | items2dict }}"
+tailscale_actual_view: "{{ tailscale_actual_set | combine({'AdvertiseRoutes': tailscale_actual_set.AdvertiseRoutes | default([]) | sort}) }}"
+tailscale_desired_view: "{{ tailscale_desired_set | combine({'AdvertiseRoutes': tailscale_desired_set.AdvertiseRoutes | default([]) | sort}) }}"
+tailscale_drift: "{{ tailscale_actual_view != tailscale_desired_view }}"
