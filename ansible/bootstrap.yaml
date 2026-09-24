@@ -13,6 +13,7 @@
     - {role: ups, tags: ups, when: monitor_ups}
     - {role: console, tags: console, when: enable_console}
     - {role: protectli, tags: protectli, when: inventory_hostname == 'protectli.lan'}
+    - {role: talos_host, tags: talos_host, when: inventory_hostname == 'talos-host.lan'}
 
 # Proxmox hosts and their guests get only the roles listed here, none of the defaults above.
 - name: Configure Proxmox host

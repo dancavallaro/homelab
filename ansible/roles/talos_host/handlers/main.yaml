@@ -1,0 +1,4 @@
+# Delayed so the play finishes before the host's address changes under it.
+- name: Apply talos-host netplan
+  become: true
+  ansible.builtin.command: systemd-run --collect --unit=netplan-apply-delayed --on-active=10 /usr/sbin/netplan apply

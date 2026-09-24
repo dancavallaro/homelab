@@ -1,0 +1,22 @@
+- name: Stop cloud-init from rendering network config
+  become: true
+  ansible.builtin.copy:
+    content: "network: {config: disabled}\n"
+    dest: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    mode: '0644'
+
+- name: Remove cloud-init's netplan file
+  become: true
+  ansible.builtin.file:
+    path: /etc/netplan/50-cloud-init.yaml
+    state: absent
+  notify: Apply talos-host netplan
+
+- name: Install netplan config
+  become: true
+  ansible.builtin.template:
+    src: netplan.yaml.j2
+    dest: /etc/netplan/99-custom-networking.yaml
+    mode: '0600'
+    backup: true
+  notify: Apply talos-host netplan
