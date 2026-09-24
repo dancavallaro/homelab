@@ -5,4 +5,4 @@
 
 sudo tailscale up \
     --advertise-routes=10.42.0.0/16,10.11.0.0/16,172.16.42.0/24,10.255.0.0/16 \
-    --ssh --advertise-exit-node
+    --ssh --advertise-exit-node --accept-dns=false
