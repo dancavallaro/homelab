@@ -1,4 +1,4 @@
-# 2026-09-23 13:32:37 by RouterOS 7.14.1
+# 2026-09-24 09:25:47 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -19,12 +19,14 @@ set [ find default-name=ether8 ] comment="RPi5 (rpi.lan)"
 set [ find default-name=sfp-sfpplus1 ] comment="Synology NAS"
 /interface vlan
 add comment="WiFi SSID for labnet" interface=ether3 name=vlan10 vlan-id=10
+add comment="talos-host -> cluster nodes, routed" interface=ether1 name=vlan11 vlan-id=11
 add comment="WiFi SSID for IoT network" interface=ether3 name=vlan20 vlan-id=20
 add comment="talos-host -> dtcnet bridge" interface=ether1 name=vlan192 vlan-id=192
 /interface list
 add comment=defconf name=WAN
 add comment=defconf name=LAN
 add comment="Routed DPU segment behind the Protectli" name=DPUNET
+add comment="Kubernetes node VLAN" name=CLUSTER
 /interface wireless security-profiles
 set [ find default=yes ] supplicant-identity=MikroTik
 /ip pool
@@ -53,10 +55,12 @@ set discover-interface-list=LAN
 add comment=defconf interface=bridge list=LAN
 add comment=defconf interface=dtcnet_bridge list=WAN
 add interface=ether4 list=DPUNET
+add interface=vlan11 list=CLUSTER
 /ip address
 add address=10.42.42.1/16 comment=defconf interface=bridge network=10.42.0.0
 add address=192.168.20.1/24 interface=iotnet_bridge network=192.168.20.0
 add address=10.255.0.1/30 comment="Transit to Protectli" interface=ether4 network=10.255.0.0
+add address=10.11.0.1/24 interface=vlan11 network=10.11.0.0
 /ip dhcp-client
 add interface=dtcnet_bridge
 /ip dhcp-server lease
@@ -90,6 +94,9 @@ add address=10.0.0.0/8 list=private
 add address=172.16.0.0/12 list=private
 add address=192.168.0.0/16 list=private
 add address=100.64.0.0/10 list=private
+add address=10.42.42.10 comment="Work MBP" list=cluster-admins
+add address=10.42.42.11 comment="Personal MBP" list=cluster-admins
+add address=10.42.42.2 comment="talos-host: Tailnet clients, SNAT'd" list=cluster-admins
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
@@ -98,6 +105,8 @@ add action=accept chain=input comment="defconf: accept to local loopback (for CA
 add action=accept chain=input comment="Allow DNS from ESP32 network" dst-port=53 protocol=udp src-address=192.168.20.0/24
 add action=accept chain=input comment="DPUNET: DNS" dst-port=53 in-interface-list=DPUNET protocol=tcp
 add action=accept chain=input comment="DPUNET: DNS" dst-port=53 in-interface-list=DPUNET protocol=udp
+add action=accept chain=input comment="CLUSTER: DNS" dst-port=53 in-interface-list=CLUSTER protocol=udp
+add action=accept chain=input comment="CLUSTER: DNS" dst-port=53 in-interface-list=CLUSTER protocol=tcp
 add action=drop chain=input comment="defconf: drop all not coming from LAN" in-interface-list=!LAN
 add action=accept chain=forward comment="defconf: accept in ipsec policy" ipsec-policy=in,ipsec
 add action=accept chain=forward comment="defconf: accept out ipsec policy" ipsec-policy=out,ipsec
@@ -110,6 +119,16 @@ add action=accept chain=forward comment="DPUNET: cluster LBs" dst-address=172.16
 add action=accept chain=forward comment="labnet -> DPUNET" in-interface-list=LAN out-interface-list=DPUNET
 add action=drop chain=forward comment="DPUNET: drop rest" in-interface-list=DPUNET
 add action=drop chain=forward comment="-> DPUNET: drop rest" out-interface-list=DPUNET
+add action=accept chain=forward comment="labnet -> LBs" dst-address=172.16.42.0/24 in-interface-list=LAN
+add action=accept chain=forward comment="IoT -> LBs" dst-address=172.16.42.0/24 in-interface=iotnet_bridge
+add action=accept chain=forward comment="admins -> kube-apiserver" dst-address=10.11.0.10 dst-port=6443 protocol=tcp src-address-list=cluster-admins
+add action=accept chain=forward comment="admins -> Talos API" dst-address=10.11.0.0/24 dst-port=50000 protocol=tcp src-address-list=cluster-admins
+add action=accept chain=forward comment="labnet -> nodes: ping" in-interface-list=LAN out-interface-list=CLUSTER protocol=icmp
+add action=accept chain=forward comment="CLUSTER: internet" dst-address-list=!private in-interface-list=CLUSTER out-interface-list=WAN
+add action=accept chain=forward comment="CLUSTER: NAS - iSCSI, NFS, DSM" dst-address=10.42.42.12 in-interface-list=CLUSTER
+add action=accept chain=forward comment="CLUSTER: NUT on rpi.lan" dst-address=10.42.42.5 dst-port=3493 in-interface-list=CLUSTER protocol=tcp
+add action=log chain=forward comment="CLUSTER: rest - log, then drop" in-interface-list=CLUSTER log-prefix="[cluster-out]"
+add action=log chain=forward comment="-> CLUSTER: rest - log, then drop" log-prefix="[cluster-in]" out-interface-list=CLUSTER
 /ip firewall nat
 add action=masquerade chain=srcnat comment="defconf: masquerade" ipsec-policy=out,none out-interface-list=WAN
 /ip firewall raw
