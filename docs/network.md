@@ -142,7 +142,7 @@ VLAN 192 into `dtcnet_bridge`. cp1's `10.42.42.100` leg exists because nothing o
 can reach a VM behind libvirt NAT otherwise.
 
 talos-host also runs Tailscale as a subnet router, advertising `10.42.0.0/16`,
-`10.96.0.0/12` and `172.16.42.0/24`, and as an exit node (`bin/tailscale-up`).
+`172.16.42.0/24` and `10.255.0.0/16`, and as an exit node (`bin/tailscale-up`).
 
 ## Inside the Protectli
 
@@ -469,102 +469,299 @@ The Protectli is full: transit, host management, DPU management and P0 use all f
 
 ## Proposed — Kubernetes cluster network
 
-**Not implemented.**
+**Not implemented.** Design agreed 2026-09-23. The migration is an in-place renumbering of
+the running cluster, with downtime accepted; its sequence lives outside the repo.
 
 The problem is stated above under
 [Config that exists only because the VMs are NAT'd](#config-that-exists-only-because-the-vms-are-natd):
 eight pieces of configuration across four systems, a control-plane VM that every LoadBalancer
-service depends on, and a boundary that cannot be filtered statefully. The original goal —
-keep the cluster network private and poke narrow holes — was sound. Hypervisor NAT is the
-wrong mechanism for it, because NAT is an addressing workaround that blocks inbound traffic
-as a side effect rather than as policy. The moment you need a hole, a host has to sit in both
-worlds and becomes a router the firewall cannot see around.
+service depends on, and a boundary that cannot be filtered statefully. Hypervisor NAT blocks
+inbound traffic as a side effect rather than as policy. The moment a hole is needed, a host has
+to sit in both worlds and becomes a router the firewall cannot see around.
 
-Measured against that goal, the current arrangement isolates nothing: labnet holds routes to
-`192.168.42.0/24`, `172.16.42.0/24` and `10.96.0.0/12`, and nothing enforces anything at the
-boundary. A flat network with one stateful rule would isolate more.
+The replacement: the nodes move to their own routed VLAN on the MikroTik, which becomes their
+gateway and the one place policy is enforced. The LoadBalancer network keeps its own subnet,
+`172.16.42.0/24`, as the cluster's published surface. The pod and service CIDRs stay unrouted.
 
 ### Shape
 
-Cluster nodes move to their own VLAN on the MikroTik. No libvirt NAT network.
-
 ```mermaid
 flowchart TD
-    lab["labnet clients"]
-    mt["MikroTik<br>labnet gateway + cluster VLAN gateway<br>stateful rules between the two"]
-    vlan(["Cluster VLAN — trunked to talos-host on ether1<br>no NAT"])
+    lab["labnet · Tailnet via talos-host · IoT · DPUNET"]
+    mt["MikroTik — vlan11 on ether1, in no bridge<br>10.11.0.1/24 — node gateway<br>172.16.42.254/24 — makes the LB subnet on-link<br>CLUSTER zone, stateful"]
+    lab --> mt
 
-    lab --> mt --> vlan
+    subgraph th["talos-host — no address on br11"]
+        br11["br11 ← vlan11 on enp89s0"]
+        cp1["talos-prod-cp1<br>10.11.0.10"]
+        w1["talos-prod-worker1<br>10.11.0.100"]
+        w2["talos-prod-worker2<br>10.11.0.101<br>+ VLAN 192 leg on br0, unchanged"]
+        w3["talos-prod-worker3<br>10.11.0.102"]
+        br11 --- cp1
+        br11 --- w1
+        br11 --- w2
+        br11 --- w3
+    end
 
-    vlan --- cp1["talos-prod-cp1"]
-    vlan --- w1["talos-prod-worker1"]
-    vlan --- w2["talos-prod-worker2<br>plus the homenet VLAN on the same trunk"]
-    vlan --- w3["talos-prod-worker3"]
-    vlan --- lbp["LoadBalancer pool, inside this subnet<br>CiliumL2AnnouncementPolicy — any node answers ARP"]
-
-    priv["Pod CIDR and service CIDR stay unrouted.<br>Externally reachable surface = node IPs + LoadBalancer IPs, nothing else."]
+    mt -->|"VLAN 11, tagged on ether1"| br11
+    lbs["LoadBalancer IPs 172.16.42.1–.253<br>answered by whichever node holds the lease"]
+    br11 -.- lbs
 ```
 
-- A VLAN on `ether1` carries the cluster network. The MikroTik holds the gateway address.
-- On talos-host, a VLAN sub-interface and a bridge for it, with **no IP on the host** — the
-  hypervisor does not need an address in the VM network. Its own management stays untagged
-  on labnet.
-- Each VM gets one NIC on that bridge. cp1 loses its second leg.
-- The Cilium LoadBalancer pool moves **inside the cluster VLAN's subnet**, and a
-  `CiliumL2AnnouncementPolicy` is added. The MikroTik then ARPs for LoadBalancer IPs on that
-  VLAN and any node can answer. No static route, no single point of failure at cp1.
-- Routing is symmetric, because labnet clients reach LoadBalancer IPs through the MikroTik
-  and the nodes' default gateway is the MikroTik. All three `notrack` rules go away.
+| Network | CIDR | Gateway | Routed to labnet by |
+| --- | --- | --- | --- |
+| Cluster nodes, VLAN 11 | `10.11.0.0/24`, inside a `10.11.0.0/16` reservation | `10.11.0.1` | Connected on `vlan11` |
+| LoadBalancer | `172.16.42.0/24` | none | Connected on `vlan11`, via `172.16.42.254` |
+| Pod CIDR | `10.244.0.0/16`, Talos default | — | Nothing — unrouted |
+| Service CIDR | `10.96.0.0/12`, Talos default | — | Nothing — unrouted |
 
-### Where the boundary lives
+| Node | Address | NIC MAC, unchanged |
+| --- | --- | --- |
+| `talos-prod-cp1` | `10.11.0.10/24` | `02:c0:77:b4:28:80` |
+| `talos-prod-worker1` | `10.11.0.100/24` | `02:52:a7:0b:1d:89` |
+| `talos-prod-worker2` | `10.11.0.101/24` | `de:6f:9f:0d:15:96` |
+| `talos-prod-worker3` | `10.11.0.102/24` | `12:62:54:b1:2d:b0` |
 
-Three layers, each doing what it is good at.
+The last octets carry over from `192.168.42.0/24`. The cluster moves before the homenet
+rearchitecture and does not depend on it: `10.11.0.0/16` sits outside labnet's `/16`, so
+shrinking labnet later touches nothing here.
 
-The **router** does subnet-level policy. The cluster VLAN is a zone with a stateful ruleset
-that is readable, auditable and versioned in `mikrotik/config.rsc` — roughly ten rules
-replacing three static routes and three `notrack` rules:
+### How a LoadBalancer request will reach a pod
 
-- labnet to cluster VLAN: the LoadBalancer range; plus 6443 and 50000 to node IPs from a
-  workstation.
-- cluster VLAN to labnet: the NAS on 3260 and 5000, the MikroTik on 53, NTP.
-- cluster VLAN to the internet: allow.
-- default: drop.
+`CiliumL2AnnouncementPolicy` only works when the router ARPs for the LoadBalancer IP itself,
+which it does only for destinations on-link on one of its interfaces. A static route makes it
+ARP for the next hop instead, which is why `l2announcements` has never done anything here.
 
-**Cilium** does workload-level policy. `CiliumNetworkPolicy` is where narrow holes belong for
-anything finer than a subnet, and Hubble shows what a policy actually drops.
+The LoadBalancer subnet does not have to share the nodes' subnet to be on-link. The MikroTik
+holds a second address, `172.16.42.254/24`, on `vlan11`, so the VLAN carries two subnets on
+one broadcast domain. For `172.16.42.53`, the MikroTik ARPs on `vlan11`. Cilium on the node
+holding that IP's lease answers with its MAC. If the node dies, another takes the lease and
+answers the next ARP. The nodes need no address in `172.16.42.0/24`. Replies leave through
+each node's default gateway, `10.11.0.1`, so the MikroTik sees both halves of every flow.
 
-**The pod and service CIDRs stay unrouted.** That is the real private cluster network, and it
-is what the original goal was reaching for. Nothing outside needs a route to `10.96.0.0/12`.
-Dropping `bpf.lbExternalClusterIP: true` removes a route, a `notrack` rule, and the exposure
-of every ClusterIP in the cluster to labnet and the whole Tailnet.
+The router's address in that subnet exists to make the subnet connected and to source ARP.
+Nothing uses it as a gateway. It sits at `.254` because `cilium-ingress` holds `.1`, and the
+pool in `k8s/talos/prod/cilium/resources.yaml` becomes an explicit range that excludes it:
 
-### Addressing
+```yaml
+blocks:
+  - start: "172.16.42.1"
+    stop: "172.16.42.253"
+```
 
-The clean version shrinks labnet from `10.42.42.1/16` to a `/24` and gives the cluster VLAN
-an adjacent `/24`, so Tailscale keeps advertising a single `10.42.0.0/16`. That changes every
-labnet host's netmask, so it belongs with the homenet rearchitecture rather than before it.
-Moving the cluster first is possible using a subnet outside the `/16`, at the cost of one more
-Tailscale route.
+Cilium changes in `k8s/talos/prod/cilium/`:
 
-Node addresses should be static in the Talos machine config rather than DHCP reservations —
-etcd members should not depend on the router being up to get an address at boot. That departs
-from how everything else here is addressed, which is the argument against it.
+- One `CiliumL2AnnouncementPolicy` with `loadBalancerIPs: true` for all services, and an
+  `interfaces` regex matching only the VLAN 11 NIC. Without it, worker2 would also answer ARP
+  on its home-network leg.
+- `k8sClientRateLimit` at `qps: 10`, `burst: 20`. Each service holds a lease renewed every
+  5 seconds, so 11 services cost 2.2 QPS against a default limit of 5 QPS that all other
+  Cilium API traffic shares ([L2 Announcements](https://docs.cilium.io/en/stable/network/l2-announcements/)).
+- `bpf.lbExternalClusterIP` removed. With no route to `10.96.0.0/12`, it exposes nothing, and
+  removing it keeps it from coming back.
 
-### Side benefit
+`externalTrafficPolicy: Local` is unsupported with L2 announcements. Nothing in `k8s/` sets it.
 
-Once `ether1` is a trunk carrying the cluster VLAN, adding the homenet VLAN to it is free.
-Any node can have a leg on homenet and worker2 stops being a snowflake. That shrinks the
-dtcnet problem to the two workloads that genuinely need L2 there — Matter, which must receive
-ICMPv6 router advertisements from the Thread border router, and Home Assistant, which needs
-mDNS and SSDP discovery. The UniFi controller can adopt over routing via DHCP option 43 or
-`set-inform`, and Jellyfin becomes an ordinary LoadBalancer service instead of a NodePort.
+### talos-host
+
+The single NIC carries two things. Untagged, `br0` keeps the host's labnet address
+`10.42.42.2` and worker2's VLAN 192 frames, which are tagged inside the guest. Tagged VLAN 11
+reaches a VLAN device and a new bridge, `br11`, where the host has no address — not even an
+IPv6 link-local. The hypervisor has no presence in the VM network, and it reaches the cluster
+the way any labnet client does: through the MikroTik, out and back on the same full-duplex
+cable.
+
+```yaml
+network:
+  version: 2
+  ethernets:
+    enp89s0:
+      dhcp4: false
+  vlans:
+    vlan11:
+      id: 11
+      link: enp89s0
+  bridges:
+    br0:
+      dhcp4: true
+      macaddress: "92:B9:36:6D:7F:97"
+      interfaces: [enp89s0]
+    br11:
+      interfaces: [vlan11]
+      dhcp4: false
+      accept-ra: false
+      link-local: []
+```
+
+A new `ansible/roles/talos_host` renders this, as `ansible/roles/protectli` does for the
+Protectli, and replaces the netplan snippet in `k8s/talos/prod/README.md`. The two routes to
+`10.42.42.100` are gone.
+
+Each VM's first NIC changes its source from the libvirt network `talos-prod-net` to `br11`,
+keeping its MAC and PCI slot, so the guest sees the same device. cp1's second NIC comes off.
+worker2's second NIC stays for VLAN 192. With no VMs on it, `talos-prod-net` is destroyed and
+undefined, which removes `virbr4`, libvirt's NAT and the `LIBVIRT_FW*` chains.
+
+### Talos configuration
+
+Addresses are static in machine config, not DHCP reservations. The node IP is etcd's peer
+address and appears in kubelet and apiserver certificates; a lease expiring during a router
+reboot should not also cost etcd its address. The cluster VLAN runs no DHCP server.
+
+- A per-node patch for each of the four nodes, holding only its interface: selected by MAC,
+  its address, and a default route via `10.11.0.1`. cp1's interface block moves out of
+  `cp.patch.yaml` into its node patch.
+- `common.patch.yaml`: `nameservers` becomes `10.11.0.1`, the router's address on the nodes'
+  own subnet, so DNS does not depend on labnet's addressing. `kubelet.nodeIP.validSubnets`
+  becomes `10.11.0.0/24`.
+- `cp.patch.yaml`: `etcd.advertisedSubnets` becomes `10.11.0.0/24`.
+
+Patches layer `common` → `cp` or `worker-common` → the optional role patches
+(`worker-dtcnet`, `worker-esp32`, `oidc`) → the node patch.
+
+The control-plane endpoint stays `https://k8s.cavnet.cloud:6443`. The name is already in
+`certSANs`, in talosconfig and in the kubeconfig, so nothing holding it needs regenerating.
+Its Route53 A record changes from `10.42.42.100` to `10.11.0.10`. The record holds a private
+address in public DNS because the name must resolve from labnet, the Tailnet and inside the
+cluster, and Route53 is the resolver all three share — that reason survives the move. A Talos
+VIP would add nothing with one control-plane node.
+
+### The cluster zone on the MikroTik
+
+The LoadBalancer range is the published surface. Node IPs are reachable only for
+administration, from named hosts. The block goes after the `DPUNET` rules and ends in explicit
+drops, because RouterOS accepts what falls off the end of a chain.
+
+```
+/interface vlan
+add interface=ether1 name=vlan11 vlan-id=11 comment="talos-host -> cluster nodes, routed"
+/interface list
+add name=CLUSTER comment="Kubernetes node VLAN"
+/interface list member
+add interface=vlan11 list=CLUSTER
+/ip address
+add address=10.11.0.1/24 interface=vlan11
+add address=172.16.42.254/24 interface=vlan11 comment="Makes the LB subnet on-link for L2 announcements"
+/ip firewall address-list
+add address=10.42.42.10 list=cluster-admins comment="Work MBP"
+add address=10.42.42.11 list=cluster-admins comment="Personal MBP"
+add address=10.42.42.42 list=cluster-admins comment="bastion.lan"
+add address=10.42.42.2 list=cluster-admins comment="talos-host: Tailnet clients, SNAT'd"
+/ip firewall filter
+add chain=input action=accept in-interface-list=CLUSTER protocol=udp dst-port=53 comment="CLUSTER: DNS"
+add chain=input action=accept in-interface-list=CLUSTER protocol=tcp dst-port=53 comment="CLUSTER: DNS"
+# forward, after the DPUNET block
+add chain=forward action=accept in-interface-list=LAN dst-address=172.16.42.0/24 comment="labnet -> LBs"
+add chain=forward action=accept in-interface=iotnet_bridge dst-address=172.16.42.0/24 comment="IoT -> LBs"
+add chain=forward action=accept src-address-list=cluster-admins dst-address=10.11.0.10 protocol=tcp dst-port=6443 comment="admins -> kube-apiserver"
+add chain=forward action=accept src-address-list=cluster-admins dst-address=10.11.0.0/24 protocol=tcp dst-port=50000 comment="admins -> Talos API"
+add chain=forward action=accept in-interface-list=LAN out-interface-list=CLUSTER protocol=icmp comment="labnet -> nodes: ping"
+add chain=forward action=accept in-interface-list=CLUSTER out-interface-list=WAN dst-address-list=!private comment="CLUSTER: internet"
+add chain=forward action=accept in-interface-list=CLUSTER dst-address=10.42.42.12 comment="CLUSTER: NAS - iSCSI, NFS, DSM"
+add chain=forward action=accept in-interface-list=CLUSTER dst-address=10.42.42.5 protocol=tcp dst-port=3493 comment="CLUSTER: NUT on rpi.lan"
+add chain=forward action=log in-interface-list=CLUSTER log-prefix="[cluster-out]" comment="CLUSTER: rest - log, then drop"
+add chain=forward action=log out-interface-list=CLUSTER log-prefix="[cluster-in]" comment="-> CLUSTER: rest - log, then drop"
+```
+
+The static routes to `10.42.42.100` and all three `notrack` rules are deleted.
+
+- **The last two rules start as `log`**, not `drop`. The outbound allow list comes from the
+  addresses hard-coded in `k8s/manifests`; Home Assistant's integrations live in its UI and may
+  reach IoT or labnet hosts that the repo does not show. After about a week, anything
+  legitimate under `[cluster-out]` or `[cluster-in]` gets a rule, and both become `drop`. Each
+  expected deny is then paired with an allow of the same target from an admin host.
+- **The NAS rule allows every port.** NFSv3 needs portmapper and mountd besides 2049, and the
+  NAS is already a trusted dependency; narrowing its ports buys little.
+- **`DPUNET` is unchanged.** Its rule admitting TCP 80 and 443 to `172.16.42.0/24` matches
+  before this block. Cluster to `DPUNET` stays dropped by `-> DPUNET: drop rest` until a
+  workload behind the DPU is exposed.
+- **Traffic that never reaches the router:** node to node, switched inside `br11`; a node or
+  pod reaching a LoadBalancer IP, handled by Cilium's socket LB; and worker2's VLAN 192 leg,
+  which is bridged into `dtcnet_bridge`, not routed. A MikroTik reboot breaks traffic into and
+  out of the cluster, including DNS, but node heartbeats and the control plane keep working.
+- **NAT:** internet-bound traffic leaves through the defconf masquerade. Traffic to labnet
+  keeps its `10.11.0.x` source.
+
+`vlan11` is routed: its addresses sit on the VLAN interface and it belongs to no bridge, like
+`ether4`. Bridged into `bridge`, it would put the nodes on labnet's L2 and recreate the
+unfiltered boundary.
+
+### Tailscale
+
+talos-host adds `10.11.0.0/16` to its advertised routes in `bin/tailscale-up`, for
+`kubectl` and `talosctl` from off-site. The subnet router SNATs Tailnet clients to
+`10.42.42.2`, so `cluster-admins` includes it, which admits the whole Tailnet to 6443 and
+50000 — as it reaches `10.42.42.100:6443` today. Per-person control for Tailnet users belongs
+in Tailscale ACL grants on `10.11.0.0/16`, since the MikroTik cannot see past the SNAT.
+
+### Changes outside the cluster's own config
+
+- **`k8s/manifests/synology-csi/dsm-proxy.yaml`:** the `dsm-mgmt` endpoint moves from
+  `192.168.6.62` to `10.42.42.12`. synology-csi already reaches the DSM API there through
+  `dsm-data`, so the cluster no longer crosses into the home network at all.
+- **Synology NFS allowlists** for `/volume1/Media` and `/volume1/PCStorage` add `10.11.0.0/24`
+  beside `10.42.42.0/24`. Today the NAS sees the cluster as libvirt NAT's `10.42.42.2`.
+- **Home Assistant** `trusted_proxies` in `k8s/manifests/home-assistant/conf/configuration.yaml`
+  moves from `192.168.42.0/24` to `10.11.0.0/24`.
+- **Route53, Tailscale admin console:** the `k8s.cavnet.cloud` record, and approval of the
+  new route.
+
+### Constraint on order
+
+`172.16.42.254/24` cannot be added to `vlan11` ahead of the cutover. A connected route has
+distance 0 and beats the static route's distance 1, so every LoadBalancer packet would go to a
+VLAN where nothing answers yet. It goes in with the deletion of the static routes. `vlan11`
+with `10.11.0.1/24` and the firewall block have no such conflict.
+
+### What happens to the NAT list
+
+| # | Item | Outcome |
+| --- | --- | --- |
+| 1 | cp1's second NIC, `10.42.42.100/16` | Removed |
+| 2 | cp1's metric-1 default route | Removed; every node's only default route is `10.11.0.1` |
+| 3 | etcd pinned to `192.168.42.0/24` | Pinned to `10.11.0.0/24`, now the only subnet |
+| 4 | kubelet pinned to `192.168.42.0/24` | Pinned to `10.11.0.0/24` |
+| 5 | Three static routes via `10.42.42.100` | Removed; both subnets are connected |
+| 6 | Three `notrack` rules | Removed; flows are symmetric |
+| 7 | Two netplan routes on talos-host | Removed |
+| 8 | Route53 record holding a private address | Kept, value `10.11.0.10`; it was never caused by NAT |
+
+`l2announcements: enabled: true` stops being vestigial.
+
+### Not in this design
+
+- **Pod access to the home network.** worker2's VLAN 192 leg carries over unchanged. Once
+  `ether1` is a trunk, giving any node a leg on the home network is cheap, which would shrink
+  the dtcnet problem to Matter's router advertisements and Home Assistant's mDNS and SSDP.
+  That is its own design.
+- **Port policy between control plane and workers.** A separate control-plane VLAN would make
+  every node-to-control-plane packet depend on the MikroTik. The Talos ingress firewall
+  (`NetworkDefaultActionConfig`, `NetworkRuleConfig`) or Cilium's host firewall enforces the
+  same thing on each node.
+- **Preserving Tailnet source addresses** with `--snat-subnet-routes=false`. See
+  [Known gaps](#known-gaps).
 
 ### Verify, do not assume
 
-Dropping the libvirt NAT network should also drop the `LIBVIRT_FWI` and `LIBVIRT_FWO` rules
-and libvirt's reason for loading `br_netfilter`. Given that the Protectli's bridge forwarded
-only while `br_netfilter` was unloaded, check `lsmod | grep br_netfilter` on talos-host after
-the change and confirm the new bridge forwards.
+Untested; the migration plan covers each on a throwaway one-VM Talos cluster or before the
+cutover.
 
-This is a rebuild of the cluster's addressing, not an edit. Node IPs, etcd peer addresses, the
-control-plane endpoint and the `k8s.cavnet.cloud` record all move together.
+- **Cilium answering ARP for an IP outside its interface's subnet.** The Cilium docs are
+  silent. Everything in [How a LoadBalancer request will reach a pod](#how-a-loadbalancer-request-will-reach-a-pod)
+  depends on it.
+- **A single etcd member changing its peer address.** Whether Talos updates the member's peer
+  URL itself or it needs `etcdctl member update` is unchecked.
+- **The NIC name inside the VMs**, for the announcement policy's `interfaces` regex. `enp1s0`
+  is a guess. It must also be among Cilium's `devices`, auto-detected or explicit.
+- **Forwarding on `br11`.** talos-host runs the `docker` role without
+  `docker_ip_forward_no_drop`. If Docker sets `FORWARD` to DROP and `br_netfilter` is loaded,
+  bridged VM traffic passes through that chain. Check `lsmod | grep br_netfilter`,
+  `sysctl net.bridge.bridge-nf-call-iptables` and the `FORWARD` policy before and after.
+- **A Linux VLAN device on a NIC that is also a bridge port.** Proxmox's non-VLAN-aware bridges
+  use this arrangement; not yet tested on this host. talos-host's live netplan has not been
+  read either — only the README's copy.
+- **A RouterOS VLAN interface on a bridge member port.** The RouterOS docs do not address it;
+  `vlan192` on `ether1` is the evidence that it works on this RB5009 under 7.14.1.
+- **iSCSI throughput**, measured before and after. It changes from NAT on the NUC plus
+  switching on the MikroTik to routing on the MikroTik, where fasttrack
+  (`mikrotik/config.rsc:104`) should take established flows off the firewall path.
