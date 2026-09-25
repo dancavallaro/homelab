@@ -1,4 +1,4 @@
-# 2026-09-24 20:40:16 by RouterOS 7.14.1
+# 2026-09-25 09:13:24 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -100,6 +100,7 @@ add address=10.42.42.0/24 comment="Labnet (including SNATed Tailscale traffic)" 
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
 add action=drop chain=input comment="drop invalid: TCP teardown, unlogged" connection-state=invalid protocol=tcp tcp-flags=rst
+add action=drop chain=input comment="drop invalid: TCP teardown, unlogged" connection-state=invalid protocol=tcp tcp-flags=fin
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
 add action=accept chain=input comment="defconf: accept ICMP" protocol=icmp
 add action=accept chain=input comment="defconf: accept to local loopback (for CAPsMAN)" dst-address=127.0.0.1
