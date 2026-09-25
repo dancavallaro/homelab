@@ -5,24 +5,15 @@ machine:
     # Inspired by https://github.com/matter-js/python-matter-server/issues/983.
     net.ipv6.conf.enp2s0.accept_ra: "2"
     net.ipv6.conf.enp2s0.accept_ra_rt_info_max_plen: "64"
-    net.ipv6.conf.enp2s0/192.accept_ra: "2"
-    net.ipv6.conf.enp2s0/192.accept_ra_rt_info_max_plen: "64"
   network:
     interfaces:
+      # Home network, untagged: talos-host's br192 terminates VLAN 192.
       - deviceSelector:
           hardwareAddr: '1e:03:e4:b3:4f:47'
           physical: true
         dhcp: false
-        vlans:
-          - vlanId: 192
-            dhcp: false
-            dhcpOptions:
-              ipv4: false
-              ipv6: false
-            addresses:
-              - 192.168.6.100/22
-            routes:
-              - network: 192.168.4.0/22
+        addresses:
+          - 192.168.6.100/22
   nodeLabels:
     network: dtcnet
     hardware: bluetooth

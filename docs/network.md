@@ -117,9 +117,10 @@ talos-host: labnet untagged, VLAN 192 bridged into the home network, and VLAN 11
 
 The NUC's one NIC carries three things. Untagged frames are labnet, on `br0`, where the host
 holds `10.42.42.2`. VLAN 11 goes to `br11`, the cluster VLAN, where the host has no address —
-not even IPv6 link-local — so the hypervisor has no presence in the VM network. VLAN 192 is
-tagged inside worker2's guest and rides `br0` untouched to `ether1`, where the MikroTik bridges
-it into `dtcnet_bridge`. `ansible/roles/talos_host` renders the netplan.
+not even IPv6 link-local — so the hypervisor has no presence in the VM network. VLAN 192 goes
+to `br192` the same way, and worker2's second NIC joins it untagged. The MikroTik bridges
+VLAN 192 into `dtcnet_bridge`. No VM is attached to `br0`: a guest NIC there would sit on
+labnet's L2, outside the cluster zone. `ansible/roles/talos_host` renders the netplan.
 
 ```mermaid
 flowchart LR
@@ -128,9 +129,10 @@ flowchart LR
     subgraph th["talos-host — NUC 11 · Ubuntu + libvirt"]
         br0["br0 (enp89s0)<br>DHCP 10.42.42.2 — labnet"]
         br11["br11 (vlan11 on enp89s0)<br>no host address"]
+        br192["br192 (vlan192 on enp89s0)<br>no host address"]
         cp1["talos-prod-cp1<br>10.11.0.10"]
         w1["talos-prod-worker1<br>10.11.0.100"]
-        w2["talos-prod-worker2<br>10.11.0.101 · Bluetooth passthrough<br>br0: VLAN 192 tagged in the guest → 192.168.6.100/22"]
+        w2["talos-prod-worker2<br>10.11.0.101 · Bluetooth passthrough<br>enp2s0 on br192, untagged → 192.168.6.100/22"]
         w3["talos-prod-worker3<br>10.11.0.102 · ESP32 USB serial"]
     end
 
@@ -140,19 +142,20 @@ flowchart LR
     br11 --> w1
     br11 --> w2
     br11 --> w3
-    br0 -.->|"VLAN 192"| w2
+    e1 --> br192
+    br192 -.->|"home network"| w2
 ```
 
 The host reaches the cluster the way any labnet client does: through the MikroTik, out and back
 on the same full-duplex cable. Node-to-node traffic is switched inside `br11` and never reaches
 the router, so a MikroTik reboot cuts the cluster off without breaking it.
 
-`br_netfilter` is loaded and `bridge-nf-call-iptables` is 1, so bridged VM frames traverse the
-host's `FORWARD` chain, and its policy must stay ACCEPT. Docker sets it to DROP when it has to
-enable `ip_forward` itself at startup; it leaves it alone here because
-`/etc/sysctl.d/99-tailscale.conf`, managed by `ansible/roles/tailscale`, enables forwarding
-first. Removing that file, or upgrading to Docker 28 without `ip-forward-no-drop`, would stop
-all VM traffic on `br11`.
+`br_netfilter` is loaded and `bridge-nf-call-iptables` and `bridge-nf-call-ip6tables` are both 1,
+so untagged bridged VM frames traverse the host's `FORWARD` chain in both families, and both
+policies must be ACCEPT. A DROP policy there stops all VM traffic on `br11` and `br192`. Docker
+runs with `ip-forward-no-drop`, so it never sets DROP, and the `talos_host` role resets both
+policies to ACCEPT. VLAN-tagged frames skip `FORWARD` (`bridge-nf-filter-vlan-tagged` is 0),
+so a policy mistake shows up first on untagged traffic.
 
 ## Cluster network
 
@@ -338,8 +341,8 @@ Protectli, since it admits only TCP 80 and 443 to the LoadBalancers.
 
 ### Not built
 
-- **Pod access to the home network.** Only worker2 has a home-network leg, VLAN 192. Once
-  `ether1` is a trunk, giving any node a leg on the home network is cheap, which would shrink
+- **Pod access to the home network.** Only worker2 has a home-network leg, VLAN 192. With
+  `br192` on talos-host, giving another node a leg is one more NIC, which would shrink
   the dtcnet problem to Matter's router advertisements and Home Assistant's mDNS and SSDP.
   That is its own design.
 - **Port policy between control plane and workers.** A separate control-plane VLAN would make
@@ -500,7 +503,7 @@ MikroTik too; see [Tailscale](#tailscale).
 | rpi, bastion | `172.16.42.2:443`, `172.16.42.6:443` | Host telemetry over mTLS tunnels | `ansible/roles/docker/templates/docker/compose.yaml.j2` |
 | Home network TVs | `192.168.6.100` | Jellyfin, exposed as a NodePort | `k8s/manifests/jellyfin/jellyfin.yaml` |
 | UniFi APs | `192.168.6.100` | Controller, running `hostNetwork` on worker2 | `k8s/manifests/unifi/unifi-app.yaml` |
-| HomePod Thread border router | `enp2s0.192` | ICMPv6 route advertisements for Matter | `k8s/talos/prod/patches/worker-dtcnet.patch.yaml` |
+| HomePod Thread border router | worker2 `enp2s0` | ICMPv6 route advertisements for Matter | `k8s/talos/prod/patches/worker-dtcnet.patch.yaml` |
 | MikroTik resolver | `172.16.42.53` | `o.cavnet.cloud` forward | `mikrotik/config.rsc` |
 | Route53 | `10.11.0.10` | `k8s.cavnet.cloud` A record | AWS, outside this repo |
 | Everything behind the Protectli | `10.42.42.1:53` | DNS | `ansible/roles/protectli/templates/`, `mikrotik/config.rsc` |

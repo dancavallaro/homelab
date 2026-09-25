@@ -51,5 +51,5 @@ Apps are defined as ArgoCD `Application` resources in `k8s/apps/` and `k8s/infra
 
 - **DNS**: Private zone `*.o.cavnet.cloud` served by k8s_gateway at 172.16.42.53, forwarded by the MikroTik resolver (labnet, nodes) and Tailscale split DNS (Tailnet clients). Public access via Cloudflare Tunnel on `*.cavnet.io`.
 - **Cluster network**: nodes on routed VLAN 11 (`10.11.0.0/24`, gateway = MikroTik); LoadBalancers on `172.16.42.0/24`, on-link via Cilium L2 announcements. See `docs/network.md`.
-- **Worker node specialization**: worker2 has a `dtcnet` taint/label and home network bridge; worker3 has USB passthrough for ESP32 serial logging.
+- **Worker node specialization**: worker2 has a `dtcnet` label and a home-network NIC on talos-host's `br192`; worker3 has USB passthrough for ESP32 serial logging.
 - **Talos config patches** are layered: `common` → `cp` or `worker-common` → optional per-worker patches (`worker-dtcnet`, `worker-esp32`, `oidc`) → the per-node `node-*.patch.yaml` (static address, hostname). Configs render from the age-encrypted secrets bundle with `--talos-version v1.9`; see `k8s/talos/prod/README.md`.

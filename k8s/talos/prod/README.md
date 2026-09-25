@@ -3,7 +3,8 @@
 ### Networking config
 
 `ansible/roles/talos_host` manages the host's netplan: `br0` for the host's own labnet address,
-and `br11` for the cluster VLAN (VLAN 11), where the host has no address. See `docs/network.md`.
+`br11` for the cluster VLAN (VLAN 11), and `br192` for the home network (VLAN 192), which only
+worker2 joins. The host has no address on either VLAN bridge. See `docs/network.md`.
 
 ```shell
 cd ansible && ansible-playbook -i inventory.ini bootstrap.yaml --limit talos-host.lan --tags talos_host
@@ -115,7 +116,7 @@ $ virt-install --name talos-prod-worker2 \
      --disk size=50,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args="console=ttyS0 talos.platform=metal slab_nomerge pti=on ip=10.11.0.101::$GATEWAY:255.255.255.0::enp1s0:off" --noautoconsole \
-     --network bridge="$VM_BRIDGE",mac=DE:6F:9F:0D:15:96 --network bridge=br0,mac=1e:03:e4:b3:4f:47 \
+     --network bridge="$VM_BRIDGE",mac=DE:6F:9F:0D:15:96 --network bridge=br192,mac=1e:03:e4:b3:4f:47 \
      --hostdev 0x2357:0x0604 \
      --xml xpath.delete=./devices/hostdev/source/address
 $ virsh autostart talos-prod-worker2

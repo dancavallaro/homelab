@@ -8,6 +8,9 @@ network:
     vlan11:
       id: 11
       link: enp89s0
+    vlan192:
+      id: 192
+      link: enp89s0
   bridges:
     br0:
       dhcp4: true
@@ -18,6 +21,13 @@ network:
     br11:
       interfaces:
         - vlan11
+      dhcp4: false
+      accept-ra: false
+      link-local: []
+    # The home network, for worker2's second NIC; untagged in the guest keeps it off labnet's L2.
+    br192:
+      interfaces:
+        - vlan192
       dhcp4: false
       accept-ra: false
       link-local: []

@@ -20,3 +20,14 @@
     mode: '0600'
     backup: true
   notify: Apply talos-host netplan
+
+# Bridged VM frames traverse FORWARD via br_netfilter, so neither family may have a DROP policy.
+- name: Reset FORWARD policy
+  become: true
+  ansible.builtin.iptables:
+    chain: FORWARD
+    policy: ACCEPT
+    ip_version: "{{ item }}"
+  loop:
+    - ipv4
+    - ipv6
