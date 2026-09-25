@@ -1,4 +1,4 @@
-# 2026-09-24 20:16:44 by RouterOS 7.14.1
+# 2026-09-24 20:40:16 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -99,6 +99,7 @@ add address=100.64.0.0/10 list=private
 add address=10.42.42.0/24 comment="Labnet (including SNATed Tailscale traffic)" list=cluster-admins
 /ip firewall filter
 add action=accept chain=input comment="defconf: accept established,related,untracked" connection-state=established,related,untracked
+add action=drop chain=input comment="drop invalid: TCP teardown, unlogged" connection-state=invalid protocol=tcp tcp-flags=rst
 add action=drop chain=input comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalidinput]"
 add action=accept chain=input comment="defconf: accept ICMP" protocol=icmp
 add action=accept chain=input comment="defconf: accept to local loopback (for CAPsMAN)" dst-address=127.0.0.1
@@ -112,6 +113,8 @@ add action=accept chain=forward comment="defconf: accept in ipsec policy" ipsec-
 add action=accept chain=forward comment="defconf: accept out ipsec policy" ipsec-policy=out,ipsec
 add action=fasttrack-connection chain=forward comment="defconf: fasttrack" connection-state=established,related hw-offload=yes
 add action=accept chain=forward comment="defconf: accept established,related, untracked" connection-state=established,related,untracked
+add action=drop chain=forward comment="drop invalid: TCP teardown, unlogged" connection-state=invalid protocol=tcp tcp-flags=rst
+add action=drop chain=forward comment="drop invalid: TCP teardown, unlogged" connection-state=invalid protocol=tcp tcp-flags=fin
 add action=drop chain=forward comment="defconf: drop invalid" connection-state=invalid log=yes log-prefix="[invalid]"
 add action=drop chain=forward comment="defconf: drop all from WAN not DSTNATed" connection-nat-state=!dstnat connection-state=new in-interface-list=WAN
 add action=accept chain=forward comment="DPUNET: internet" dst-address-list=!private in-interface-list=DPUNET out-interface-list=WAN
