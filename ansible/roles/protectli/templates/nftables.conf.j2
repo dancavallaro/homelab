@@ -13,6 +13,7 @@ delete table inet router
 table inet router {
   set admin {
     type ipv4_addr
+    flags interval
     elements = { {{ protectli_admin_hosts | join(', ') }} }
   }
 
