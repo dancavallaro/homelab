@@ -112,6 +112,10 @@ spec:
             - name: loki-data
               mountPath: /loki
               readOnly: false
+          resources:
+            requests:
+              cpu: 25m
+              memory: 320Mi
         - name: spiffe-proxy
           image: ghostunnel/ghostunnel:v1.11.3-distroless
           args:

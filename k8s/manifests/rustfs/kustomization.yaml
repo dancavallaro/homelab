@@ -25,6 +25,10 @@ helmCharts:
         name: local-path-v2
         dataStorageSize: 10Gi
         logStorageSize: 1Gi
+      resources:
+        requests:
+          cpu: 10m
+          memory: 256Mi
       secret:
         existingSecret: rustfs-secret-config
       ingress:

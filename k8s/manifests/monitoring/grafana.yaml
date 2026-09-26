@@ -120,6 +120,10 @@ spec:
             - name: grafana-data
               mountPath: /grafana
               readOnly: false
+          resources:
+            requests:
+              cpu: 10m
+              memory: 320Mi
       volumes:
         - name: grafana-conf
           configMap:

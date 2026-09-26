@@ -9,3 +9,4 @@ patches:
 - path: argocd-cm.patch.yaml
 - path: argocd-rbac-cm.patch.yaml
 - path: argocd-cmd-params-cm.patch.yaml
+- path: resources.patch.yaml

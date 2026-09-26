@@ -47,6 +47,10 @@ spec:
           volumeMounts:
             - name: alloy-conf
               mountPath: /etc/alloy.d
+          resources:
+            requests:
+              cpu: 25m
+              memory: 384Mi
       volumes:
         - name: alloy-conf
           configMap:
@@ -102,6 +106,10 @@ spec:
             - name: udev-data
               mountPath: /host/udev
               mountPropagation: HostToContainer
+          resources:
+            requests:
+              cpu: 25m
+              memory: 256Mi
       volumes:
         - name: alloy-talos-conf
           configMap:

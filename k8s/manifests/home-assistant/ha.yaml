@@ -79,6 +79,10 @@ spec:
               name: hass-data
           ports:
             - containerPort: 8123
+          resources:
+            requests:
+              cpu: 100m
+              memory: 640Mi
       volumes:
         - name: hass-data
           persistentVolumeClaim:

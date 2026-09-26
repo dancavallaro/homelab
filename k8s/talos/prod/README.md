@@ -122,7 +122,7 @@ $ virt-install --name talos-prod-worker2 \
 $ virsh autostart talos-prod-worker2
 # Create worker3, pass through the attached ESP32's USB serial device
 $ virt-install --name talos-prod-worker3 \
-     --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
+     --ram 6144 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=50,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args="console=ttyS0 talos.platform=metal slab_nomerge pti=on ip=10.11.0.102::$GATEWAY:255.255.255.0::enp1s0:off" --noautoconsole \
