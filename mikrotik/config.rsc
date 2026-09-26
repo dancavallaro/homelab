@@ -1,4 +1,4 @@
-# 2026-09-25 09:13:24 by RouterOS 7.14.1
+# 2026-09-26 19:23:07 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -177,6 +177,10 @@ set enabled=yes
 set time-zone-name=America/New_York
 /system note
 set show-at-login=no
+/system ntp client
+set enabled=yes
+/system ntp client servers
+add address=time.cloudflare.com
 /tool mac-server
 set allowed-interface-list=LAN
 /tool mac-server mac-winbox
