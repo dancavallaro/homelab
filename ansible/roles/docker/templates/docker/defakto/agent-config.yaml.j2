@@ -1,5 +1,6 @@
 spirl-endpoint: defakto.o.cavnet.cloud:443
 cluster-name: linux-servers
+spirl-agent-id: "{{ inventory_hostname }}"
 agent-attestors:
   - type: http_dns
     config:
