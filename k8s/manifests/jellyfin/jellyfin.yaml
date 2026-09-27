@@ -4,6 +4,9 @@ metadata:
   name: jellyfin
   labels:
     pod-security.kubernetes.io/enforce: privileged
+  annotations:
+    # Before the home NetworkAttachmentDefinition, which is wave -1.
+    argocd.argoproj.io/sync-wave: "-1"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -26,6 +29,9 @@ metadata:
 spec:
   replicas: 1
   revisionHistoryLimit: 0
+  # One pod at a time: the home leg's address and MAC are fixed.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: jellyfin
@@ -33,6 +39,8 @@ spec:
     metadata:
       labels:
         app: jellyfin
+      annotations:
+        k8s.v1.cni.cncf.io/networks: home
     spec:
       volumes:
         - name: jellyfin-config
@@ -72,7 +80,6 @@ metadata:
   namespace: jellyfin
   name: jellyfin
 spec:
-  type: NodePort # Expose to TVs on dtcnet
   selector:
     app: jellyfin
   ports:

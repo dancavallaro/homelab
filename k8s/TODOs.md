@@ -4,6 +4,7 @@ In-progress (updated 8/20/26):
 TODOs:
 * Open Issues/PRs for the resiliency patches I have on my synology-csi fork
 * Revamp LGTM deployment: upgrade versions, revamp config (e.g. annotation-driven), use real storage, enable retention, consider HA
+* Look into iGPU passthrough on talos-host to improve Jellyfin transcoding
 * Shed load from UPS to increase battery runtime - prioritize NAS first, then NUC
 * Remote ESP32 firmware flashing and testing using the stick plugged into the NUC
 * Submit kubectl-unmount to Krew index (need to rename first)
