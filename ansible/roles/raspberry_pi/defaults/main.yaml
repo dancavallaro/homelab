@@ -1,0 +1,16 @@
+raspberry_pi: false
+# Desktop-image services with no job on a headless, wired Pi; socket- and D-Bus-activated ones need masking.
+raspberry_pi_masked_services:
+  - accounts-daemon.service
+  - avahi-daemon.service
+  - avahi-daemon.socket
+  - bluetooth.service
+  - cups.path
+  - cups.service
+  - cups.socket
+  - cups-browsed.service
+  - ModemManager.service
+  - rtkit-daemon.service
+  - triggerhappy.service
+  - triggerhappy.socket
+  - udisks2.service

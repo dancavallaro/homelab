@@ -12,6 +12,7 @@
     - {role: logging, tags: logging}
     - {role: tailscale, tags: tailscale}
     - {role: ups, tags: ups, when: monitor_ups}
+    - {role: raspberry_pi, tags: raspberry_pi, when: raspberry_pi}
     - {role: console, tags: console, when: enable_console}
     - {role: protectli, tags: protectli, when: inventory_hostname == 'protectli.lan'}
     - {role: talos_host, tags: talos_host, when: inventory_hostname == 'talos-host.lan'}

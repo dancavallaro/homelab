@@ -1,0 +1,64 @@
+- name: Read the default boot target
+  ansible.builtin.command: systemctl get-default
+  register: raspberry_pi_default_target
+  changed_when: false
+  check_mode: false
+
+- name: Boot to the console instead of the desktop
+  become: true
+  ansible.builtin.command: systemctl set-default multi-user.target
+  when: raspberry_pi_default_target.stdout != 'multi-user.target'
+
+- name: Stop the desktop
+  become: true
+  ansible.builtin.systemd_service:
+    name: lightdm
+    state: stopped
+    enabled: false
+
+- name: Mask unused desktop services
+  become: true
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+    masked: true
+  loop: "{{ raspberry_pi_masked_services }}"
+
+- name: Remove Raspberry Pi Connect
+  become: true
+  ansible.builtin.apt:
+    pkg: rpi-connect
+    state: absent
+
+- name: Install zram generator
+  become: true
+  ansible.builtin.apt:
+    pkg: systemd-zram-generator
+
+- name: Configure zram swap
+  become: true
+  ansible.builtin.copy:
+    src: zram-generator.conf
+    dest: /etc/systemd/zram-generator.conf
+
+# zram comes up first so pages leaving the swapfile have somewhere to go.
+- name: Start zram swap
+  become: true
+  ansible.builtin.systemd_service:
+    name: dev-zram0.swap
+    state: started
+    daemon_reload: true
+
+- name: Stop swapping to the SD card
+  become: true
+  ansible.builtin.systemd_service:
+    name: dphys-swapfile
+    state: stopped
+    enabled: false
+
+- name: Delete the swapfile
+  become: true
+  ansible.builtin.command: dphys-swapfile uninstall
+  args:
+    removes: /var/swap
