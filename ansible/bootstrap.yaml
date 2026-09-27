@@ -1,5 +1,5 @@
 - name: Bootstrap host
-  hosts: all:!proxmox:!inference_vms
+  hosts: cattle
   pre_tasks:
     - name: Sanity check
       tags:
