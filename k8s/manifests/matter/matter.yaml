@@ -4,6 +4,9 @@ metadata:
   name: matter
   labels:
     pod-security.kubernetes.io/enforce: privileged
+  annotations:
+    # Before the home NetworkAttachmentDefinition, which is wave -1.
+    argocd.argoproj.io/sync-wave: "-1"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -61,14 +64,20 @@ spec:
     metadata:
       labels:
         app: matter-server
+      annotations:
+        k8s.v1.cni.cncf.io/networks: home
     spec:
-      nodeSelector:
-        network: dtcnet
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: matter-server
           image: ghcr.io/matter-js/python-matter-server:8.1.2
+          # The image's default CMD plus the interface that carries the Thread routes.
+          args:
+            - --storage-path
+            - /data
+            - --paa-root-cert-dir
+            - /data/credentials
+            - --primary-interface
+            - net1
           volumeMounts:
             - mountPath: /data
               name: matter-data
