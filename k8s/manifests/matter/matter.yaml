@@ -55,7 +55,7 @@ spec:
   selector:
     matchLabels:
       app: matter-server
-  replicas: 0
+  replicas: 1
   revisionHistoryLimit: 0
   template:
     metadata:
@@ -77,4 +77,4 @@ spec:
       volumes:
         - name: matter-data
           persistentVolumeClaim:
-            claimName: matter-data
+            claimName: matter-data-iscsi
