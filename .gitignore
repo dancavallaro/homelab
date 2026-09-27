@@ -21,3 +21,6 @@ talosconfig
 .terraform
 terraform.tfstate
 terraform.tfstate.backup
+
+# RouterOS binary backups hold the unencrypted user database; only the config export is tracked
+mikrotik/backups/

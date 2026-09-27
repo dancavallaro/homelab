@@ -12,7 +12,7 @@ spec:
       helm:
         valueFiles:
           - $values/k8s/manifests/pod-identity-webhook/values.yaml
-    - repoURL: https://github.com/dancavallaro/rpi-config
+    - repoURL: https://github.com/dancavallaro/homelab
       targetRevision: HEAD
       ref: values
   destination:

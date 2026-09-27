@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/dancavallaro/rpi-config
+    repoURL: https://github.com/dancavallaro/homelab
     targetRevision: HEAD
     path: k8s/manifests/serial-logger
   destination:
