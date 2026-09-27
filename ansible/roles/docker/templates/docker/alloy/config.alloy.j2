@@ -84,6 +84,41 @@ prometheus.relabel "hostmetrics" {
   ]
 }
 
+{% if homenet_probes %}
+// A pod can come up without its Multus leg, so probe each leg's address from outside the cluster.
+prometheus.exporter.blackbox "homenet" {
+  config = "{ modules: { tcp_connect: { prober: tcp, timeout: 5s } } }"
+{% for probe in homenet_probes %}
+  target {
+    name    = "{{ probe.name }}"
+    address = "{{ probe.address }}"
+    module  = "tcp_connect"
+    labels  = {target = "{{ probe.address }}"}
+  }
+{% endfor %}
+}
+
+prometheus.scrape "homenet" {
+  scrape_interval = "60s"
+  targets = prometheus.exporter.blackbox.homenet.targets
+  forward_to = [
+    prometheus.relabel.homenet.receiver,
+  ]
+}
+
+prometheus.relabel "homenet" {
+  rule {
+    action = "replace"
+    replacement = "homenet_probe"
+    target_label = "service"
+  }
+
+  forward_to = [
+    prometheus.remote_write.mimir.receiver,
+  ]
+}
+
+{% endif %}
 loki.write "loki" {
   endpoint {
     url = "{{ 'https' if enable_spiffe else 'http' }}://loki.o.cavnet.cloud/loki/api/v1/push"

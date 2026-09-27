@@ -561,8 +561,10 @@ MikroTik too; see [Tailscale](#tailscale).
   daemon deletes `00-multus.conf` when it exits, and kubelet restarts pods at boot before the new
   Multus pod rewrites it; a sandbox created in that window gets Cilium only, with no `net1`
   (observed 2026-09-27 after a talos-host reboot, about 4 minutes). A user-provided
-  `multusConfigFile` is no fix in v4.3.1: the daemon exits at once in that mode. Recovery:
-  `kubectl delete pod` on any homenet pod whose `ip addr` lacks `net1`.
+  `multusConfigFile` is no fix in v4.3.1: the daemon exits at once in that mode. Alloy on
+  `rpi.lan` TCP-probes each leg (`ansible/host_vars/rpi.lan.yaml`), and the `homenet-legs` group
+  in `k8s/manifests/monitoring/alerts/home.yaml` alerts after 5 minutes without an answer.
+  Recovery: `kubectl delete pod` on any homenet pod whose `ip addr` lacks `net1`.
 - **The data-path SF's MAC may not survive a reimage.** `02:90:ef:4f:75:ed` is locally
   administered. If it changes, `dpu-p0`'s reservation stops matching.
 

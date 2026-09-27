@@ -27,3 +27,18 @@ groups:
         for: 10m
         annotations:
           message: "Basement freezer has drawn no current for over 2h - freezer may have lost power or failed"
+  # Blackbox probes from rpi.lan's Alloy, listed in ansible/host_vars/rpi.lan.yaml.
+  - name: homenet-legs
+    interval: 1m
+    rules:
+      - alert: Homenet pod has lost its Multus leg
+        expr: probe_success{service="homenet_probe"} == 0
+        for: 5m
+        annotations:
+          message: "{{ $labels.target }} stopped answering from rpi.lan. Check the pod for net1; if it's missing, delete the pod."
+      # Keep the count equal to the length of homenet_probes.
+      - alert: Homenet leg probes are not reporting
+        expr: count(probe_success{service="homenet_probe"}) < 4 or absent(probe_success{service="homenet_probe"})
+        for: 10m
+        annotations:
+          message: "Fewer than 4 homenet probe results in Mimir. Is Alloy on rpi.lan running and remote-writing?"

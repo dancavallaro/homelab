@@ -1,3 +1,4 @@
 enable_spiffe: false
 # Stop Docker setting the FORWARD policy to DROP; only for hosts that route (the Protectli).
 docker_ip_forward_no_drop: false
+homenet_probes: []

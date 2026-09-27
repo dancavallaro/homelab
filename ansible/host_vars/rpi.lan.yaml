@@ -1,0 +1,6 @@
+# TCP probes of the homenet pods' Multus legs; alerts in k8s/manifests/monitoring/alerts/home.yaml.
+homenet_probes:
+  - {name: home-assistant, address: "192.168.6.100:8123"}
+  - {name: jellyfin, address: "192.168.6.101:8096"}
+  - {name: matter, address: "192.168.6.102:5580"}
+  - {name: unifi, address: "192.168.6.103:8443"}
