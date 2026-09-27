@@ -95,6 +95,7 @@ spec:
             - --target=127.0.0.1:8080
             - --use-workload-api
             - --allow-uri=spiffe://prod.cavallaro.local/linux-servers/*/mimir-proxy
+            - --allow-uri=spiffe://prod.cavallaro.local/linux-servers/*/alloy
           ports:
             - name: mtls
               containerPort: 8443
