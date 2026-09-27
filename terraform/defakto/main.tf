@@ -152,6 +152,8 @@ resource "spirl_cluster_config" "talos-prod" {
           x509:
             dnsNames:
               - "{{kubernetes.pod.service_account}}.o.cavnet.cloud"
+          jwt:
+            ttl: 30m
     YAML
   }
 }
