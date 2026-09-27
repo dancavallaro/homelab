@@ -1,0 +1,47 @@
+# llama.cpp's web UI on the cletus LXC (guest VLAN behind the Protectli).
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-ui
+  namespace: dpu-host
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: llama-ui
+  namespace: dpu-host
+  labels:
+    kubernetes.io/service-name: llama-ui
+addressType: IPv4
+ports:
+  - port: 8080
+endpoints:
+  - addresses:
+      - "10.255.4.20"
+    conditions: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: llama-ui
+  namespace: dpu-host
+spec:
+  parentRefs:
+    - namespace: default
+      name: private-gateway
+      sectionName: websecure
+  hostnames:
+    - llama.o.cavnet.cloud
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: llama-ui
+          port: 80
