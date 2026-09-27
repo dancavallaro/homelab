@@ -12,3 +12,12 @@ machine:
           - bind
           - rshared
           - rw
+  network:
+    interfaces:
+      # Home-network leg for pods' macvlan interfaces; the node itself holds no address on it.
+      - deviceSelector:
+          hardwareAddr: '02:d7:c0:00:0b:*'
+          physical: true
+        dhcp: false
+  sysctls:
+    net.ipv6.conf.enp9s0.disable_ipv6: "1"

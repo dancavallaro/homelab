@@ -107,7 +107,7 @@ $ virt-install --name talos-prod-worker1 \
      --extra-args="console=ttyS0 talos.platform=metal slab_nomerge pti=on ip=10.11.0.100::$GATEWAY:255.255.255.0::enp1s0:off" --noautoconsole \
      --network bridge="$VM_BRIDGE",mac=02:52:A7:0B:1D:89
 $ virsh autostart talos-prod-worker1
-# Create worker2, attached to dtcnet and pass through the TP-Link BT USB device.
+# Create worker2 and pass through the TP-Link BT USB device.
 # xpath.delete strips the resolved USB bus/device address that virt-install bakes
 # into the hostdev, so libvirt re-matches by vendor/product on every boot
 # (USB device numbers are not stable across host reboots).
@@ -116,7 +116,7 @@ $ virt-install --name talos-prod-worker2 \
      --disk size=50,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args="console=ttyS0 talos.platform=metal slab_nomerge pti=on ip=10.11.0.101::$GATEWAY:255.255.255.0::enp1s0:off" --noautoconsole \
-     --network bridge="$VM_BRIDGE",mac=DE:6F:9F:0D:15:96 --network bridge=br192,mac=1e:03:e4:b3:4f:47 \
+     --network bridge="$VM_BRIDGE",mac=DE:6F:9F:0D:15:96 \
      --hostdev 0x2357:0x0604 \
      --xml xpath.delete=./devices/hostdev/source/address
 $ virsh autostart talos-prod-worker2
@@ -141,6 +141,21 @@ $ virsh dumpxml --inactive talos-prod-worker2 | grep -A8 '<hostdev'
 
 Note: `virsh dumpxml` on a *running* domain will still show a resolved
 `<address>` — that's live state only and expected.
+
+#### Attach the home-network NIC
+
+Every worker gets a second NIC on `br192` at PCI bus 9, so Talos names it `enp9s0` on all of
+them and one Multus config works on any node. The MACs share the prefix `02:d7:c0:00:0b:`,
+which `worker-common.patch.yaml` selects. Give each VM its own MAC, then power-cycle it
+(a guest reboot does not pick up `--config` changes):
+
+```shell
+$ printf '%s\n' "<interface type='bridge'>" "  <mac address='02:d7:c0:00:0b:01'/>" \
+    "  <source bridge='br192'/>" "  <model type='virtio'/>" \
+    "  <address type='pci' domain='0x0000' bus='0x09' slot='0x00' function='0x0'/>" \
+    "</interface>" > /tmp/home-nic.xml
+$ virsh -c qemu:///system attach-device talos-prod-worker1 /tmp/home-nic.xml --config
+```
 
 #### Prepare config
 
