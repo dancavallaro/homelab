@@ -123,7 +123,6 @@ spec:
             - --listen=0.0.0.0:8443
             - --target=127.0.0.1:3100
             - --use-workload-api
-            - --allow-uri=spiffe://prod.cavallaro.local/linux-servers/*/loki-proxy
             - --allow-uri=spiffe://prod.cavallaro.local/linux-servers/*/alloy
             - --allow-uri=spiffe://prod.cavallaro.local/iot/*
           ports:

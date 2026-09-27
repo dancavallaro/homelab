@@ -1,15 +1,14 @@
-{% set alloy_spiffe = enable_spiffe and alloy_native_spiffe %}
 services:
   alloy:
     container_name: alloy
     restart: unless-stopped
     privileged: true
     network_mode: host
-    image: {{ 'ghcr.io/dancavallaro/alloy:v1.20.0-spiffe' if alloy_spiffe else 'grafana/alloy:v1.20.0' }}
+    image: {{ 'ghcr.io/dancavallaro/alloy:v1.20.0-spiffe' if enable_spiffe else 'grafana/alloy:v1.20.0' }}
     command:
       - run
       - --server.http.listen-addr=127.0.0.1:12345
-{% if alloy_spiffe %}
+{% if enable_spiffe %}
       - --stability.level=experimental
 {% endif %}
       - /etc/alloy.d
@@ -19,8 +18,9 @@ services:
       - /sys:/host/sys:ro
       - /run/udev/data:/host/udev:ro
       - ./alloy:/etc/alloy.d
-{% if alloy_spiffe %}
+{% if enable_spiffe %}
       - /var/run/spirl:/var/run/spirl
+    # Otherwise spirl's Docker attestor sees the host cgroup mounts above as a second container ID.
     cgroup: host
     depends_on:
       - spirl-agent
@@ -42,36 +42,4 @@ services:
       - ./defakto:/etc/spirl
       - /etc/passwd:/etc/passwd:ro
       - /etc/group:/etc/group:ro
-
-  mimir-proxy:
-    container_name: mimir-proxy
-    restart: unless-stopped
-    network_mode: host
-    image: ghostunnel/ghostunnel:v1.11.3-distroless
-    command:
-      - client
-      - --listen=127.0.0.1:9009
-      - --target=mimir.o.cavnet.cloud:443
-      - --use-workload-api-addr=unix:///var/run/spirl/spiffe.sock
-      - --verify-uri=spiffe://prod.cavallaro.local/talos-prod/ns/monitoring/sa/mimir
-    volumes:
-      - /var/run/spirl:/var/run/spirl
-    depends_on:
-      - spirl-agent
-
-  loki-proxy:
-    container_name: loki-proxy
-    restart: unless-stopped
-    network_mode: host
-    image: ghostunnel/ghostunnel:v1.11.3-distroless
-    command:
-      - client
-      - --listen=127.0.0.1:3100
-      - --target=loki.o.cavnet.cloud:443
-      - --use-workload-api-addr=unix:///var/run/spirl/spiffe.sock
-      - --verify-uri=spiffe://prod.cavallaro.local/talos-prod/ns/monitoring/sa/loki
-    volumes:
-      - /var/run/spirl:/var/run/spirl
-    depends_on:
-      - spirl-agent
 {% endif %}

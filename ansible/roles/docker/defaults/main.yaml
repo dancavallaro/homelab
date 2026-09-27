@@ -1,5 +1,3 @@
 enable_spiffe: false
-# Alloy speaks SPIFFE mTLS itself (custom build) instead of via the ghostunnel tunnels; needs enable_spiffe.
-alloy_native_spiffe: false
 # Stop Docker setting the FORWARD policy to DROP; only for hosts that route (the Protectli).
 docker_ip_forward_no_drop: false
