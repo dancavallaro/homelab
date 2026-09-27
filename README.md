@@ -1,11 +1,13 @@
-# rpi-config
+# homelab
 
-This repo *originally* (starting in December 2023) contained config files, scripts, and documentation
-that I used to manage the Raspberry Pi 4 that I had running as a home server, mostly to run Home Assistant
-for home automation.
+Configuration for my home infrastructure. Most of it manages a Kubernetes cluster: Talos Linux on 4 VMs
+on a NUC 11, deployed GitOps-style by ArgoCD from this repo's `main` branch.
 
-It's grown and morphed in the last couple of years and last week (in May 2025) I just completed migrating
-the last service from that RPi (actually an RPi 5 which replaced the original RPi 4 when my needs outgrew
-its 1 GB of RAM) to a Kubernetes cluster running on Talos Linux in 4 VMs on a NUC 11. Both RPis are still
-running, but they're really just sitting around as little ARM Linux boxes for when I need that (and as 
-additional Tailscale nodes on my home office network).
+- `k8s/` holds the ArgoCD Applications (`apps/`, `infra/`), the manifests and Helm values they point at
+  (`manifests/`), and the Talos machine config (`talos/`).
+- `ansible/` provisions the hosts outside the cluster: the Raspberry Pis, the bastion, the Talos
+  hypervisor host, and the Protectli.
+- `mikrotik/` is the RouterOS config for the MikroTik RB5009.
+- `terraform/defakto/` configures Defakto (workload identity) for the cluster.
+- `docs/network.md` describes the network architecture, with diagrams.
+- `bin/` and `dotfiles/` hold utility scripts and shell config.
