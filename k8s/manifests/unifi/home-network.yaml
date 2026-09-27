@@ -1,0 +1,25 @@
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  namespace: unifi
+  name: home
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  config: |
+    {
+      "cniVersion": "1.0.0",
+      "name": "home",
+      "plugins": [
+        {
+          "type": "macvlan",
+          "master": "enp9s0",
+          "mode": "bridge",
+          "mac": "02:d7:c0:00:0c:03",
+          "ipam": {
+            "type": "static",
+            "addresses": [{ "address": "192.168.6.103/22" }]
+          }
+        }
+      ]
+    }

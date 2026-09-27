@@ -48,12 +48,9 @@ spec:
     metadata:
       labels:
         app: unifi-app
+      annotations:
+        k8s.v1.cni.cncf.io/networks: home
     spec:
-      nodeSelector:
-        network: dtcnet
-      hostNetwork: true
-      # Otherwise it won't be able to resolve the DB service DNS name
-      dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: unifi-network-app
           image: lscr.io/linuxserver/unifi-network-application:9.0.108
