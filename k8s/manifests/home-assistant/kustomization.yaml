@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: hass
 resources:
   - ha.yaml
+  - home-network.yaml
 configMapGenerator:
   - name: hass-config
     files:

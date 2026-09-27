@@ -168,7 +168,7 @@ $ talosctl mc patch worker.yaml \
 $ talosctl mc patch worker.yaml \
     --patch @patches/common.patch.yaml \
     --patch @patches/worker-common.patch.yaml \
-    --patch @patches/worker-dtcnet.patch.yaml \
+    --patch @patches/worker-bluetooth.patch.yaml \
     --patch @patches/node-worker2.patch.yaml \
     --output worker2.final.yaml
 $ talosctl mc patch worker.yaml \

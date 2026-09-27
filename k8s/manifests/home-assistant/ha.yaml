@@ -4,6 +4,9 @@ metadata:
   name: hass
   labels:
     pod-security.kubernetes.io/enforce: privileged
+  annotations:
+    # Before the home NetworkAttachmentDefinition, which is wave -1.
+    argocd.argoproj.io/sync-wave: "-1"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -24,13 +27,11 @@ metadata:
   namespace: hass
   name: hass
 spec:
-  type: NodePort
   selector:
     app: hass
   ports:
     - port: 80
       targetPort: 8123
-      nodePort: 30609
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -48,11 +49,9 @@ spec:
     metadata:
       labels:
         app: hass
+      annotations:
+        k8s.v1.cni.cncf.io/networks: home
     spec:
-      nodeSelector:
-        network: dtcnet
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
       initContainers:
         - name: init-config
           image: alpine:3

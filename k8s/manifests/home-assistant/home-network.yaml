@@ -1,0 +1,26 @@
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  namespace: hass
+  name: home
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  # worker2's former homenet MAC: the eero reservation and home devices' ARP entries for .100 stay valid.
+  config: |
+    {
+      "cniVersion": "1.0.0",
+      "name": "home",
+      "plugins": [
+        {
+          "type": "macvlan",
+          "master": "enp9s0",
+          "mode": "bridge",
+          "mac": "1e:03:e4:b3:4f:47",
+          "ipam": {
+            "type": "static",
+            "addresses": [{ "address": "192.168.6.100/22" }]
+          }
+        }
+      ]
+    }
