@@ -19,6 +19,19 @@ spec:
       storage: 100Mi
 ---
 apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: matter
+  name: matter-data-iscsi
+spec:
+  storageClassName: synology-iscsi
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
 kind: Service
 metadata:
   namespace: matter
@@ -42,7 +55,7 @@ spec:
   selector:
     matchLabels:
       app: matter-server
-  replicas: 1
+  replicas: 0
   revisionHistoryLimit: 0
   template:
     metadata:
