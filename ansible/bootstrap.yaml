@@ -33,3 +33,9 @@
         timeout: 120
   roles:
     - {role: llama, tags: llama}
+
+- name: Configure BlueField-3 DPU
+  hosts: dpu
+  roles:
+    - {role: dpu, tags: dpu}
+    - {role: logging, tags: logging}

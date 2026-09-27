@@ -1,0 +1,7 @@
+spirl-endpoint: defakto.o.cavnet.cloud:443
+cluster-name: networking-secure
+spirl-agent-id: "{{ inventory_hostname }}"
+# The default, :8086, listens on every host interface.
+health-listen-addr: 127.0.0.1:8086
+agent-attestors:
+  - type: tpm_ek

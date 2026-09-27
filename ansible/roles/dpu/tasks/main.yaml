@@ -1,0 +1,12 @@
+- name: Install apt packages
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    pkg:
+      - rsyslog
+      # Creates the tss group and the udev rule that lets it open /dev/tpmrm0.
+      - tpm-udev
+      - tpm2-tools
+
+- name: Install spirl-agent
+  ansible.builtin.import_tasks: spirl-agent.yaml
