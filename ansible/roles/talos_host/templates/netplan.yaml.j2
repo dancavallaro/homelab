@@ -3,7 +3,9 @@ network:
   version: 2
   ethernets:
     enp89s0:
-      dhcp4: false
+      dhcp4: true
+      # The MikroTik's DHCP reservation for 10.42.42.2 keys on this MAC.
+      macaddress: "92:B9:36:6D:7F:97"
   vlans:
     vlan11:
       id: 11
@@ -12,11 +14,6 @@ network:
       id: 192
       link: enp89s0
   bridges:
-    br0:
-      dhcp4: true
-      macaddress: "92:B9:36:6D:7F:97"
-      interfaces:
-        - enp89s0
     # The cluster VLAN; the host deliberately has no address, not even link-local, on it.
     br11:
       interfaces:
@@ -24,7 +21,7 @@ network:
       dhcp4: false
       accept-ra: false
       link-local: []
-    # The home network, for worker2's second NIC; untagged in the guest keeps it off labnet's L2.
+    # The homenet, for every worker's enp9s0; untagged in the guest keeps it off labnet's L2.
     br192:
       interfaces:
         - vlan192

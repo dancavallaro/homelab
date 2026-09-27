@@ -2,7 +2,7 @@
 
 ### Networking config
 
-`ansible/roles/talos_host` manages the host's netplan: `br0` for the host's own labnet address,
+`ansible/roles/talos_host` manages the host's netplan: `enp89s0` for the host's own labnet address,
 `br11` for the cluster VLAN (VLAN 11), and `br192` for the homenet (VLAN 192), which every
 worker's `enp9s0` joins. The host has no address on either VLAN bridge. See `docs/network.md`.
 
@@ -142,7 +142,7 @@ $ virsh dumpxml --inactive talos-prod-worker2 | grep -A8 '<hostdev'
 Note: `virsh dumpxml` on a *running* domain will still show a resolved
 `<address>` — that's live state only and expected.
 
-#### Attach the home-network NIC
+#### Attach the homenet NIC
 
 Every worker gets a second NIC on `br192` at PCI bus 9, so Talos names it `enp9s0` on all of
 them and one Multus config works on any node. The MACs share the prefix `02:d7:c0:00:0b:`,

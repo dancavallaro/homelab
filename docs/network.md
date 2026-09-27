@@ -118,19 +118,18 @@ talos-host: labnet untagged, VLAN 192 bridged into the home network, and VLAN 11
 
 ## Inside talos-host
 
-The NUC's one NIC carries three things. Untagged frames are labnet, on `br0`, where the host
-holds `10.42.42.2`. VLAN 11 goes to `br11`, the cluster VLAN, where the host has no address —
+The NUC's one NIC carries three things. Untagged frames are labnet, where the host holds
+`10.42.42.2` directly on `enp89s0`. VLAN 11 goes to `br11`, the cluster VLAN, where the host has no address —
 not even IPv6 link-local — so the hypervisor has no presence in the VM network. VLAN 192 goes
 to `br192` the same way, and each worker's `enp9s0` joins it untagged, with no address on the node. The MikroTik bridges
-VLAN 192 into `dtcnet_bridge`. No VM is attached to `br0`: a guest NIC there would sit on
-labnet's L2, outside the cluster zone. `ansible/roles/talos_host` renders the netplan.
+VLAN 192 into `dtcnet_bridge`. `ansible/roles/talos_host` renders the netplan.
 
 ```mermaid
 flowchart LR
     e1["MikroTik ether1<br>untagged → bridge · VLAN 192 → dtcnet_bridge · VLAN 11 → vlan11, routed"]
 
     subgraph th["talos-host — NUC 11 · Ubuntu + libvirt"]
-        br0["br0 (enp89s0)<br>DHCP 10.42.42.2 — labnet"]
+        nic["enp89s0<br>DHCP 10.42.42.2 — labnet"]
         br11["br11 (vlan11 on enp89s0)<br>no host address"]
         br192["br192 (vlan192 on enp89s0)<br>no host address"]
         cp1["talos-prod-cp1<br>10.11.0.10"]
@@ -139,7 +138,7 @@ flowchart LR
         w3["talos-prod-worker3<br>10.11.0.102 · ESP32 USB serial"]
     end
 
-    e1 -->|"one wire carries all three"| br0
+    e1 -->|"one wire carries all three"| nic
     e1 --> br11
     br11 --> cp1
     br11 --> w1
@@ -558,6 +557,12 @@ MikroTik too; see [Tailscale](#tailscale).
   DHCP on `enp9s0` before the machine config claims it (observed 2026-09-27: 1.1 s, with a
   default route via `192.168.4.1`). It ends before kubelet and Cilium start, and it leaves an
   eero lease per worker MAC.
+- **Homenet pods can come up without their leg after an unattended reboot.** Multus's thick
+  daemon deletes `00-multus.conf` when it exits, and kubelet restarts pods at boot before the new
+  Multus pod rewrites it; a sandbox created in that window gets Cilium only, with no `net1`
+  (observed 2026-09-27 after a talos-host reboot, about 4 minutes). A user-provided
+  `multusConfigFile` is no fix in v4.3.1: the daemon exits at once in that mode. Recovery:
+  `kubectl delete pod` on any homenet pod whose `ip addr` lacks `net1`.
 - **The data-path SF's MAC may not survive a reimage.** `02:90:ef:4f:75:ed` is locally
   administered. If it changes, `dpu-p0`'s reservation stops matching.
 
@@ -575,6 +580,13 @@ Read from config or the live system:
 - **talos-host** — its netplan, bridges, and `FORWARD` policy, read over SSH.
 - **Tailscale** — the settings of all four hosts, read with `tailscale debug prefs`.
 - **Reachability** — `dig` and `curl` against LoadBalancer IPs from labnet.
+- **Homenet legs** — probed on 2026-09-27 from a Mac on the home Wi-Fi, each deny paired with
+  an allow of the same target from a pod in the cluster. HA answers on `192.168.6.100:8123` and
+  Jellyfin on `192.168.6.101:8096`; a former NodePort on `.100` is refused; a pod IP and a
+  ClusterIP stay unreachable through a static route via `.100`. HomeKit's `_hap._tcp` record
+  and emulated_hue's `URLBase` resolve to `.100`, and Matter's `net1` holds the Thread route
+  from the HomePod. Demo legs behaved the same on worker1 and worker3. Drained worker reboots
+  kept every leg; an undrained talos-host reboot did not, see [Known gaps](#known-gaps).
 - **Protectli segment** — the forward matrix probed on 2026-09-23 from a laptop in the admin
   set, from `rpi.lan`, and from `dpu-host`. Every deny was paired with an allow of the same
   target from an admin host, so a closed port can't pass for a drop. Since then bastion has left
@@ -583,7 +595,8 @@ Read from config or the live system:
 Taken on report, not inspected:
 
 - **Both eeros.** Addressing, SSID config and reservations come from the DAN-24
-  description, not from the devices.
+  description, not from the devices; the `.101`–`.103` reservations from direct report,
+  2026-09-27.
 - **The UniFi controller.** SSID-to-VLAN mapping is as described in the ticket; the
   controller's own config was not read.
 - **The Tailscale admin console.** Route approvals and MagicDNS split DNS.
