@@ -10,3 +10,6 @@
 
 - name: Install spirl-agent
   ansible.builtin.import_tasks: spirl-agent.yaml
+
+- name: Install Alloy
+  ansible.builtin.import_tasks: alloy.yaml

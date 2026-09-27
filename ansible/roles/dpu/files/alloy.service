@@ -1,0 +1,16 @@
+[Unit]
+Description=Grafana Alloy with native SPIFFE
+# Wants, not Requires: an agent restart must not stop Alloy; x509_source reconnects.
+Wants=network-online.target spirl-agent.service
+After=network-online.target spirl-agent.service
+
+[Service]
+User=alloy
+Group=alloy
+StateDirectory=alloy
+ExecStart=/usr/local/bin/alloy run --server.http.listen-addr=127.0.0.1:12345 --stability.level=experimental --storage.path=/var/lib/alloy /etc/alloy/config.alloy
+Restart=on-failure
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

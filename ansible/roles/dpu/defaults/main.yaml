@@ -1,2 +1,4 @@
 spirl_agent_version: 0.46.0
 spirl_agent_deb_sha256: 46eb99f7ffadc3f6dd593d094c4a8f9622888af2853341b062dcf0c1b8be8f75
+alloy_version: v1.20.0-spiffe
+alloy_sha256: 7efab89b7dcb569f762ac16c8087d5cbfa036433e5aee019cee67c7027b33284
