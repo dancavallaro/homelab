@@ -55,3 +55,7 @@ hubble:
       schedule: "0 0 1 */4 *" # re-issue every 4 months, well before expiry
 bpf:
   lbExternalClusterIP: false
+extraConfig:
+  # Defakto agents hold idle gRPC streams through the gateway; the 300s default resets them.
+  # The chart's envoy.streamIdleTimeoutDurationSeconds sets only the agent's key, not this operator flag.
+  proxy-stream-idle-timeout-seconds: "3600"
