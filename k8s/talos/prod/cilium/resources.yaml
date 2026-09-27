@@ -96,6 +96,6 @@ metadata:
   name: cluster-vlan
 spec:
   loadBalancerIPs: true
-  # Only the cluster VLAN NIC, so worker2 does not answer ARP on its home-network leg.
+  # Only the cluster VLAN NIC; the homenet NICs carry pods' macvlan legs and no node address.
   interfaces:
     - ^enp1s0$

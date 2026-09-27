@@ -12,19 +12,6 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   namespace: matter
-  name: matter-data
-spec:
-  storageClassName: local-path-v2
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 100Mi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  namespace: matter
   name: matter-data-iscsi
 spec:
   storageClassName: synology-iscsi

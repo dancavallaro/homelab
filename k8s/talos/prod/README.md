@@ -3,8 +3,8 @@
 ### Networking config
 
 `ansible/roles/talos_host` manages the host's netplan: `br0` for the host's own labnet address,
-`br11` for the cluster VLAN (VLAN 11), and `br192` for the home network (VLAN 192), which only
-worker2 joins. The host has no address on either VLAN bridge. See `docs/network.md`.
+`br11` for the cluster VLAN (VLAN 11), and `br192` for the homenet (VLAN 192), which every
+worker's `enp9s0` joins. The host has no address on either VLAN bridge. See `docs/network.md`.
 
 ```shell
 cd ansible && ansible-playbook -i inventory.ini bootstrap.yaml --limit talos-host.lan --tags talos_host

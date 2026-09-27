@@ -25,7 +25,7 @@ Home infrastructure configuration repository managing a Kubernetes cluster (Talo
 - **Cluster**: Talos Linux v1.13.9, Cilium CNI, ArgoCD for GitOps
 - **Observability**: LGTM stack (Loki, Grafana, Mimir, Alloy) in `k8s/manifests/monitoring/`
 - **Storage**: MinIO (S3), Synology iSCSI, local-path-provisioner, Volsync for backups
-- **Networking**: Tailscale, Cloudflare Tunnel, k8s_gateway for private DNS (`*.o.cavnet.cloud`)
+- **Networking**: Multus (macvlan homenet legs), Tailscale, Cloudflare Tunnel, k8s_gateway for private DNS (`*.o.cavnet.cloud`)
 - **Secrets**: External Secrets Operator; AWS access via web-identity federation / DIY IRSA (`oidc-provider` + `pod-identity-webhook`)
 - **IaC**: Ansible (roles under `ansible/roles/`, including host networking and Tailscale), Talos machine config patches, Kustomize
 
@@ -51,5 +51,5 @@ Apps are defined as ArgoCD `Application` resources in `k8s/apps/` and `k8s/infra
 
 - **DNS**: Private zone `*.o.cavnet.cloud` served by k8s_gateway at 172.16.42.53, forwarded by the MikroTik resolver (labnet, nodes) and Tailscale split DNS (Tailnet clients). Public access via Cloudflare Tunnel on `*.cavnet.io`.
 - **Cluster network**: nodes on routed VLAN 11 (`10.11.0.0/24`, gateway = MikroTik); LoadBalancers on `172.16.42.0/24`, on-link via Cilium L2 announcements. See `docs/network.md`.
-- **Worker node specialization**: worker2 has a `dtcnet` label and a home-network NIC on talos-host's `br192`; worker3 has USB passthrough for ESP32 serial logging.
-- **Talos config patches** are layered: `common` → `cp` or `worker-common` → optional per-worker patches (`worker-dtcnet`, `worker-esp32`, `oidc`) → the per-node `node-*.patch.yaml` (static address, hostname). Configs render from the age-encrypted secrets bundle with `--talos-version v1.9`; see `k8s/talos/prod/README.md`.
+- **Worker node specialization**: worker2 has the Bluetooth USB passthrough (`hardware: bluetooth`); worker3 has USB passthrough for ESP32 serial logging. Every worker has an unaddressed homenet NIC, `enp9s0`, on talos-host's `br192`; pods that need the homenet (HA, Matter, UniFi, Jellyfin) get a Multus macvlan interface on it, so they run on any worker.
+- **Talos config patches** are layered: `common` → `cp` or `worker-common` → optional per-worker patches (`worker-bluetooth`, `worker-esp32`, `oidc`) → the per-node `node-*.patch.yaml` (static address, hostname). Configs render from the age-encrypted secrets bundle with `--talos-version v1.9`; see `k8s/talos/prod/README.md`.

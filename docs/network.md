@@ -1,7 +1,7 @@
 # Network architecture
 
 Two parts. The sections up to [What is verified here](#what-is-verified-here-and-what-is-not)
-describe the network as it runs on 2026-09-24, drawn from config rather than memory.
+describe the network as it runs on 2026-09-27, drawn from config rather than memory.
 The section headed **Proposed** describes a design that has not been built.
 
 These are architecture, not migration plans: they state the shape and the reasoning behind it.
@@ -62,7 +62,7 @@ flowchart TD
 
     home ---|ether7| ngear["Netgear switch · 192.168.6.40<br>4-port expansion, the RB5009 is full"]
     ngear --- nas1["Synology NAS — 1 GbE<br>192.168.6.62 · DSM management"]
-    home ---|"vlan192 on ether1"| w2h["talos-prod-worker2<br>192.168.6.100/22"]
+    home ---|"vlan192 on ether1"| legs["Multus pod legs on br192<br>HA .100 · Jellyfin .101 · Matter .102 · UniFi .103"]
 
     lab ---|"ether1, untagged"| th["talos-host — NUC 11<br>10.42.42.2 · 4 Talos VMs"]
     cl ---|"ether1, VLAN 11"| th
@@ -111,14 +111,17 @@ talos-host: labnet untagged, VLAN 192 bridged into the home network, and VLAN 11
 | `192.168.6.40` | Netgear switch management |
 | `192.168.6.62` | Synology NAS — home network leg |
 | `192.168.6.67` | MikroTik — home network leg |
-| `192.168.6.100` | `talos-prod-worker2` — home network leg |
+| `192.168.6.100` | Home Assistant, Multus leg (MAC `1e:03:e4:b3:4f:47`, formerly worker2's) |
+| `192.168.6.101` | Jellyfin, Multus leg |
+| `192.168.6.102` | Matter server, Multus leg |
+| `192.168.6.103` | UniFi controller, Multus leg |
 
 ## Inside talos-host
 
 The NUC's one NIC carries three things. Untagged frames are labnet, on `br0`, where the host
 holds `10.42.42.2`. VLAN 11 goes to `br11`, the cluster VLAN, where the host has no address —
 not even IPv6 link-local — so the hypervisor has no presence in the VM network. VLAN 192 goes
-to `br192` the same way, and worker2's second NIC joins it untagged. The MikroTik bridges
+to `br192` the same way, and each worker's `enp9s0` joins it untagged, with no address on the node. The MikroTik bridges
 VLAN 192 into `dtcnet_bridge`. No VM is attached to `br0`: a guest NIC there would sit on
 labnet's L2, outside the cluster zone. `ansible/roles/talos_host` renders the netplan.
 
@@ -132,7 +135,7 @@ flowchart LR
         br192["br192 (vlan192 on enp89s0)<br>no host address"]
         cp1["talos-prod-cp1<br>10.11.0.10"]
         w1["talos-prod-worker1<br>10.11.0.100"]
-        w2["talos-prod-worker2<br>10.11.0.101 · Bluetooth passthrough<br>enp2s0 on br192, untagged → 192.168.6.100/22"]
+        w2["talos-prod-worker2<br>10.11.0.101 · Bluetooth passthrough"]
         w3["talos-prod-worker3<br>10.11.0.102 · ESP32 USB serial"]
     end
 
@@ -143,7 +146,9 @@ flowchart LR
     br11 --> w2
     br11 --> w3
     e1 --> br192
-    br192 -.->|"home network"| w2
+    br192 -.->|enp9s0| w1
+    br192 -.->|enp9s0| w2
+    br192 -.->|enp9s0| w3
 ```
 
 The host reaches the cluster the way any labnet client does: through the MikroTik, out and back
@@ -202,8 +207,10 @@ blocks:
 Cilium settings in `k8s/talos/prod/cilium/`:
 
 - One `CiliumL2AnnouncementPolicy` with `loadBalancerIPs: true` for all services, and an
-  `interfaces` regex matching only the VLAN 11 NIC. Without it, worker2 would also answer ARP
-  on its home-network leg.
+  `interfaces` regex matching only the VLAN 11 NIC, so no node answers ARP for a LoadBalancer
+  IP on its homenet NIC.
+- `devices` is `[enp1s0]`. Cilium never attaches to the homenet NICs, which carry pods' macvlan
+  children; tc ingress runs before macvlan's receive handler, and NodePorts are not served there.
 - `k8sClientRateLimit` at `qps: 10`, `burst: 20`. Each service holds a lease renewed every
   5 seconds, so 11 services cost 2.2 QPS against a default limit of 5 QPS that all other
   Cilium API traffic shares ([L2 Announcements](https://docs.cilium.io/en/stable/network/l2-announcements/)).
@@ -245,7 +252,11 @@ reboot should not also cost etcd its address. The cluster VLAN runs no DHCP serv
 - `cp.patch.yaml`: `etcd.advertisedSubnets` is `10.11.0.0/24`.
 
 Patches layer `common` → `cp` or `worker-common` → the optional role patches
-(`worker-dtcnet`, `worker-esp32`, `oidc`) → the node patch.
+(`worker-bluetooth`, `worker-esp32`, `oidc`) → the node patch.
+
+`worker-common.patch.yaml` also brings up any NIC with MAC `02:d7:c0:00:0b:*` with no address
+and IPv6 disabled. Each worker's homenet NIC sits on libvirt PCI bus 9, so it is `enp9s0`
+everywhere.
 
 The control-plane endpoint is `https://k8s.cavnet.cloud:6443`, on every node; it is in
 `certSANs`, talosconfig and the kubeconfig. Its Route53 A record holds `10.11.0.10`: a private
@@ -258,6 +269,28 @@ Configs render from the age-encrypted secrets bundle,
 `k8s/talos/prod/talos-prod-secrets.yaml.age`, with `talosctl gen config --with-secrets …
 --talos-version v1.9`. The v1.9 contract is how the cluster was first generated; rendering with
 it reproduces the live configs exactly. See `k8s/talos/prod/README.md`.
+
+### Homenet legs
+
+HA, Matter, UniFi and Jellyfin need the homenet's L2: mDNS and SSDP, HomeKit, the HomePod's
+router advertisements for Thread, UniFi AP inform, TVs. Each gets a second interface, `net1`,
+from Multus (thick plugin, `k8s/manifests/multus/`). A NetworkAttachmentDefinition named `home`
+in the workload's namespace makes `net1` a macvlan child of the node's `enp9s0`, with a static
+address and a MAC pinned in the macvlan plugin, each reserved on the eero. `net1` carries the
+connected `/22`; the default route stays on Cilium's `eth0`. Every leg takes a SLAAC address
+from the homenet's router advertisements, which carry no IPv6 default route. Only Matter's
+attachment also accepts their route information (`tuning` sets `accept_ra=2` and
+`accept_ra_rt_info_max_plen=64`), for the Thread routes.
+
+No node holds a homenet address, so home devices cannot reach NodePorts, pods or ClusterIPs
+through a node. Cilium does not see `net1`, so network policy does not cover it; the four pods
+are on the homenet by design. Talos ships no `macvlan`, `static` or `tuning` plugin; an init
+container in the Multus DaemonSet installs them from the pinned `containernetworking/plugins`
+release after checking its SHA-256. flicd stays on `hostNetwork` on worker2: the kernel refuses
+`AF_BLUETOOTH` sockets outside the initial network namespace.
+
+A home-leg pod's peers in the cluster must use a Service, not `localhost`: HA reaches Matter at
+`matter-server.matter.svc.cluster.local` and flicd at `flicd.flicd.svc.cluster.local`.
 
 ### The cluster zone on the MikroTik
 
@@ -309,8 +342,8 @@ add chain=forward action=drop out-interface-list=CLUSTER log=yes log-prefix="[cl
   before this block. Cluster to `DPUNET` stays dropped by `-> DPUNET: drop rest` until a
   workload behind the DPU is exposed.
 - **Traffic that never reaches the router:** node to node, switched inside `br11`; a node or
-  pod reaching a LoadBalancer IP, handled by Cilium's socket LB; and worker2's VLAN 192 leg,
-  which is bridged into `dtcnet_bridge`, not routed.
+  pod reaching a LoadBalancer IP, handled by Cilium's socket LB; and the pods' homenet legs,
+  which are bridged into `dtcnet_bridge` through `br192`, not routed.
 - **NAT:** internet-bound traffic leaves through the defconf masquerade. Traffic to labnet
   keeps its `10.11.0.x` source.
 
@@ -341,10 +374,6 @@ Protectli, since it admits only TCP 80 and 443 to the LoadBalancers.
 
 ### Not built
 
-- **Pod access to the home network.** Only worker2 has a home-network leg, VLAN 192. With
-  `br192` on talos-host, giving another node a leg is one more NIC, which would shrink
-  the dtcnet problem to Matter's router advertisements and Home Assistant's mDNS and SSDP.
-  That is its own design.
 - **Port policy between control plane and workers.** A separate control-plane VLAN would make
   every node-to-control-plane packet depend on the MikroTik. The Talos ingress firewall
   (`NetworkDefaultActionConfig`, `NetworkRuleConfig`) or Cilium's host firewall enforces the
@@ -501,9 +530,10 @@ MikroTik too; see [Tailscale](#tailscale).
 | Labnet, IoT, Tailnet | `172.16.42.0/24` | Cluster services | `mikrotik/config.rsc` |
 | Laptops `10.42.42.10`, `.11` | `10.11.0.10:6443`, nodes `:50000` | `kubectl`, `talosctl` | `mikrotik/config.rsc` (`cluster-admins`) |
 | rpi, bastion | `172.16.42.2:443`, `172.16.42.6:443` | Host telemetry over mTLS tunnels | `ansible/roles/docker/templates/docker/compose.yaml.j2` |
-| Home network TVs | `192.168.6.100` | Jellyfin, exposed as a NodePort | `k8s/manifests/jellyfin/jellyfin.yaml` |
-| UniFi APs | `192.168.6.100` | Controller, running `hostNetwork` on worker2 | `k8s/manifests/unifi/unifi-app.yaml` |
-| HomePod Thread border router | worker2 `enp2s0` | ICMPv6 route advertisements for Matter | `k8s/talos/prod/patches/worker-dtcnet.patch.yaml` |
+| Homenet devices | `192.168.6.100` | Home Assistant: UI, HomeKit bridge, emulated_hue, mDNS and SSDP | `k8s/manifests/home-assistant/home-network.yaml` |
+| Homenet TVs | `192.168.6.101:8096` | Jellyfin | `k8s/manifests/jellyfin/home-network.yaml` |
+| HomePod Thread border router | `192.168.6.102` (`net1`) | ICMPv6 route advertisements for Matter | `k8s/manifests/matter/home-network.yaml` |
+| UniFi APs | `192.168.6.103:8080` | Controller inform | `k8s/manifests/unifi/home-network.yaml` |
 | MikroTik resolver | `172.16.42.53` | `o.cavnet.cloud` forward | `mikrotik/config.rsc` |
 | Route53 | `10.11.0.10` | `k8s.cavnet.cloud` A record | AWS, outside this repo |
 | Everything behind the Protectli | `10.42.42.1:53` | DNS | `ansible/roles/protectli/templates/`, `mikrotik/config.rsc` |
@@ -524,6 +554,10 @@ MikroTik too; see [Tailscale](#tailscale).
 - **The Protectli fails open at boot.** If `nftables.service` fails, the kernel forwards
   between segments unfiltered. The ruleset is validated with `nft -c` before install and loads
   atomically.
+- **Workers DHCP on the homenet for about a second at boot.** Talos's early networking runs
+  DHCP on `enp9s0` before the machine config claims it (observed 2026-09-27: 1.1 s, with a
+  default route via `192.168.4.1`). It ends before kubelet and Cilium start, and it leaves an
+  eero lease per worker MAC.
 - **The data-path SF's MAC may not survive a reimage.** `02:90:ef:4f:75:ed` is locally
   administered. If it changes, `dpu-p0`'s reservation stops matching.
 
