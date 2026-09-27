@@ -32,7 +32,7 @@ spec:
   selector:
     matchLabels:
       app: unifi-db
-  replicas: 0
+  replicas: 1
   # ReadWriteOnce iSCSI volume: a rolling update onto another node would hang on attach.
   strategy:
     type: Recreate
@@ -79,7 +79,7 @@ spec:
             optional: false
         - name: unifi-db-data
           persistentVolumeClaim:
-            claimName: unifi-db-data
+            claimName: unifi-db-data-iscsi
 ---
 apiVersion: v1
 kind: ConfigMap

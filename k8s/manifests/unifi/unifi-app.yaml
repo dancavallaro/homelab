@@ -40,7 +40,7 @@ spec:
   selector:
     matchLabels:
       app: unifi-app
-  replicas: 0
+  replicas: 1
   # One pod at a time: the homenet leg's address and MAC are fixed.
   strategy:
     type: Recreate
@@ -100,7 +100,7 @@ spec:
       volumes:
         - name: unifi-app-config
           persistentVolumeClaim:
-            claimName: unifi-app-config
+            claimName: unifi-app-config-iscsi
 ---
 apiVersion: v1
 kind: Service
