@@ -10,6 +10,19 @@ spec:
     requests:
       storage: 1Gi
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: unifi
+  name: unifi-db-data-iscsi
+spec:
+  storageClassName: synology-iscsi
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,7 +32,10 @@ spec:
   selector:
     matchLabels:
       app: unifi-db
-  replicas: 1
+  replicas: 0
+  # ReadWriteOnce iSCSI volume: a rolling update onto another node would hang on attach.
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:

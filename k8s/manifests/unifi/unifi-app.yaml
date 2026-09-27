@@ -18,6 +18,19 @@ spec:
     requests:
       storage: 1Gi
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: unifi
+  name: unifi-app-config-iscsi
+spec:
+  storageClassName: synology-iscsi
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -27,7 +40,10 @@ spec:
   selector:
     matchLabels:
       app: unifi-app
-  replicas: 1
+  replicas: 0
+  # One pod at a time: the homenet leg's address and MAC are fixed.
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
