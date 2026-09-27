@@ -124,6 +124,7 @@ spec:
             - --target=127.0.0.1:3100
             - --use-workload-api
             - --allow-uri=spiffe://prod.cavallaro.local/linux-servers/*/alloy
+            - --allow-uri=spiffe://prod.cavallaro.local/networking-secure/*/alloy.service
             - --allow-uri=spiffe://prod.cavallaro.local/iot/*
           ports:
             - name: mtls
