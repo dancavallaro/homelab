@@ -8,6 +8,14 @@
       - tpm-udev
       - tpm2-tools
 
+# Its rules repeat the logging role's rsyslog.conf, so every local line would be written twice.
+- name: Remove Ubuntu's default rsyslog rules
+  become: true
+  notify: Restart rsyslog
+  ansible.builtin.file:
+    path: /etc/rsyslog.d/50-default.conf
+    state: absent
+
 - name: Install spirl-agent
   ansible.builtin.import_tasks: spirl-agent.yaml
 
