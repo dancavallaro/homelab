@@ -62,3 +62,6 @@ extraConfig:
 cni:
   # Multus writes its own CNI config beside Cilium's; exclusive mode renames it aside.
   exclusive: false
+# The home NICs carry pods' macvlan legs; Cilium must not attach to or serve NodePorts on them.
+devices:
+  - enp1s0
