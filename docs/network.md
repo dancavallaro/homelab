@@ -337,9 +337,9 @@ add chain=forward action=drop out-interface-list=CLUSTER log=yes log-prefix="[cl
   It is open to all of labnet, so a new host with `enable_spiffe` needs no rule.
 - **The NAS rule allows every port.** NFSv3 needs portmapper and mountd besides 2049, and the
   NAS is already a trusted dependency; narrowing its ports buys little.
-- **`DPUNET` is unchanged.** Its rule admitting TCP 80 and 443 to `172.16.42.0/24` matches
-  before this block. Cluster to `DPUNET` stays dropped by `-> DPUNET: drop rest` until a
-  workload behind the DPU is exposed.
+- **`DPUNET` rules match first.** Its rule admitting TCP 80 and 443 to `172.16.42.0/24`, and
+  `CLUSTER -> DPUNET guests`, sit before this block. Other cluster traffic to `DPUNET` is
+  dropped by `-> DPUNET: drop rest`; see [Exposing guest services](#exposing-guest-services).
 - **Traffic that never reaches the router:** node to node, switched inside `br11`; a node or
   pod reaching a LoadBalancer IP, handled by Cilium's socket LB; and the pods' homenet legs,
   which are bridged into `dtcnet_bridge` through `br192`, not routed.
@@ -465,8 +465,9 @@ Protectli forward policy, new connections (established and related are always ac
 | `tailscale0` (exit node) | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ |
 
 The admin hosts are the two laptops, `10.42.42.10` and `.11` (`protectli_admin_hosts`). Tailnet
-clients arrive SNAT'd as the primary subnet router and count as other labnet; cluster pods
-arrive as their node's `10.11.0.x` and are dropped by the MikroTik's `-> DPUNET: drop rest`.
+clients arrive SNAT'd as the primary subnet router and count as other labnet. Cluster traffic
+arrives as a node's `10.11.0.x` and also counts as other labnet, but the MikroTik passes only
+TCP to the guest VLAN; everything else is dropped by `-> DPUNET: drop rest`.
 Exit-node traffic to other private ranges leaves as `10.255.0.2` and is dropped by the
 MikroTik's zone rules.
 
@@ -485,7 +486,8 @@ Details that are easy to break:
 
 MikroTik `DPUNET` rules: the segment may reach the internet (non-RFC 1918 destinations only,
 which keeps it off the home network), the LoadBalancers on TCP 80 and 443, and the MikroTik's
-DNS. Labnet may initiate into it, and the Protectli applies the per-source rules. Everything
+DNS. Labnet may initiate into it, and the Protectli applies the per-source rules. The cluster
+may initiate TCP to the guest VLAN, `10.255.4.0/24`, and nowhere else in the segment. Everything
 else in or out of `DPUNET` is dropped explicitly, because RouterOS accepts what falls off the
 end of a chain.
 
@@ -496,6 +498,24 @@ server, so the MikroTik stays the one resolver and the one authority for `*.lan`
 must be in `/etc/dnsmasq.conf` itself. Debian's start hook greps that file for it before
 registering `127.0.0.1` as the host's resolver. Every segment leases only to reserved MACs
 except the guest VLAN, which also has a pool.
+
+### Exposing guest services
+
+HTTP services in Proxmox guests are published as `*.o.cavnet.cloud` names through the
+cluster's private gateway, not through a second ingress. `k8s/manifests/dpu-host/` holds one
+file per service: a selectorless Service, a hand-written EndpointSlice with the guest's
+address, and an HTTPRoute on `private-gateway`. The route inherits the wildcard certificate,
+DNS from k8s_gateway, and reachability from labnet, IoT and the Tailnet. The first is
+`llama.o.cavnet.cloud`, llama.cpp's web UI on `cletus` (`10.255.4.20:8080`).
+
+The gateway's Envoy runs on every node, so requests leave from whichever node's `10.11.0.x`
+address handles them. The MikroTik rule `CLUSTER -> DPUNET guests` admits TCP from the node
+VLAN to `10.255.4.0/24`, any port, so a new service needs no router change. The Protectli
+needs no rule: the guest segment's `open_to_labnet` accepts any source arriving on the uplink.
+
+A new service needs a DHCP reservation in `ansible/host_vars/protectli.lan.yaml`, because the
+EndpointSlice pins its address, and one more file in `k8s/manifests/dpu-host/`. The services
+have no authentication of their own; anything that can reach the private gateway can use them.
 
 ## Where `*.o.cavnet.cloud` resolves
 
@@ -528,6 +548,7 @@ MikroTik too; see [Tailscale](#tailscale).
 | Nodes and pods | `10.11.0.1:53` | DNS for `*.o.cavnet.cloud` and `*.lan` | `k8s/talos/prod/patches/common.patch.yaml` |
 | Labnet, IoT, Tailnet | `172.16.42.0/24` | Cluster services | `mikrotik/config.rsc` |
 | Laptops `10.42.42.10`, `.11` | `10.11.0.10:6443`, nodes `:50000` | `kubectl`, `talosctl` | `mikrotik/config.rsc` (`cluster-admins`) |
+| Cluster | `10.255.4.0/24`, TCP | HTTP services in Proxmox guests, e.g. `llama.o.cavnet.cloud` | `k8s/manifests/dpu-host/`, `mikrotik/config.rsc` |
 | rpi, bastion | `172.16.42.2:443`, `172.16.42.6:443` | Host telemetry over mTLS tunnels | `ansible/roles/docker/templates/docker/compose.yaml.j2` |
 | Homenet devices | `192.168.6.100` | Home Assistant: UI, HomeKit bridge, emulated_hue, mDNS and SSDP | `k8s/manifests/home-assistant/home-network.yaml` |
 | Homenet TVs | `192.168.6.101:8096` | Jellyfin | `k8s/manifests/jellyfin/home-network.yaml` |
@@ -593,6 +614,10 @@ Read from config or the live system:
   set, from `rpi.lan`, and from `dpu-host`. Every deny was paired with an allow of the same
   target from an admin host, so a closed port can't pass for a drop. Since then bastion has left
   the admin set; that change has not been probed.
+- **Guest services** — probed on 2026-09-27 from a pod: `10.255.4.20:8080` timed out before
+  `CLUSTER -> DPUNET guests` and answered after it, while `dpu-host`'s `:8006` and the BF3
+  SoC's `:22` stayed dropped and answered the laptop. `llama.o.cavnet.cloud` served the UI
+  from labnet, and a 196-second streamed generation through the gateway completed.
 
 Taken on report, not inspected:
 
@@ -648,16 +673,11 @@ probes.
 
 ### Exposing workloads
 
-Reuse the cluster rather than building a second ingress. `k8s/manifests/synology-csi/dsm-proxy.yaml`
-already demonstrates the pattern: a selectorless Service plus a hand-written EndpointSlice
-pointing at an off-cluster address, then an HTTPRoute on the private gateway. The same shape
-points at a workload's address on the data path subnet and inherits the wildcard
-`*.o.cavnet.cloud` certificate, DNS from k8s_gateway, reachability from labnet and the
-Tailnet, PocketID for auth, and the Cloudflare tunnel for anything that should be public.
-
-The cost is path length: every request crosses the cluster. The Protectli would also need a
-rule admitting the cluster to the workload's port, and the MikroTik one admitting `CLUSTER` to
-it, since cluster-to-`DPUNET` traffic is dropped today.
+Reuse [Exposing guest services](#exposing-guest-services), which is built for the guest VLAN.
+A workload on the data path subnet takes the same Service, EndpointSlice and HTTPRoute, plus a
+MikroTik rule admitting `CLUSTER` to `10.255.3.0/24`; the Protectli already admits it, since
+the data path segment is also `open_to_labnet`. The cost is path length: every request crosses
+the cluster.
 
 ### Constraints worth knowing
 

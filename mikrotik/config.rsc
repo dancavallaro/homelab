@@ -1,4 +1,4 @@
-# 2026-09-26 19:23:07 by RouterOS 7.14.1
+# 2026-09-27 16:29:40 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -121,6 +121,7 @@ add action=drop chain=forward comment="defconf: drop all from WAN not DSTNATed" 
 add action=accept chain=forward comment="DPUNET: internet" dst-address-list=!private in-interface-list=DPUNET out-interface-list=WAN
 add action=accept chain=forward comment="DPUNET: cluster LBs" dst-address=172.16.42.0/24 dst-port=80,443 in-interface-list=DPUNET protocol=tcp
 add action=accept chain=forward comment="labnet -> DPUNET" in-interface-list=LAN out-interface-list=DPUNET
+add action=accept chain=forward comment="CLUSTER -> DPUNET guests" dst-address=10.255.4.0/24 in-interface-list=CLUSTER out-interface-list=DPUNET protocol=tcp
 add action=drop chain=forward comment="DPUNET: drop rest" in-interface-list=DPUNET
 add action=drop chain=forward comment="-> DPUNET: drop rest" out-interface-list=DPUNET
 add action=accept chain=forward comment="labnet -> LBs" dst-address=172.16.42.0/24 in-interface-list=LAN
