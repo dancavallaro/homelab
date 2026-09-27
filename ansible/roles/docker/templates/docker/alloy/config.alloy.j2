@@ -7,9 +7,22 @@ livedebugging {
   enabled = true
 }
 
+{% set alloy_spiffe = enable_spiffe and alloy_native_spiffe %}
+{% if alloy_spiffe %}
+spiffe.x509_source "agent" {
+  address = "unix:///var/run/spirl/spiffe.sock"
+}
+
+{% endif %}
 prometheus.remote_write "mimir" {
   endpoint {
-{% if enable_spiffe %}
+{% if alloy_spiffe %}
+    url = "https://mimir.o.cavnet.cloud/api/v1/push"
+    spiffe {
+      source     = spiffe.x509_source.agent.source
+      server_ids = ["spiffe://prod.cavallaro.local/talos-prod/ns/monitoring/sa/mimir"]
+    }
+{% elif enable_spiffe %}
     // Local ghostunnel client tunnel; mTLS to Mimir with a SPIFFE SVID
     url = "http://127.0.0.1:9009/api/v1/push"
 {% else %}
@@ -79,7 +92,13 @@ prometheus.relabel "hostmetrics" {
 
 loki.write "loki" {
   endpoint {
-{% if enable_spiffe %}
+{% if alloy_spiffe %}
+    url = "https://loki.o.cavnet.cloud/loki/api/v1/push"
+    spiffe {
+      source     = spiffe.x509_source.agent.source
+      server_ids = ["spiffe://prod.cavallaro.local/talos-prod/ns/monitoring/sa/loki"]
+    }
+{% elif enable_spiffe %}
     // Local ghostunnel client tunnel; mTLS to Loki with a SPIFFE SVID
     url = "http://127.0.0.1:3100/loki/api/v1/push"
 {% else %}

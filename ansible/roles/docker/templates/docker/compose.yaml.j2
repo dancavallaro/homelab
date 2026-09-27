@@ -1,13 +1,17 @@
+{% set alloy_spiffe = enable_spiffe and alloy_native_spiffe %}
 services:
   alloy:
     container_name: alloy
     restart: unless-stopped
     privileged: true
     network_mode: host
-    image: grafana/alloy:v1.20.0
+    image: {{ 'ghcr.io/dancavallaro/alloy:v1.20.0-spiffe' if alloy_spiffe else 'grafana/alloy:v1.20.0' }}
     command:
       - run
       - --server.http.listen-addr=127.0.0.1:12345
+{% if alloy_spiffe %}
+      - --stability.level=experimental
+{% endif %}
       - /etc/alloy.d
     volumes:
       - /:/host/root:ro
@@ -15,6 +19,12 @@ services:
       - /sys:/host/sys:ro
       - /run/udev/data:/host/udev:ro
       - ./alloy:/etc/alloy.d
+{% if alloy_spiffe %}
+      - /var/run/spirl:/var/run/spirl
+    cgroup: host
+    depends_on:
+      - spirl-agent
+{% endif %}
 {% if enable_spiffe %}
   spirl-agent:
     container_name: spirl-agent
