@@ -5,13 +5,21 @@
     state: directory
     mode: '0755'
 
+# Same name as systemd's /usr/lib drop-in (trixie, noble), which sets ForwardToSyslog=yes and would sort after ours.
 - name: Install journald config
   become: true
   ansible.builtin.copy:
     src: journald.conf
-    dest: /etc/systemd/journald.conf.d/override.conf
+    dest: /etc/systemd/journald.conf.d/syslog.conf
     owner: root
     group: root
+  notify: Restart journald
+
+- name: Remove old journald drop-in
+  become: true
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d/override.conf
+    state: absent
   notify: Restart journald
 
 - name: Install rsyslog config
