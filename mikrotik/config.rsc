@@ -122,6 +122,7 @@ add action=accept chain=forward comment="DPUNET: internet" dst-address-list=!pri
 add action=accept chain=forward comment="DPUNET: cluster LBs" dst-address=172.16.42.0/24 dst-port=80,443 in-interface-list=DPUNET protocol=tcp
 add action=accept chain=forward comment="labnet -> DPUNET" in-interface-list=LAN out-interface-list=DPUNET
 add action=accept chain=forward comment="CLUSTER -> DPUNET guests" dst-address=10.255.4.0/24 in-interface-list=CLUSTER out-interface-list=DPUNET protocol=tcp
+add action=accept chain=forward comment="CLUSTER -> dpu.lan: Defakto http_dns attestation callback" dst-address=10.255.2.11 dst-port=80 in-interface-list=CLUSTER out-interface-list=DPUNET protocol=tcp
 add action=drop chain=forward comment="DPUNET: drop rest" in-interface-list=DPUNET
 add action=drop chain=forward comment="-> DPUNET: drop rest" out-interface-list=DPUNET
 add action=accept chain=forward comment="labnet -> LBs" dst-address=172.16.42.0/24 in-interface-list=LAN

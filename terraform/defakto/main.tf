@@ -225,6 +225,12 @@ resource "spirl_cluster_config" "networking-secure" {
                   allowedHashes:
                     # The BF3 has no manufacturer EK cert in NV, so we have to pin the EK public key directly.
                     - "98fb69a90a9325d28ec352c24842beeb677c27afddbe84c017af70d125fe0ce2"
+              - type: http_dns
+                config:
+                  allowedHostnames:
+                    - dpu.lan
+                  allowedPorts:
+                    - 80
     YAML
 
     WorkloadAttestation = <<-YAML
@@ -246,7 +252,7 @@ resource "spirl_cluster_config" "networking-secure" {
       schema: v1
       spec:
         policy:
-          pathTemplate: "/{{node_group.name}}/{{tpm_ek.public_hash}}/{{systemd.id}}"
+          pathTemplate: "/{{node_group.name}}/{{http_dns.hostname}}/{{systemd.id}}"
     YAML
   }
 }

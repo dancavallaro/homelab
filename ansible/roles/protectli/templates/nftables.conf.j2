@@ -50,6 +50,8 @@ table inet router {
     iifname "tailscale0" oifname "{{ uplink }}" accept
 
     iifname "{{ uplink }}" ip saddr @admin oifname @downstream accept
+    # Defakto http_dns attestation: the server in the cluster calls the BF3's agent back.
+    iifname "{{ uplink }}" ip saddr {{ protectli_cluster_node_cidr }} oifname "{{ dpu_interface }}" ip daddr {{ soc }} tcp dport 80 accept
     iifname "{{ uplink }}" oifname { {{ open_to_labnet | map('to_json') | join(', ') }} } accept
 
     ip saddr {{ bmc }} drop

@@ -5,3 +5,7 @@ spirl-agent-id: "{{ inventory_hostname }}"
 health-listen-addr: 127.0.0.1:8086
 agent-attestors:
   - type: tpm_ek
+  - type: http_dns
+    config:
+      hostname: "{{ inventory_hostname }}"
+      port: 80

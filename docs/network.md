@@ -26,7 +26,7 @@ Read from: `mikrotik/config.rsc` (RouterOS export, 2026-09-24), the patches unde
 | Service CIDR | `10.96.0.0/12` | none | Kubernetes, Talos default | No — unrouted |
 | DPU transit | `10.255.0.0/30` | — | MikroTik `ether4` ↔ Protectli `enp1s0` | Yes, connected |
 | Host management | `10.255.1.0/24` | `10.255.1.1` | Protectli `enp2s0` | Admin hosts only |
-| DPU management | `10.255.2.0/24` | `10.255.2.1` | Protectli `enp3s0` | Admin hosts only |
+| DPU management | `10.255.2.0/24` | `10.255.2.1` | Protectli `enp3s0` | Admin hosts; cluster to the SoC on TCP 80 |
 | DPU data path | `10.255.3.0/24` | `10.255.3.1` | Protectli `enp4s0` | Yes |
 | Proxmox guests | `10.255.4.0/24` | `10.255.4.1` | Protectli `enp2s0.4`, VLAN 4 | Yes |
 
@@ -334,11 +334,12 @@ add chain=forward action=drop out-interface-list=CLUSTER log=yes log-prefix="[cl
   server calling host agents back.
 - **The Defakto callback** is the `http_dns` attestor: the SPIRL server in the cluster connects
   to each host agent's advertised port to verify it (`agent-config.yaml.j2`, `compose.yaml.j2`).
-  It is open to all of labnet, so a new host with `enable_spiffe` needs no rule.
+  It is open to all of labnet, so a new host with `enable_spiffe` needs no rule. The BF3's
+  callback, to `dpu.lan:80`, is a `DPUNET` rule instead.
 - **The NAS rule allows every port.** NFSv3 needs portmapper and mountd besides 2049, and the
   NAS is already a trusted dependency; narrowing its ports buys little.
 - **`DPUNET` rules match first.** Its rule admitting TCP 80 and 443 to `172.16.42.0/24`, and
-  `CLUSTER -> DPUNET guests`, sit before this block. Other cluster traffic to `DPUNET` is
+  `CLUSTER -> DPUNET guests` and the BF3's attestation callback, sit before this block. Other cluster traffic to `DPUNET` is
   dropped by `-> DPUNET: drop rest`; see [Exposing guest services](#exposing-guest-services).
 - **Traffic that never reaches the router:** node to node, switched inside `br11`; a node or
   pod reaching a LoadBalancer IP, handled by Cilium's socket LB; and the pods' homenet legs,
@@ -466,8 +467,9 @@ Protectli forward policy, new connections (established and related are always ac
 
 The admin hosts are the two laptops, `10.42.42.10` and `.11` (`protectli_admin_hosts`). Tailnet
 clients arrive SNAT'd as the primary subnet router and count as other labnet. Cluster traffic
-arrives as a node's `10.11.0.x` and also counts as other labnet, but the MikroTik passes only
-TCP to the guest VLAN; everything else is dropped by `-> DPUNET: drop rest`.
+arrives as a node's `10.11.0.x` and also counts as other labnet, plus TCP 80 to the BF3 SoC for
+Defakto's `http_dns` callback. The MikroTik passes only TCP to the guest VLAN and that callback;
+everything else is dropped by `-> DPUNET: drop rest`.
 Exit-node traffic to other private ranges leaves as `10.255.0.2` and is dropped by the
 MikroTik's zone rules.
 
@@ -487,7 +489,8 @@ Details that are easy to break:
 MikroTik `DPUNET` rules: the segment may reach the internet (non-RFC 1918 destinations only,
 which keeps it off the home network), the LoadBalancers on TCP 80 and 443, and the MikroTik's
 DNS. Labnet may initiate into it, and the Protectli applies the per-source rules. The cluster
-may initiate TCP to the guest VLAN, `10.255.4.0/24`, and nowhere else in the segment. Everything
+may initiate TCP to the guest VLAN, `10.255.4.0/24`, and to `dpu.lan:80` for the BF3's attestation
+callback, and nowhere else in the segment. Everything
 else in or out of `DPUNET` is dropped explicitly, because RouterOS accepts what falls off the
 end of a chain.
 
@@ -544,6 +547,7 @@ MikroTik too; see [Tailscale](#tailscale).
 | Cluster | `10.42.42.12` | iSCSI, NFS and the DSM API over 10 GbE; `nas.o.cavnet.cloud` | `k8s/manifests/synology-csi/dsm-proxy.yaml`, `k8s/manifests/jellyfin/jellyfin.yaml` |
 | Cluster | `10.42.42.5:3493` | NUT, for UPS metrics | `k8s/manifests/nut-exporter/exporter.yaml` |
 | Cluster | labnet `:3470` | Defakto `http_dns` attestation callback to host agents | `ansible/roles/docker/templates/docker/defakto/agent-config.yaml.j2` |
+| Cluster | `10.255.2.11:80` | Defakto `http_dns` attestation callback to the BF3's agent | `ansible/roles/dpu/templates/agent-config.yaml.j2`, `mikrotik/config.rsc`, `ansible/roles/protectli/templates/nftables.conf.j2` |
 | Cluster | Internet | Images, ACME, the Cloudflare tunnel, AWS | `mikrotik/config.rsc` (`CLUSTER: internet`) |
 | Nodes and pods | `10.11.0.1:53` | DNS for `*.o.cavnet.cloud` and `*.lan` | `k8s/talos/prod/patches/common.patch.yaml` |
 | Labnet, IoT, Tailnet | `172.16.42.0/24` | Cluster services | `mikrotik/config.rsc` |
@@ -571,6 +575,10 @@ MikroTik too; see [Tailscale](#tailscale).
   `100.64.0.0/10` pinned to one of three subnet routers.
 - **`DPUNET` reaches every LoadBalancer on 80 and 443.** Tighten to specific addresses once
   the segment's cluster dependencies settle.
+- **The BF3's own firewall is inert.** The image's `/etc/iptables/rules.v4` marks `oob_net0`
+  traffic in a filter-table chain named `PREROUTING`, which has no hook and no jump, so none of
+  its `mark 0xb` drops ever match (verified 2026-09-27 by zero counters). The Protectli is the
+  only filter in front of the SoC.
 - **The Protectli fails open at boot.** If `nftables.service` fails, the kernel forwards
   between segments unfiltered. The ruleset is validated with `nft -c` before install and loads
   atomically.

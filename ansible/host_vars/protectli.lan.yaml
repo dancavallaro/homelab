@@ -5,6 +5,7 @@ protectli_uplink:
 
 protectli_dns: 10.42.42.1
 protectli_cluster_lb_cidr: 172.16.42.0/24
+protectli_cluster_node_cidr: 10.11.0.0/24
 
 protectli_admin_hosts:
   - 10.42.42.0/24  # Labnet, including SNATed Tailscale traffic
