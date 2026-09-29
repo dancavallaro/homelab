@@ -7,7 +7,7 @@ The section headed **Proposed** describes a design that has not been built.
 These are architecture, not migration plans: they state the shape and the reasoning behind it.
 Sequencing lives outside the repo. Work is tracked in DAN-24.
 
-Read from: `mikrotik/config.rsc` (RouterOS export, 2026-09-24), the patches under
+Read from: `mikrotik/config.rsc` (RouterOS export, 2026-09-27), the patches under
 `k8s/talos/prod/patches/`, `k8s/talos/prod/README.md`, `k8s/talos/prod/cilium/`,
 `ansible/host_vars/`, the `protectli`, `talos_host` and `tailscale` roles under
 `ansible/roles/`, and the live systems. See
@@ -25,8 +25,8 @@ Read from: `mikrotik/config.rsc` (RouterOS export, 2026-09-24), the patches unde
 | Pod CIDR | `10.244.0.0/16` | none | Cilium, Talos default | No — unrouted |
 | Service CIDR | `10.96.0.0/12` | none | Kubernetes, Talos default | No — unrouted |
 | DPU transit | `10.255.0.0/30` | — | MikroTik `ether4` ↔ Protectli `enp1s0` | Yes, connected |
-| Host management | `10.255.1.0/24` | `10.255.1.1` | Protectli `enp2s0` | Admin hosts only |
-| DPU management | `10.255.2.0/24` | `10.255.2.1` | Protectli `enp3s0` | Admin hosts; cluster to the SoC on TCP 80 |
+| Host management | `10.255.1.0/24` | `10.255.1.1` | Protectli `enp2s0` | Yes |
+| DPU management | `10.255.2.0/24` | `10.255.2.1` | Protectli `enp3s0` | Yes; cluster to the SoC on TCP 80 |
 | DPU data path | `10.255.3.0/24` | `10.255.3.1` | Protectli `enp4s0` | Yes |
 | Proxmox guests | `10.255.4.0/24` | `10.255.4.1` | Protectli `enp2s0.4`, VLAN 4 | Yes |
 
@@ -294,7 +294,7 @@ A home-leg pod's peers in the cluster must use a Service, not `localhost`: HA re
 ### The cluster zone on the MikroTik
 
 The LoadBalancer range is the published surface. Node IPs are reachable only for
-administration, from the two laptops. The block goes after the `DPUNET` rules and ends in explicit
+administration, from labnet and the Tailnet. The block goes after the `DPUNET` rules and ends in explicit
 drops, because RouterOS accepts what falls off the end of a chain.
 
 ```
@@ -308,8 +308,7 @@ add interface=vlan11 list=CLUSTER
 add address=10.11.0.1/24 interface=vlan11
 add address=172.16.42.254/24 interface=vlan11 comment="Makes the LB subnet on-link for L2 announcements"
 /ip firewall address-list
-add address=10.42.42.10 list=cluster-admins comment="Work MBP"
-add address=10.42.42.11 list=cluster-admins comment="Personal MBP"
+add address=10.42.42.0/24 list=cluster-admins comment="Labnet (including SNATed Tailscale traffic)"
 /ip firewall filter
 add chain=input action=accept in-interface-list=CLUSTER protocol=udp dst-port=53 comment="CLUSTER: DNS"
 add chain=input action=accept in-interface-list=CLUSTER protocol=tcp dst-port=53 comment="CLUSTER: DNS"
@@ -363,8 +362,10 @@ the Protectli. When a host's settings drift — anything set by hand, managed or
 | Protectli | nothing | Yes | Yes | No |
 
 The three subnet routers share the routes; `rpi.lan` is primary at the time of writing, so
-Tailnet clients reach labnet and the cluster SNAT'd as `10.42.42.5`. That address is not in
-`cluster-admins`: Tailnet clients reach the LoadBalancers but not the node APIs. The Protectli
+Tailnet clients reach labnet and the cluster SNAT'd as `10.42.42.5`. The Tailnet is an extension
+of labnet by design. Both admin sets, `cluster-admins` on the MikroTik and
+`protectli_admin_hosts`, are `10.42.42.0/24`, which holds every labnet host and that SNAT
+address, so no policy needs to tell a Tailnet client from a labnet host. The Protectli
 advertises no subnets because `DPUNET` cannot reach labnet or the cluster; as a failover router
 for them it would break the Tailnet's access.
 
@@ -384,7 +385,8 @@ Protectli, since it admits only TCP 80 and 443 to the LoadBalancers.
 The Protectli (Ubuntu 24.04, four 1 GbE ports) routes a segment for the BlueField-3 DPU and
 `dpu-host`. The DPU is treated as trusted networking infrastructure and the host as an
 untrusted carrier of workloads. `terraform/defakto/main.tf` attests the BF3 against a pinned
-TPM EK hash, so the host cannot forge the DPU's identity. The network's job is to stop the
+TPM EK hash, which the host cannot forge, and also requires an `http_dns` callback to
+`dpu.lan:80`. The network's job is to stop the
 host reaching the DPU's management plane. Everything below is rendered by
 `ansible/roles/protectli` from `ansible/host_vars/protectli.lan.yaml`.
 
@@ -456,8 +458,8 @@ Protectli forward policy, new connections (established and related are always ac
 
 | From ↓ / To → | Host mgmt | DPU mgmt | Data path | Guests | DNS `10.42.42.1:53` | Cluster LBs `:443` | Other RFC 1918 | Internet |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Admin hosts, via uplink | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
-| Other labnet or Tailnet | ✗ | ✗ | ✓ | ✓ | — | — | — | — |
+| Labnet or Tailnet, via uplink | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
+| Cluster nodes, via uplink | ✗ | SoC TCP 80 | ✓ | ✓ | — | — | — | — |
 | `dpu-host` | — | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✓ |
 | BF3 SoC `10.255.2.11` | ✗ | — | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ |
 | BF3 BMC `10.255.2.10` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -465,11 +467,11 @@ Protectli forward policy, new connections (established and related are always ac
 | Guests | ✗ | ✗ | ✗ | — | ✓ | ✗ | ✗ | ✓ |
 | `tailscale0` (exit node) | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ |
 
-The admin hosts are the two laptops, `10.42.42.10` and `.11` (`protectli_admin_hosts`). Tailnet
-clients arrive SNAT'd as the primary subnet router and count as other labnet. Cluster traffic
-arrives as a node's `10.11.0.x` and also counts as other labnet, plus TCP 80 to the BF3 SoC for
-Defakto's `http_dns` callback. The MikroTik passes only TCP to the guest VLAN and that callback;
-everything else is dropped by `-> DPUNET: drop rest`.
+The admin set, `protectli_admin_hosts`, is `10.42.42.0/24`, where every labnet host lives. Tailnet clients arrive SNAT'd as the
+primary subnet router, so they count as labnet. Cluster traffic arrives as a node's `10.11.0.x`,
+outside that set, and reaches only the open segments and TCP 80 on the BF3 SoC for Defakto's
+`http_dns` callback. The MikroTik narrows it further, passing only TCP to the guest VLAN and
+that callback; everything else is dropped by `-> DPUNET: drop rest`.
 Exit-node traffic to other private ranges leaves as `10.255.0.2` and is dropped by the
 MikroTik's zone rules.
 
@@ -551,9 +553,9 @@ MikroTik too; see [Tailscale](#tailscale).
 | Cluster | Internet | Images, ACME, the Cloudflare tunnel, AWS | `mikrotik/config.rsc` (`CLUSTER: internet`) |
 | Nodes and pods | `10.11.0.1:53` | DNS for `*.o.cavnet.cloud` and `*.lan` | `k8s/talos/prod/patches/common.patch.yaml` |
 | Labnet, IoT, Tailnet | `172.16.42.0/24` | Cluster services | `mikrotik/config.rsc` |
-| Laptops `10.42.42.10`, `.11` | `10.11.0.10:6443`, nodes `:50000` | `kubectl`, `talosctl` | `mikrotik/config.rsc` (`cluster-admins`) |
+| Labnet and Tailnet | `10.11.0.10:6443`, nodes `:50000` | `kubectl`, `talosctl` | `mikrotik/config.rsc` (`cluster-admins`) |
 | Cluster | `10.255.4.0/24`, TCP | HTTP services in Proxmox guests, e.g. `llama.o.cavnet.cloud` | `k8s/manifests/dpu-host/`, `mikrotik/config.rsc` |
-| rpi, bastion | `172.16.42.2:443`, `172.16.42.6:443` | Host telemetry over mTLS tunnels | `ansible/roles/docker/templates/docker/compose.yaml.j2` |
+| rpi, bastion | `mimir`, `loki` on `:443` | Alloy, native SPIFFE mTLS (`enable_spiffe`) | `ansible/roles/docker/templates/docker/alloy/config.alloy.j2` |
 | Homenet devices | `192.168.6.100` | Home Assistant: UI, HomeKit bridge, emulated_hue, mDNS and SSDP | `k8s/manifests/home-assistant/home-network.yaml` |
 | Homenet TVs | `192.168.6.101:8096` | Jellyfin | `k8s/manifests/jellyfin/home-network.yaml` |
 | HomePod Thread border router | `192.168.6.102` (`net1`) | ICMPv6 route advertisements for Matter | `k8s/manifests/matter/home-network.yaml` |
@@ -561,18 +563,14 @@ MikroTik too; see [Tailscale](#tailscale).
 | MikroTik resolver | `172.16.42.53` | `o.cavnet.cloud` forward | `mikrotik/config.rsc` |
 | Route53 | `10.11.0.10` | `k8s.cavnet.cloud` A record | AWS, outside this repo |
 | Everything behind the Protectli | `10.42.42.1:53` | DNS | `ansible/roles/protectli/templates/`, `mikrotik/config.rsc` |
-| BF3 SoC `10.255.2.11` | `172.16.42.0/24:443` | Cluster services; no telemetry runs on the BF3 today | `ansible/roles/protectli/templates/nftables.conf.j2` |
-| Protectli host | `mimir`, `loki` on `:80` | Alloy, plain HTTP (no `enable_spiffe`) | `ansible/roles/docker/templates/docker/alloy/config.alloy.j2` |
+| BF3 SoC `10.255.2.11` | `172.16.42.0/24:443` | Cluster services, including Alloy to `mimir` and `loki` with native SPIFFE mTLS | `ansible/roles/protectli/templates/nftables.conf.j2`, `ansible/roles/dpu/files/config.alloy` |
+| talos-host, Protectli host | `mimir`, `loki` on `:80` | Alloy, plain HTTP (no `enable_spiffe`) | `ansible/roles/docker/templates/docker/alloy/config.alloy.j2` |
 | Tailnet | `10.42.0.0/16`, `10.11.0.0/16`, `172.16.42.0/24`, `10.255.0.0/16` | Subnet routes via rpi, bastion or talos-host | `ansible/roles/tailscale` |
 
 ## Known gaps
 
 - **IoT can initiate into labnet.** `iotnet_bridge` belongs to neither `LAN` nor `WAN`, and
   RouterOS accepts what falls off the end of the forward chain.
-- **Tailnet clients arrive as the primary subnet router.** The MikroTik cannot tell them from
-  that host, which is why `cluster-admins` admits no Tailnet clients.
-  `--snat-subnet-routes=false` would preserve their addresses, at the cost of a return route to
-  `100.64.0.0/10` pinned to one of three subnet routers.
 - **`DPUNET` reaches every LoadBalancer on 80 and 443.** Tighten to specific addresses once
   the segment's cluster dependencies settle.
 - **The BF3's own firewall is inert.** The image's `/etc/iptables/rules.v4` marks `oob_net0`
@@ -601,7 +599,7 @@ MikroTik too; see [Tailscale](#tailscale).
 
 Read from config or the live system:
 
-- **MikroTik** — the RouterOS export at `mikrotik/config.rsc`, exported 2026-09-24; the ARP
+- **MikroTik** — the RouterOS export at `mikrotik/config.rsc`, exported 2026-09-27; the ARP
   table, with every LoadBalancer IP on `vlan11` at a node's MAC; and the connection table.
 - **Talos** — all patches under `k8s/talos/prod/patches/`, and all four node configs rendered
   from the secrets bundle and diffed against the live configs before the move.
@@ -620,8 +618,8 @@ Read from config or the live system:
   kept every leg; an undrained talos-host reboot did not, see [Known gaps](#known-gaps).
 - **Protectli segment** — the forward matrix probed on 2026-09-23 from a laptop in the admin
   set, from `rpi.lan`, and from `dpu-host`. Every deny was paired with an allow of the same
-  target from an admin host, so a closed port can't pass for a drop. Since then bastion has left
-  the admin set; that change has not been probed.
+  target from an admin host, so a closed port can't pass for a drop. On 2026-09-24 the admin set
+  widened to all of `10.42.42.0/24`; the matrix has not been probed since.
 - **Guest services** — probed on 2026-09-27 from a pod: `10.255.4.20:8080` timed out before
   `CLUSTER -> DPUNET guests` and answered after it, while `dpu-host`'s `:8006` and the BF3
   SoC's `:22` stayed dropped and answered the laptop. `llama.o.cavnet.cloud` served the UI
