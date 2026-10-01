@@ -32,6 +32,19 @@ spec:
   ports:
     - port: 5551
 ---
+# Resolves to the host address, skipping Cilium's service NAT, which forgets connections idle past 8000s.
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: flicd
+  name: flicd-direct
+spec:
+  clusterIP: None
+  selector:
+    app: flicd
+  ports:
+    - port: 5551
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:

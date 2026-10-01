@@ -111,7 +111,8 @@ mqtt:
 
 binary_sensor:
   - platform: flic
-    host: flicd.flicd.svc.cluster.local
+    # Headless: the ClusterIP's NAT state expires while the buttons sit idle, silently dropping the connection.
+    host: flicd-direct.flicd.svc.cluster.local
     discovery: false
     ignored_click_types: [double, hold]
 
