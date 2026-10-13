@@ -1,0 +1,66 @@
+- name: Create render group
+  ansible.builtin.group:
+    name: render
+    gid: "{{ render_gid }}"
+    system: true
+
+- name: Create whisper group
+  ansible.builtin.group:
+    name: whisper
+    gid: "{{ llama_gid }}"
+    system: true
+
+- name: Create whisper user
+  ansible.builtin.user:
+    name: whisper
+    uid: "{{ llama_uid }}"
+    group: whisper
+    groups: render
+    system: true
+    home: /var/lib/whisper
+    shell: /usr/sbin/nologin
+
+- name: Install apt packages
+  become: true
+  ansible.builtin.apt:
+    update_cache: yes
+    pkg:
+      - vim
+      - curl
+      - git
+      - ffmpeg
+      - build-essential
+      - cmake
+      - glslc
+      - spirv-headers
+      - libvulkan-dev
+      - mesa-vulkan-drivers
+      - vulkan-tools
+      - python3-venv
+      - python3-dev
+      - python3-pip
+
+- name: Set default editor
+  become: true
+  community.general.alternatives:
+    name: editor
+    path: /usr/bin/vim.basic
+
+# cd /opt
+# git clone https://github.com/debackerl/wyoming-whisper.cpp.git
+# script/setup
+
+# CMAKE_BUILD_PARALLEL_LEVEL=4 GGML_VULKAN=1 \
+#  .venv/bin/pip install --no-deps --force-reinstall --no-cache-dir \
+#  git+https://github.com/absadiki/pywhispercpp
+
+# .venv/bin/python -m wyoming_whisper_cpp \
+#  --model large-v3-turbo-q8_0 \
+#  --language en \
+#  --uri tcp://0.0.0.0:10300 \
+#  --data-dir /opt/wyoming-whisper.cpp/data \
+#  --debug
+
+# Unit in /etc/systemd/system/wyoming-whisper.service
+
+# LD_LIBRARY_PATH=/opt/wyoming-whisper.cpp/.venv/lib/python3.12/site-packages /opt/wyoming-whisper.cpp/.venv/bin/pwcpp /root/IMG_8117.MOV -m /opt/wyoming-whisper.cpp/data/ggml-large-v3-turbo-q8_0.bin --language en -otxt

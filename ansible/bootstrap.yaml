@@ -32,7 +32,8 @@
       ansible.builtin.wait_for_connection:
         timeout: 120
   roles:
-    - {role: llama, tags: llama}
+    - {role: llama, tags: llama, when: inventory_hostname == 'cletus.lan'}
+    - {role: whisper, tags: whisper, when: inventory_hostname == 'claire.lan'}
 
 - name: Configure BlueField-3 DPU
   hosts: dpu

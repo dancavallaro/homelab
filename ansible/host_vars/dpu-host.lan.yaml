@@ -17,3 +17,17 @@ proxmox_lxcs:
       net0: name=eth0,bridge=vmbr0,firewall=1,hwaddr=BC:24:11:71:96:44,ip=dhcp,tag=4,type=veth
       dev0: /dev/dri/renderD128,gid={{ render_gid }}
       mp0: "{{ shared_models_dir }},mp={{ shared_models_dir }}"
+  - vmid: 102
+    template: local:vztmpl/ubuntu-24.04-standard_24.04-2_amd64.tar.zst
+    rootfs: local-lvm:32
+    options:
+      hostname: claire
+      ostype: ubuntu
+      unprivileged: 1
+      cores: 4
+      memory: 4096
+      swap: 0
+      features: nesting=1
+      onboot: 1
+      net0: name=eth0,bridge=vmbr0,firewall=1,hwaddr=BC:24:11:71:96:45,ip=dhcp,tag=4,type=veth
+      dev0: /dev/dri/renderD128,gid={{ render_gid }}

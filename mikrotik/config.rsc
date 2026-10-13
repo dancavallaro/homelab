@@ -1,4 +1,4 @@
-# 2026-09-27 16:29:40 by RouterOS 7.14.1
+# 2026-10-13 08:10:02 by RouterOS 7.14.1
 # software id = GNVB-4V9V
 #
 # model = RB5009UG+S+
@@ -91,6 +91,7 @@ add address=10.255.2.11 name=dpu.lan
 add address=10.255.3.10 name=dpu-p0.lan
 add address=10.255.4.20 name=cletus.lan
 add address=10.11.0.10 comment="API server during internet outages; must match Route53" name=k8s.cavnet.cloud
+add address=10.255.4.21 name=claire.lan
 /ip firewall address-list
 add address=10.0.0.0/8 list=private
 add address=172.16.0.0/12 list=private
