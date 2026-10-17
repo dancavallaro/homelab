@@ -50,7 +50,11 @@ resource "spirl_trust_domain_config" "prod" {
         allowlist:
           - issuer: https://pocket-id.o.cavnet.cloud
             audiences:
-              - 816acb21-3d87-470c-8d90-8c17ee9da65c
+              - 816acb21-3d87-470c-8d90-8c17ee9da65c # apiserver
+              - 11690260-786f-4e34-85ae-affd34df9627 # defakto-demo
+        additionalClaims:
+          email: "{{jwt.claim.email}}"
+          name: "{{jwt.claim.name}}"
     YAML
 
     # yamlencode rather than a heredoc because caCerts is interpolated, and
