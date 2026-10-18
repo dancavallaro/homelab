@@ -1,20 +1,15 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: defakto-webhook
----
 # Serving cert from the cluster CA; its CA is pinned as caCerts in the
 # ServerlessAttestation policy in terraform/defakto/main.tf.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: esp32-attestor
-  namespace: defakto-webhook
+  namespace: defakto-esp32
 spec:
   secretName: esp32-attestor-tls
   dnsNames:
-    - esp32-attestor.defakto-webhook.svc
-    - esp32-attestor.defakto-webhook.svc.cluster.local
+    - esp32-attestor.defakto-esp32.svc
+    - esp32-attestor.defakto-esp32.svc.cluster.local
   privateKey:
     algorithm: ECDSA
     size: 256
@@ -28,7 +23,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: esp32-enrollment
-  namespace: defakto-webhook
+  namespace: defakto-esp32
 spec:
   secretStoreRef:
     kind: ClusterSecretStore
@@ -42,7 +37,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: esp32-attestor
-  namespace: defakto-webhook
+  namespace: defakto-esp32
 spec:
   replicas: 1
   revisionHistoryLimit: 0
@@ -83,7 +78,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: esp32-attestor
-  namespace: defakto-webhook
+  namespace: defakto-esp32
 spec:
   ports:
     - port: 8443

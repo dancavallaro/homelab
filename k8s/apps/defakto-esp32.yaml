@@ -2,13 +2,13 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   namespace: argocd
-  name: defakto-webhook
+  name: defakto-esp32
 spec:
   project: default
   source:
     repoURL: https://github.com/dancavallaro/homelab
     targetRevision: HEAD
-    path: k8s/manifests/defakto-webhook
+    path: k8s/manifests/defakto-esp32
   destination:
     server: https://kubernetes.default.svc
   syncPolicy:

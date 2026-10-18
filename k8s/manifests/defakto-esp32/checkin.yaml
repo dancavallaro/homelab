@@ -1,0 +1,87 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: checkin
+  namespace: defakto-esp32
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  # The roster lives in memory, so a second pod would split it.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: checkin
+  template:
+    metadata:
+      labels:
+        app: checkin
+    spec:
+      containers:
+        - name: checkin
+          image: ghcr.io/dancavallaro/esp32-spiffe-rust/checkin:0.1.0
+          env:
+            - name: CHECKIN_ISSUER
+              value: https://fed.spirl.org/t-t7jofa522v/td-tn4hsa850h
+            - name: CHECKIN_AUDIENCE
+              value: defakto-demo
+            - name: CHECKIN_DEVICES
+              value: spiffe://prod.cavallaro.local/iot/defakto-demo
+            - name: CHECKIN_USER_ISSUERS
+              value: https://pocket-id.o.cavnet.cloud
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkin
+  namespace: defakto-esp32
+spec:
+  selector:
+    app: checkin
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: checkin
+  namespace: defakto-esp32
+spec:
+  parentRefs:
+    - namespace: default
+      name: private-gateway
+      sectionName: websecure
+  hostnames:
+    - checkin.o.cavnet.cloud
+  rules:
+    # Envoy's default 15s route timeout would cut the never-ending SSE response.
+    - matches:
+        - path:
+            type: Exact
+            value: /events
+      timeouts:
+        request: 0s
+      backendRefs:
+        - name: checkin
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: checkin
+          port: 8080

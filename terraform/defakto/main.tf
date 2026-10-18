@@ -71,7 +71,7 @@ resource "spirl_trust_domain_config" "prod" {
           requiredAttestors = [{
             type = "extension"
             config = {
-              webhookURL = "https://esp32-attestor.defakto-webhook.svc.cluster.local:8443/attest"
+              webhookURL = "https://esp32-attestor.defakto-esp32.svc.cluster.local:8443/attest"
               timeout    = "5s"
               # nonsensitive: a CA certificate is public, and marking it sensitive
               # would hide this whole section from terraform plan output.
