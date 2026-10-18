@@ -1,3 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: checkin-data
+  namespace: defakto-esp32
+spec:
+  storageClassName: synology-iscsi
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -6,7 +19,7 @@ metadata:
 spec:
   replicas: 1
   revisionHistoryLimit: 0
-  # The roster lives in memory, so a second pod would split it.
+  # The journal is an RWO volume with a single writer, so two pods must never overlap.
   strategy:
     type: Recreate
   selector:
@@ -17,10 +30,14 @@ spec:
       labels:
         app: checkin
     spec:
+      securityContext:
+        fsGroup: 65532
       containers:
         - name: checkin
-          image: ghcr.io/dancavallaro/esp32-spiffe-rust/checkin:0.1.0
+          image: ghcr.io/dancavallaro/esp32-spiffe-rust/checkin:0.2.0
           env:
+            - name: CHECKIN_DATA
+              value: /data/checkins.jsonl
             - name: CHECKIN_ISSUER
               value: https://fed.spirl.org/t-t7jofa522v/td-tn4hsa850h
             - name: CHECKIN_AUDIENCE
@@ -42,6 +59,13 @@ spec:
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 30
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: checkin-data
 ---
 apiVersion: v1
 kind: Service
