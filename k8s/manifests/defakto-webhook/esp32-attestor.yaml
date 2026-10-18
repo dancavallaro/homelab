@@ -56,7 +56,7 @@ spec:
     spec:
       containers:
         - name: esp32-attestor
-          image: ghcr.io/dancavallaro/telemetry/esp32-attestor:0.2.0
+          image: ghcr.io/dancavallaro/telemetry/esp32-attestor:0.3.0
           ports:
             - containerPort: 8443
           volumeMounts:
