@@ -18,7 +18,7 @@ spec:
     kind: ClusterIssuer
     group: cert-manager.io
 ---
-# One JSON object of device_id -> {secret, model}, surfaced as a single file.
+# One JSON object of device_id -> {secret, tee_pubkey}, surfaced as a single file.
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
@@ -52,7 +52,7 @@ spec:
     spec:
       containers:
         - name: esp32-attestor
-          image: ghcr.io/dancavallaro/telemetry/esp32-attestor:0.3.0
+          image: ghcr.io/dancavallaro/esp32-defakto-rust/esp32-attestor:0.4.0
           ports:
             - containerPort: 8443
           volumeMounts:

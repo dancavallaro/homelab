@@ -34,7 +34,7 @@ spec:
         fsGroup: 65532
       containers:
         - name: checkin
-          image: ghcr.io/dancavallaro/esp32-spiffe-rust/checkin:0.2.1
+          image: ghcr.io/dancavallaro/esp32-defakto-rust/checkin:0.2.1
           env:
             - name: CHECKIN_DATA
               value: /data/checkins.jsonl
