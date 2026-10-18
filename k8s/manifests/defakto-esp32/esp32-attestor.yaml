@@ -25,6 +25,7 @@ metadata:
   name: esp32-enrollment
   namespace: defakto-esp32
 spec:
+  refreshInterval: 1m
   secretStoreRef:
     kind: ClusterSecretStore
     name: aws-parameter-store
