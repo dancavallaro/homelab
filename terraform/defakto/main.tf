@@ -52,6 +52,9 @@ resource "spirl_trust_domain_config" "prod" {
             audiences:
               - 816acb21-3d87-470c-8d90-8c17ee9da65c # apiserver
               - 11690260-786f-4e34-85ae-affd34df9627 # defakto-demo
+          - issuer: https://dev-zu8mio63uwuot3by.us.auth0.com/
+            audiences:
+              - pvfNxjPaeedX5haBC7i14kgjXHIRiEqc # auth0 dev app
         additionalClaims:
           email: "{{jwt.claim.email}}"
           name: "{{jwt.claim.name}}"
