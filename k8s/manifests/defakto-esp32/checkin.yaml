@@ -45,7 +45,7 @@ spec:
             - name: CHECKIN_DEVICES
               value: spiffe://prod.cavallaro.local/iot/defakto-demo
             - name: CHECKIN_USER_ISSUERS
-              value: https://pocket-id.o.cavnet.cloud
+              value: https://pocket-id.o.cavnet.cloud,https://dev-zu8mio63uwuot3by.us.auth0.com/
           ports:
             - containerPort: 8080
           readinessProbe:
