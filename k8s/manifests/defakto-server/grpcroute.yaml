@@ -7,8 +7,12 @@ spec:
     - namespace: default
       name: private-gateway
       sectionName: websecure
+    - name: public-gateway
+      namespace: internet
+      sectionName: webpublic
   hostnames:
     - defakto.o.cavnet.cloud
+    - defakto.cavnet.io
   rules:
     - backendRefs:
         # kustomize prepends the chart's release name; see kustomization.yaml.
