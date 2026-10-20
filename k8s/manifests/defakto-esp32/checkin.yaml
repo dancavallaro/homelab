@@ -89,8 +89,12 @@ spec:
     - namespace: default
       name: private-gateway
       sectionName: websecure
+    - name: public-gateway
+      namespace: internet
+      sectionName: webpublic
   hostnames:
     - checkin.o.cavnet.cloud
+    - checkin.cavnet.io
   rules:
     # Envoy's default 15s route timeout would cut the never-ending SSE response.
     - matches:
