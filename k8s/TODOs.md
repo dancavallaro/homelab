@@ -2,6 +2,7 @@ In-progress (updated 8/20/26):
 * Working on shopping list app at ~/workspace/xcode/ShoppingList (https://docs.google.com/document/d/1LTH-zNL13lZQ71D6qiNLJBcUhEnh0u1DU0Vdz9xBK98/edit?usp=sharing)
 
 TODOs:
+* Rebuild Talos cluster on Proxmox (join dpu-host + talos-host)
 * Open Issues/PRs for the resiliency patches I have on my synology-csi fork
 * Revamp LGTM deployment: upgrade versions, revamp config (e.g. annotation-driven), use real storage, enable retention, consider HA
 * Look into iGPU passthrough on talos-host to improve Jellyfin transcoding
