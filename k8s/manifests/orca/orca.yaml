@@ -61,7 +61,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: orca
-          image: ghcr.io/dancavallaro/homelab/orca:0.1.0
+          image: ghcr.io/dancavallaro/homelab/orca:0.1.1
           env:
             - name: ORCA_PAIRING_ADDRESS
               value: orca.o.cavnet.cloud:6768
