@@ -85,6 +85,12 @@ loki.process "filter_service_logs" {
     separator = "@"
     expression = "machined@info"
   }
+  // SELinux runs permissive on Talos, so every denied write logs here; Loki's own writes dominate.
+  stage.drop {
+    source = "talos_service,level"
+    separator = "@"
+    expression = "auditd@info"
+  }
   forward_to = [
     //loki.echo.echo.receiver,
     loki.write.loki.receiver,
