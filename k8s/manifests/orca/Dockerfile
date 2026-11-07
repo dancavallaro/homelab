@@ -38,6 +38,7 @@ RUN apt-get update \
     && git config --system user.email 'orca-homelab[bot]@users.noreply.github.com'
 
 COPY spiffe-helper.hcl /etc/orca/spiffe-helper.hcl
+COPY profile-local-bin.sh /etc/profile.d/local-bin.sh
 COPY entrypoint.sh /usr/local/bin/orca-entrypoint
 COPY github-app-token.sh /usr/local/bin/github-app-token
 COPY git-credential-github-app.sh /usr/local/bin/git-credential-github-app
