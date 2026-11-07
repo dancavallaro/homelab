@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: orca
+resources:
+  - orca.yaml
+configMapGenerator:
+  - name: orca-session-instructions
+    files:
+      - CLAUDE.md=session-instructions.md
+    options:
+      # A hashed name would replace the pod, and end its agents, on every edit.
+      disableNameSuffixHash: true

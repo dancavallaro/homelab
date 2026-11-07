@@ -1,0 +1,115 @@
+# Orca server
+
+Headless [Orca](https://www.onorca.dev/docs/remote-servers) for the laptop and phone apps, reached at
+`orca.o.cavnet.cloud:6768` over the Tailnet's existing subnet routes. Written against Orca 1.4.253.
+
+- Replacing the pod ends every running terminal and agent. Projects, pairings and logins stay on the
+  volume. An orcad crash alone keeps terminals, because `--supervise` restarts it in place.
+- Sessions push as a GitHub App that a ruleset keeps off `main`, so they open PRs for review.
+  Egress is limited to DNS and the internet.
+- The App's private key lives in KMS. For each GitHub token, `github-app-token` fetches a Defakto JWT
+  SVID, assumes an AWS role with it, signs the App JWT with `kms:Sign`, and exchanges that.
+
+## Build and push
+
+`VERSION` must match the image tag in `orca.yaml`. To upgrade Orca, change its version and checksum in
+the `Dockerfile` and bump both. Clients refuse a server with an incompatible protocol version.
+
+```shell
+docker buildx build --push \
+    --platform linux/amd64 \
+    -t ghcr.io/dancavallaro/homelab/orca:$(cat k8s/manifests/orca/VERSION) \
+    k8s/manifests/orca
+```
+
+Make the package public in its GitHub settings if the cluster can't pull it.
+
+## First-time setup
+
+### GitHub App
+
+[Create a GitHub App](https://github.com/settings/apps/new) named `orca-homelab`, with the webhook off
+and only Contents and Pull requests set to read and write. Leave Workflows unset. Generate a private
+key, then install the App on `homelab` only. The name also appears in the `Dockerfile`'s git identity.
+
+Put the App ID, from its settings page, and the installation ID, the number at the end of the
+installation's URL, in `orca.yaml`. Neither is secret.
+
+### AWS
+
+`setup-aws.sh` imports the key and verifies the import, and the `iam` step needs IAM write access. The
+role trusts only `spiffe://prod.cavallaro.local/talos-prod/ns/orca/sa/orca`. KMS can't replace imported
+material with a different key, so rotating the App key means a new KMS key and repointing the alias.
+
+```shell
+k8s/manifests/orca/setup-aws.sh kms KEY.pem
+rm KEY.pem
+k8s/manifests/orca/setup-aws.sh iam
+```
+
+### Ruleset
+
+Block everyone but repository admins from updating `main`, then check that the last command prints
+`always`:
+
+```shell
+echo '{"name":"main: admins only","target":"branch","enforcement":"active",
+  "bypass_actors":[{"actor_id":5,"actor_type":"RepositoryRole","bypass_mode":"always"}],
+  "conditions":{"ref_name":{"include":["~DEFAULT_BRANCH"],"exclude":[]}},
+  "rules":[{"type":"update"},{"type":"non_fast_forward"},{"type":"deletion"}]}' \
+  | gh api -X POST repos/dancavallaro/homelab/rulesets --input -
+gh repo edit dancavallaro/homelab --delete-branch-on-merge
+gh api repos/dancavallaro/homelab/rulesets --jq '.[0].id' \
+  | xargs -I{} gh api repos/dancavallaro/homelab/rulesets/{} --jq .current_user_can_bypass
+```
+
+### Pair clients
+
+The `--supervise --no-pairing` server prints no link, and links shouldn't reach Loki, so the entrypoint
+has a one-shot mode that writes the link to `~/pairing.txt`. It restarts the pod, so pair before
+starting work. Update the laptop's Orca first.
+
+```shell
+kubectl -n orca exec deploy/orca -- sh -c 'touch ~/.pair-next-start'
+kubectl -n orca delete pod -l app=orca
+kubectl -n orca wait --for=condition=Ready pod -l app=orca --timeout=5m
+kubectl -n orca exec deploy/orca -- sh -c 'grep "^Pairing URL" ~/pairing.txt'
+```
+
+Paste the link into **Settings → Remote Orca Servers → Add Server**. For the phone, repeat with
+`echo mobile > ~/.pair-next-start`, and read the whole of `~/pairing.txt` for its QR code. Then delete
+the pod once more to return to normal mode, which also removes `pairing.txt`.
+
+### Log in and clone
+
+```shell
+kubectl -n orca exec -it deploy/orca -- orca-ide account add --agent claude
+kubectl -n orca exec deploy/orca -- sh -c \
+    'git clone https://github.com/dancavallaro/homelab ~/workspaces/homelab'
+```
+
+Add `~/workspaces/homelab` as a project in the app, connected to this server.
+
+## Verify the restrictions
+
+Each deny is paired with an allow to the same kind of target, because a dead network or a broken
+credential would produce the same denial.
+
+```shell
+kubectl -n orca exec -it deploy/orca -- bash
+```
+
+```shell
+github-app-token >/dev/null && echo minted
+
+cd ~/workspaces/homelab
+git commit --allow-empty -m 'Test push rules'
+git push origin HEAD:refs/heads/orca-push-test  # succeeds
+git push origin HEAD:main                       # rejected by the ruleset
+git push origin --delete orca-push-test
+git reset --hard origin/main
+
+curl -sS -m 5 -o /dev/null -w '%{http_code}\n' https://github.com  # 200
+curl -sS -m 5 https://172.16.42.3                                  # times out
+curl -sS -m 5 http://10.42.42.1                                    # times out
+```

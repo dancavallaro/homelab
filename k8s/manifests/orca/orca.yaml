@@ -1,0 +1,151 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: orca
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+# Its name sets the JWT SVID's subject, which the AWS role's trust policy pins.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: orca
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: orca-home
+spec:
+  storageClassName: synology-iscsi
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orca
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: orca
+  template:
+    metadata:
+      labels:
+        app: orca
+        k8s.spirl.com/spiffe-csi: enabled
+    spec:
+      serviceAccountName: orca
+      # Orca's stale-lock check compares hostnames, so keep this stable across pods.
+      hostname: orca
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: orca
+          image: ghcr.io/dancavallaro/homelab/orca:0.1.0
+          env:
+            - name: ORCA_PAIRING_ADDRESS
+              value: orca.o.cavnet.cloud:6768
+            - name: AWS_REGION
+              value: us-east-1
+            - name: GITHUB_APP_AWS_ROLE_ARN
+              value: arn:aws:iam::484396241422:role/orca-github-app
+            - name: GITHUB_APP_KMS_KEY
+              value: alias/orca-github-app
+            - name: GITHUB_APP_ID
+              value: "5658580"
+            - name: GITHUB_APP_INSTALLATION_ID
+              value: "179634437"
+          ports:
+            - name: orca
+              containerPort: 6768
+          # No liveness probe: restarting this container ends every running agent.
+          startupProbe:
+            tcpSocket:
+              port: orca
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket:
+              port: orca
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 1Gi
+            limits:
+              memory: 2500Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: home
+              mountPath: /home/orca
+            - name: session-instructions
+              mountPath: /etc/claude-code
+              readOnly: true
+      volumes:
+        - name: home
+          persistentVolumeClaim:
+            claimName: orca-home
+        - name: session-instructions
+          configMap:
+            name: orca-session-instructions
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orca
+  annotations:
+    "coredns.io/hostname": orca.o.cavnet.cloud
+spec:
+  type: LoadBalancer
+  selector:
+    app: orca
+  ports:
+    - name: orca
+      port: 6768
+      targetPort: orca
+---
+# Matches the Proxmox guest VLAN: agents get DNS and the internet, and nothing private.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: orca-egress
+spec:
+  endpointSelector:
+    matchLabels:
+      app: orca
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+    - toCIDRSet:
+        - cidr: 0.0.0.0/0
+          except:
+            - 10.0.0.0/8
+            - 100.64.0.0/10
+            - 169.254.0.0/16
+            - 172.16.0.0/12
+            - 192.168.0.0/16
