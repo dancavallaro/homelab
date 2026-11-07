@@ -3,7 +3,9 @@ kind: Namespace
 metadata:
   name: orca
   labels:
-    pod-security.kubernetes.io/enforce: restricted
+    # Not restricted: Volsync's mover pods for this namespace's PVCs run as root.
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
 ---
 # Its name sets the JWT SVID's subject, which the AWS role's trust policy pins.
 apiVersion: v1
