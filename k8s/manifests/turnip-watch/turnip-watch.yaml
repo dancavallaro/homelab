@@ -43,16 +43,11 @@ spec:
           env:
             - name: THRESHOLD
               value: "550"
+            # Pushover paused; restore secretKeyRefs to pushover-creds to re-enable.
             - name: PUSHOVER_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: pushover-creds
-                  key: token
+              value: skip
             - name: PUSHOVER_USER_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: pushover-creds
-                  key: user_key
+              value: skip
           volumeMounts:
             - name: script
               mountPath: /app

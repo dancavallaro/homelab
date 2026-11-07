@@ -167,6 +167,8 @@ def main():
     while True:
         try:
             islands = filter_islands(fetch_islands())
+            # Loki is the only price history; /state keeps just the latest poll.
+            logging.info("poll: %s", json.dumps(build_snapshot(islands, time.time())))
             above = [
                 i for i in islands
                 if i.get("messageID")
