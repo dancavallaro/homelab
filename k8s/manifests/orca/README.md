@@ -6,7 +6,11 @@ Headless [Orca](https://www.onorca.dev/docs/remote-servers) for the laptop and p
 - Replacing the pod ends every running terminal and agent. Projects, pairings and logins stay on the
   volume. An orcad crash alone keeps terminals, because `--supervise` restarts it in place.
 - Sessions push as a GitHub App that a ruleset keeps off `main`, so they open PRs for review.
-  Egress is limited to DNS and the internet.
+  Egress is limited to DNS, the internet and the API server.
+- `kubectl` reads the cluster as the `orca` ServiceAccount, bound to `view` and
+  `orca-cluster-reader` (`rbac.yaml`): no Secrets, exec, port-forward or proxy. Its token is
+  projected, lasts an hour and dies with the pod. To cut access at once, turn off auto-sync for
+  `orca` and `all-apps` in ArgoCD, delete both `orca-*` ClusterRoleBindings and delete the pod.
 - The App's private key lives in KMS. For each GitHub token, `github-app-token` fetches a Defakto JWT
   SVID, assumes an AWS role with it, signs the App JWT with `kms:Sign`, and exchanges that.
 
@@ -112,4 +116,14 @@ git reset --hard origin/main
 curl -sS -m 5 -o /dev/null -w '%{http_code}\n' https://github.com  # 200
 curl -sS -m 5 https://172.16.42.3                                  # times out
 curl -sS -m 5 http://10.42.42.1                                    # times out
+
+kubectl get nodes,pv,storageclasses                    # lists them
+kubectl get applications.argoproj.io -A                # lists them
+kubectl -n argocd logs deploy/argocd-server --tail=1   # prints a line
+kubectl auth can-i get secrets -A                      # no
+kubectl get secrets -A                                 # Forbidden
+kubectl auth can-i create pods/exec -A                 # no
+kubectl auth can-i get nodes/proxy                     # no
+kubectl -n orca delete pod -l app=orca --dry-run=server  # Forbidden
+curl -sS -m 5 -k https://10.11.0.10:50000              # times out
 ```

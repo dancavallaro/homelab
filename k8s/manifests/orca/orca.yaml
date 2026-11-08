@@ -7,7 +7,8 @@ metadata:
     pod-security.kubernetes.io/enforce: baseline
     pod-security.kubernetes.io/warn: restricted
 ---
-# Its name sets the JWT SVID's subject, which the AWS role's trust policy pins.
+# Its name sets the JWT SVID's subject, which the AWS role's trust policy pins. Bound to
+# read-only roles in rbac.yaml; the pod mounts its token explicitly, below, not by automount.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -61,7 +62,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: orca
-          image: ghcr.io/dancavallaro/homelab/orca:0.1.1
+          image: ghcr.io/dancavallaro/homelab/orca:0.2.0
           env:
             - name: ORCA_PAIRING_ADDRESS
               value: orca.o.cavnet.cloud:6768
@@ -105,6 +106,9 @@ spec:
             - name: session-instructions
               mountPath: /etc/claude-code
               readOnly: true
+            - name: kube-api
+              mountPath: /var/run/secrets/orca/kubernetes
+              readOnly: true
       volumes:
         - name: home
           persistentVolumeClaim:
@@ -112,6 +116,19 @@ spec:
         - name: session-instructions
           configMap:
             name: orca-session-instructions
+        # For /etc/orca/kubeconfig. The token is bound to this pod, so deleting the pod revokes
+        # it. Not 3607 seconds: the API server stretches tokens of exactly that lifetime to a year.
+        - name: kube-api
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3600
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
 ---
 apiVersion: v1
 kind: Service
@@ -128,7 +145,8 @@ spec:
       port: 6768
       targetPort: orca
 ---
-# Matches the Proxmox guest VLAN: agents get DNS and the internet, and nothing private.
+# Matches the Proxmox guest VLAN: agents get DNS and the internet, and nothing private, apart
+# from the API server for read-only kubectl.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -146,6 +164,15 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
+    # Cilium's kube-proxy replacement translates kubernetes.default.svc:443 at connect(), so
+    # policy sees the control plane on 6443 with the kube-apiserver identity. A CIDR rule can't
+    # match it: node addresses carry node identities, never world.
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "6443"
+              protocol: TCP
     - toCIDRSet:
         - cidr: 0.0.0.0/0
           except:

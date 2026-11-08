@@ -8,6 +8,9 @@ ARG AWSCLI_VERSION=2.39.6
 ARG AWSCLI_ZIP_SHA256=7a121264f2637a3b90767aaf5bdd43ee88b8c925a931d0479fa2ce22b1a2fa76
 ARG SPIFFE_HELPER_VERSION=0.12.3
 ARG SPIFFE_HELPER_TARBALL_SHA256=b275a572d36ec02f5da995c11c736b3300ab5210af21f3deff1b5fc727cecd69
+# Within one minor version of the cluster's Kubernetes.
+ARG KUBECTL_VERSION=1.36.6
+ARG KUBECTL_SHA256=29818b6729dc9262b692307470d0558d027725e738be5dd47c760261868a2634
 
 LABEL org.opencontainers.image.source="https://github.com/dancavallaro/homelab"
 
@@ -30,6 +33,10 @@ RUN apt-get update \
         "https://github.com/spiffe/spiffe-helper/releases/download/v${SPIFFE_HELPER_VERSION}/spiffe-helper_v${SPIFFE_HELPER_VERSION}_Linux-x86_64.tar.gz" \
     && echo "${SPIFFE_HELPER_TARBALL_SHA256}  /tmp/spiffe-helper.tar.gz" | sha256sum -c - \
     && tar -xzf /tmp/spiffe-helper.tar.gz -C /usr/local/bin spiffe-helper \
+    && curl -fsSL -o /usr/local/bin/kubectl \
+        "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
+    && echo "${KUBECTL_SHA256}  /usr/local/bin/kubectl" | sha256sum -c - \
+    && chmod 755 /usr/local/bin/kubectl \
     && rm -rf /tmp/* /var/lib/apt/lists/* \
     && useradd --uid 1000 --create-home --shell /bin/bash orca \
     && rm -f /etc/machine-id && ln -s /home/orca/.machine-id /etc/machine-id \
@@ -38,6 +45,7 @@ RUN apt-get update \
     && git config --system user.email 'orca-homelab[bot]@users.noreply.github.com'
 
 COPY spiffe-helper.hcl /etc/orca/spiffe-helper.hcl
+COPY kubeconfig /etc/orca/kubeconfig
 COPY profile-local-bin.sh /etc/profile.d/local-bin.sh
 COPY entrypoint.sh /usr/local/bin/orca-entrypoint
 COPY github-app-token.sh /usr/local/bin/github-app-token
@@ -47,6 +55,7 @@ COPY gh-wrapper.sh /usr/local/bin/gh
 USER orca
 ENV HOME=/home/orca \
     PATH=/home/orca/.local/bin:/usr/local/bin:/usr/bin:/bin \
+    KUBECONFIG=/etc/orca/kubeconfig \
     ORCA_SERVE_RUNTIME=orcad
 WORKDIR /home/orca
 EXPOSE 6768

@@ -1,0 +1,113 @@
+# Read-only cluster access for Orca sessions. Neither role grants Secrets, exec, attach,
+# port-forward or any */proxy subresource. nodes/proxy matters most: a GET on it reaches the
+# kubelet's exec over websockets. So no wildcard resources in core or built-in groups.
+
+# The built-in view role: namespaced reads, including pods/log, but not Secrets.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: orca-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: orca
+    namespace: orca
+---
+# Everything view leaves out that's useful for debugging and storage planning. Not every CRD
+# below aggregates into view, so list the groups instead of relying on that.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: orca-cluster-reader
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - persistentvolumes
+      - namespaces
+    verbs: [get, list, watch]
+  - apiGroups: [storage.k8s.io]
+    resources:
+      - storageclasses
+      - csidrivers
+      - csinodes
+      - csistoragecapacities
+      - volumeattachments
+      - volumeattributesclasses
+    verbs: [get, list, watch]
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: [get, list, watch]
+  - apiGroups: [apiregistration.k8s.io]
+    resources: [apiservices]
+    verbs: [get, list, watch]
+  - apiGroups: [admissionregistration.k8s.io]
+    resources:
+      - mutatingwebhookconfigurations
+      - validatingwebhookconfigurations
+      - validatingadmissionpolicies
+      - validatingadmissionpolicybindings
+    verbs: [get, list, watch]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources:
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+    verbs: [get, list, watch]
+  - apiGroups: [scheduling.k8s.io]
+    resources: [priorityclasses]
+    verbs: [get, list, watch]
+  - apiGroups: [node.k8s.io]
+    resources: [runtimeclasses]
+    verbs: [get, list, watch]
+  - apiGroups: [networking.k8s.io]
+    resources:
+      - ingressclasses
+      - ipaddresses
+      - servicecidrs
+    verbs: [get, list, watch]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch]
+  - apiGroups: [metrics.k8s.io]
+    resources:
+      - nodes
+      - pods
+    verbs: [get, list, watch]
+  # CRD groups the cluster runs. None of their resources hold secret values; those live in
+  # Secrets. Review any new CRD in these groups for that before it ships.
+  - apiGroups:
+      - argoproj.io
+      - volsync.backube
+      - external-secrets.io
+      - generators.external-secrets.io
+      - kyverno.io
+      - policies.kyverno.io
+      - reports.kyverno.io
+      - wgpolicyk8s.io
+      - cilium.io
+      - gateway.networking.k8s.io
+      - cert-manager.io
+      - acme.cert-manager.io
+      - k8s.cni.cncf.io
+      - snapshot.storage.k8s.io
+      - talos.dev
+    resources: ["*"]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: orca-cluster-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: orca-cluster-reader
+subjects:
+  - kind: ServiceAccount
+    name: orca
+    namespace: orca
