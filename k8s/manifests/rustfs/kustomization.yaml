@@ -25,6 +25,14 @@ helmCharts:
         name: local-path-v2
         dataStorageSize: 10Gi
         logStorageSize: 1Gi
+        # Keep the chart's local-path PVCs when RustFS moves to rustfs-data-nas and
+        # the chart stops rendering them (Argo ignores helm.sh/resource-policy).
+        # Delete them by hand once the migration is done.
+        pvcAnnotations:
+          data:
+            argocd.argoproj.io/sync-options: Prune=false,Delete=false
+          logs:
+            argocd.argoproj.io/sync-options: Prune=false,Delete=false
       resources:
         requests:
           cpu: 10m

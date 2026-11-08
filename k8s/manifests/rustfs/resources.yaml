@@ -3,6 +3,22 @@ kind: Namespace
 metadata:
   name: rustfs
 ---
+# RustFS data on the NAS: holds every bucket, so it's on a Retain class and
+# Argo never prunes or deletes it.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rustfs-data-nas
+  namespace: rustfs
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: synology-iscsi-retain
+  resources:
+    requests:
+      storage: 100Gi
+---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
