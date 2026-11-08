@@ -6,7 +6,7 @@ Headless [Orca](https://www.onorca.dev/docs/remote-servers) for the laptop and p
 - Replacing the pod ends every running terminal and agent. Projects, pairings and logins stay on the
   volume. An orcad crash alone keeps terminals, because `--supervise` restarts it in place.
 - Sessions push as a GitHub App that a ruleset keeps off `main`, so they open PRs for review.
-  Egress is limited to DNS, the internet, the API server and `grafana-reader`.
+  Egress is limited to DNS, the internet, the API server, the Talos API and `grafana-reader`.
 - `kubectl` reads the cluster as the `orca` ServiceAccount, bound to `view` and
   `orca-cluster-reader` (`rbac.yaml`): no Secrets, exec, port-forward or proxy. Its token is
   projected, lasts an hour and dies with the pod. To cut access at once, turn off auto-sync for
@@ -16,6 +16,9 @@ Headless [Orca](https://www.onorca.dev/docs/remote-servers) for the laptop and p
   through `grafana-reader`, an nginx that passes queries and GETs: a Viewer can otherwise write to
   Loki, Mimir's ruler and Alertmanager through Grafana's datasource proxy. To cut access, set
   `[auth.jwt] enabled = false` or disable the `system:serviceaccount:orca:orca` user in Grafana.
+- `talosctl` reads Talos as `os:reader`, from the talosconfig Talos writes for the `orca-talos`
+  ServiceAccount (`talos.yaml`). Its client certificate lasts 6 hours and can't be revoked, so
+  deleting `orca-talos`, or removing `orca` from `cp.patch.yaml`, cuts access within 6 hours.
 - The App's private key lives in KMS. For each GitHub token, `github-app-token` fetches a Defakto JWT
   SVID, assumes an AWS role with it, signs the App JWT with `kms:Sign`, and exchanges that.
 
@@ -130,7 +133,6 @@ kubectl get secrets -A                                 # Forbidden
 kubectl auth can-i create pods/exec -A                 # no
 kubectl auth can-i get nodes/proxy                     # no
 kubectl -n orca delete pod -l app=orca --dry-run=server  # Forbidden
-curl -sS -m 5 -k https://10.11.0.10:50000              # times out
 
 g() { curl -sS -m 10 -H "X-JWT-Assertion: $(cat "$GRAFANA_TOKEN_FILE")" "$GRAFANA_URL$@"; }
 g /api/user | jq '.login, .orgRole' -r                 # system:serviceaccount:orca:orca, Viewer
@@ -146,4 +148,12 @@ g /api/dashboards/db -X POST -H 'Content-Type: application/json' -o /dev/null -w
   -d '{"dashboard":{"title":"orca-write-test"}}'      # 403
 curl -sS -m 5 http://loki-http.monitoring/ready        # times out
 curl -sS -m 5 http://grafana.monitoring/api/health     # times out
+
+talosctl -n 10.11.0.100 get disks                      # lists them
+talosctl -n 10.11.0.10 logs kubelet --tail 1           # prints a line
+talosctl -n 10.11.0.100 get machineconfig -o yaml | grep -c REDACTED   # more than 0
+talosctl -n 10.11.0.100 get osrootsecret               # PermissionDenied
+talosctl -n 10.11.0.100 reboot --wait=false            # PermissionDenied
+talosctl config info                                   # os:reader, expires within 6h
+curl -sS -m 5 -k https://10.11.0.100:50000             # times out: only via the control plane
 ```
