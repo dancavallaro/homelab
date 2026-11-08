@@ -85,10 +85,12 @@ spec:
             tcpSocket:
               port: orca
             periodSeconds: 10
+          # Request what it uses. Under node memory pressure the kernel evicts the claude and node
+          # binaries, which live on the iSCSI volume, and rereads them nonstop, flooding the network.
           resources:
             requests:
               cpu: 100m
-              memory: 1Gi
+              memory: 2500Mi
             limits:
               memory: 2500Mi
           securityContext:
