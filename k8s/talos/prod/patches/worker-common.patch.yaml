@@ -4,6 +4,13 @@ machine:
       partitions:
         - mountpoint: /var/mnt/data
   kubelet:
+    # Evict pods to other nodes before the Talos OOM controller starts SIGKILLing them in place.
+    extraConfig:
+      evictionSoft:
+        memory.available: 500Mi
+      evictionSoftGracePeriod:
+        memory.available: 1m
+      evictionMaxPodGracePeriod: 60
     extraMounts:
       - source: /var/mnt/data
         destination: /var/mnt/data
