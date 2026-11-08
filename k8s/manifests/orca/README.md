@@ -6,13 +6,15 @@ Headless [Orca](https://www.onorca.dev/docs/remote-servers) for the laptop and p
 - Replacing the pod ends every running terminal and agent. Projects, pairings and logins stay on the
   volume. An orcad crash alone keeps terminals, because `--supervise` restarts it in place.
 - Sessions push as a GitHub App that a ruleset keeps off `main`, so they open PRs for review.
-  Egress is limited to DNS, the internet, the API server and Grafana.
+  Egress is limited to DNS, the internet, the API server and `grafana-reader`.
 - `kubectl` reads the cluster as the `orca` ServiceAccount, bound to `view` and
   `orca-cluster-reader` (`rbac.yaml`): no Secrets, exec, port-forward or proxy. Its token is
   projected, lasts an hour and dies with the pod. To cut access at once, turn off auto-sync for
   `orca` and `all-apps` in ArgoCD, delete both `orca-*` ClusterRoleBindings and delete the pod.
 - Grafana logs sessions in as Viewer from a second projected token (audience `grafana`, one hour),
-  through its `[auth.jwt]` settings, which accept only this ServiceAccount. To cut access, set
+  through its `[auth.jwt]` settings, which accept only this ServiceAccount. Sessions reach it only
+  through `grafana-reader`, an nginx that passes queries and GETs: a Viewer can otherwise write to
+  Loki, Mimir's ruler and Alertmanager through Grafana's datasource proxy. To cut access, set
   `[auth.jwt] enabled = false` or disable the `system:serviceaccount:orca:orca` user in Grafana.
 - The App's private key lives in KMS. For each GitHub token, `github-app-token` fetches a Defakto JWT
   SVID, assumes an AWS role with it, signs the App JWT with `kms:Sign`, and exchanges that.
@@ -137,8 +139,11 @@ g /api/ds/query -H 'Content-Type: application/json' -d '{"from":"now-5m","to":"n
   [{"refId":"A","datasource":{"uid":"'$loki'"},"expr":"{namespace=\"orca\"}","queryType":"range"}]}' \
   | jq '.results.A.status'                             # 200
 g /api/datasources/proxy/uid/$loki/loki/api/v1/delete -X POST -o /dev/null -w '%{http_code}\n' \
-  -G --data-urlencode 'query={namespace="orca-test"}' -d start=0   # 403, never 204
+  -G --data-urlencode 'query={namespace="orca-test"}' -d start=0   # 403 from grafana-reader
+g /api/datasources/proxy/uid/$loki/loki/api/v1/labels | jq .status   # "success"
+g /api/datasources/proxy/uid/$loki/loki/api/v1/%2e%2e/%2e%2e/ready -o /dev/null -w '%{http_code}\n'  # 403
 g /api/dashboards/db -X POST -H 'Content-Type: application/json' -o /dev/null -w '%{http_code}\n' \
   -d '{"dashboard":{"title":"orca-write-test"}}'      # 403
 curl -sS -m 5 http://loki-http.monitoring/ready        # times out
+curl -sS -m 5 http://grafana.monitoring/api/health     # times out
 ```
