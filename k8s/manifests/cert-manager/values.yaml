@@ -5,3 +5,7 @@ serviceAccount:
     eks.amazonaws.com/role-arn: arn:aws:iam::484396241422:role/certbot-dns-updater-role
 dns01RecursiveNameservers: "1.1.1.1:53,8.8.8.8:53"
 dns01RecursiveNameserversOnly: true
+cainjector:
+  resources:
+    requests:
+      memory: 96Mi

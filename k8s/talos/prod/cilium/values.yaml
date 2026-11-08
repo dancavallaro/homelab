@@ -1,5 +1,12 @@
 operator:
   replicas: 1
+  resources:
+    requests:
+      memory: 80Mi
+envoy:
+  resources:
+    requests:
+      memory: 32Mi
 ipam:
   mode: kubernetes
 kubeProxyReplacement: true

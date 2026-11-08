@@ -49,6 +49,9 @@ spec:
       containers:
         - name: exporter
           image: ghcr.io/dancavallaro/telemetry/volsync-metrics:0.3.0
+          resources:
+            requests:
+              memory: 32Mi
           ports:
             - containerPort: 8080
 ---

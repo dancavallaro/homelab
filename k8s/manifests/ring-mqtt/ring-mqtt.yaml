@@ -83,6 +83,9 @@ spec:
       containers:
         - name: ring-mqtt
           image: tsightler/ring-mqtt:5.8.1
+          resources:
+            requests:
+              memory: 176Mi
           volumeMounts:
             - name: ring-mqtt-data
               mountPath: /data

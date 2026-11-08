@@ -47,6 +47,9 @@ spec:
       containers:
         - name: alertmanager
           image: prom/alertmanager:v0.28.1
+          resources:
+            requests:
+              memory: 32Mi
           args:
             - --config.file=/etc/alertmanager/config.yaml
           ports:
