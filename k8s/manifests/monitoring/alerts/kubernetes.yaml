@@ -46,6 +46,16 @@ groups:
         for: 10m
         annotations:
           message: "RPi has stopped publishing telemetry to Mimir. Is Tailscale down?"
+      - alert: Node low on memory
+        expr: node_memory_MemAvailable_bytes{cluster="talos-prod"} / node_memory_MemTotal_bytes{cluster="talos-prod"} < 0.15
+        for: 30m
+        annotations:
+          message: "{{ $labels.host }} has {{ $value | humanizePercentage }} of its memory available."
+      - alert: Orca nearing its memory limit
+        expr: sum by (pod) (container_memory_working_set_bytes{cluster="talos-prod", namespace="orca", container="orca"}) / sum by (pod) (kube_pod_container_resource_limits{cluster="talos-prod", namespace="orca", container="orca", resource="memory"}) > 0.8
+        for: 15m
+        annotations:
+          message: "Orca is using {{ $value | humanizePercentage }} of its memory limit. Close idle sessions; they resume with claude --resume."
       - alert: One or more pods are unavailable
         expr:  (kube_deployment_status_replicas_unavailable > 0) or (kube_statefulset_status_replicas_ready < kube_statefulset_replicas) or (kube_daemonset_status_number_unavailable > 0)
         for: 10m
