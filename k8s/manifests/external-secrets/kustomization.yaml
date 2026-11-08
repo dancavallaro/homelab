@@ -14,5 +14,16 @@ helmCharts:
           eks.amazonaws.com/role-arn: arn:aws:iam::484396241422:role/external-secrets-operator
       genericTargets:
         enabled: true
+      resources:
+        requests:
+          memory: 80Mi
+      certController:
+        resources:
+          requests:
+            memory: 64Mi
+      webhook:
+        resources:
+          requests:
+            memory: 64Mi
 resources:
   - aws-param-store.yaml

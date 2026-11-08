@@ -8,3 +8,6 @@ watchedResources:
 service:
   annotations:
     "lbipam.cilium.io/ips": 172.16.42.53
+resources:
+  requests:
+    memory: 48Mi

@@ -29,3 +29,33 @@ helmCharts:
         id: sc-98lvlelq6p
         auth:
           suppliedSecretName: ledger-scanner-key
+# The chart has no resources values for these DaemonSets.
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: DaemonSet
+      metadata:
+        name: spirl-agent
+        namespace: spirl-system
+      spec:
+        template:
+          spec:
+            containers:
+              - name: spirl-agent
+                resources:
+                  requests:
+                    memory: 32Mi
+  - patch: |-
+      apiVersion: apps/v1
+      kind: DaemonSet
+      metadata:
+        name: spiffe-csi-driver
+        namespace: spirl-system
+      spec:
+        template:
+          spec:
+            containers:
+              - name: spiffe-csi-driver
+                resources:
+                  requests:
+                    memory: 32Mi

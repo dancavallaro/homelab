@@ -47,6 +47,9 @@ spec:
       containers:
         - name: pocket-id
           image: ghcr.io/pocket-id/pocket-id:v2.14.0
+          resources:
+            requests:
+              memory: 48Mi
           env:
             - name: APP_URL
               value: REPLACEME

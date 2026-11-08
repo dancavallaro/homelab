@@ -70,6 +70,9 @@ spec:
               name: matter-data
           ports:
             - containerPort: 5580
+          resources:
+            requests:
+              memory: 96Mi
       volumes:
         - name: matter-data
           persistentVolumeClaim:

@@ -69,6 +69,9 @@ spec:
       containers:
         - name: mariadb
           image: mariadb:10.11
+          resources:
+            requests:
+              memory: 80Mi
           ports:
             - containerPort: 3306
           volumeMounts:
@@ -126,6 +129,9 @@ spec:
       containers:
         - name: wordpress
           image: wordpress:6.5-fpm
+          resources:
+            requests:
+              memory: 48Mi
           ports:
             - containerPort: 9000
           volumeMounts:

@@ -47,6 +47,14 @@ patches:
       - op: add
         path: /spec/template/spec/dnsPolicy
         value: ClusterFirstWithHostNet
+      - op: test
+        path: /spec/template/spec/containers/1/name
+        value: csi-plugin
+      - op: add
+        path: /spec/template/spec/containers/1/resources
+        value:
+          requests:
+            memory: 32Mi
   - target:
       kind: StatefulSet
       name: synology-csi-controller

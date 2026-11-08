@@ -37,6 +37,9 @@ spec:
         - name: turnip-watch
           image: python:3.12-slim
           command: ["python", "/app/watch.py"]
+          resources:
+            requests:
+              memory: 32Mi
           ports:
             - name: snooze
               containerPort: 8080
