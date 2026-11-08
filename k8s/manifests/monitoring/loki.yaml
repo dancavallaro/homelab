@@ -87,6 +87,10 @@ metadata:
 spec:
   replicas: 1
   revisionHistoryLimit: 0
+  # Never run two Loki pods against the same data volume (WAL, index, compactor state). RWO doesn't
+  # prevent that here, since both pods would land on the same node as the local-path volume.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: loki
@@ -99,7 +103,7 @@ spec:
       serviceAccountName: loki
       containers:
         - name: loki
-          image: grafana/loki:3.4.2
+          image: grafana/loki:3.7.9
           args:
             - -config.file=/etc/loki/config.yaml
           ports:
