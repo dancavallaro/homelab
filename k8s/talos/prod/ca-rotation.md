@@ -205,8 +205,9 @@ Replace every other copy of the admin talosconfig, including the one in the pass
 
 ## 3. Reissue the `talos.dev` ServiceAccount talosconfigs
 
-Talos issues each Secret from the machine CA. Check whether it already carries the new CA. The
-fingerprint of the CA certificate is the only thing printed.
+Talos issues each Secret from the machine CA. In practice it reissued both Secrets within about a
+minute of the rotation, and the Orca pod picked up the change without a restart. Check whether each
+Secret carries the new CA. The fingerprint of the CA certificate is the only thing printed.
 
 ```shell
 for s in orca/orca-talos cluster-archiver/cluster-archiver-talos-secrets; do
@@ -294,7 +295,10 @@ kubectl get nodes                                              # all Ready
 kubectl -n kube-system logs kube-apiserver-talos-prod-cp1 | grep -c -i x509   # 0
 livemc 10.11.0.10 | yq '.cluster.etcd.ca.crt' | b64fp              # matches ca-etcd-new.txt
 
-# etcd serves a certificate from the new CA. Needs reach to port 2379; the two key IDs must match.
+# etcd serves a certificate from the new CA. This needs direct reach to port 2379, which a laptop usually
+# doesn't have. If you can't reach it: etcd trusts only the CA in its config, so readyz/etcd returning ok
+# and etcd status working already show that the client certificates come from the new CA.
+# The two key IDs must match.
 openssl s_client -connect 10.11.0.10:2379 </dev/null 2>/dev/null | openssl x509 -noout -ext authorityKeyIdentifier
 yq '.cluster.etcd.ca.crt' etcd-ca.patch.yaml | base64 -d | openssl x509 -noout -ext subjectKeyIdentifier
 ```
