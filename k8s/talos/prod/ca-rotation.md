@@ -44,6 +44,11 @@ secretbox key, the trustd token and the cluster secret.
 
 ## 0. Prepare
 
+Use a talosctl that matches the cluster's Talos version. `rotate-ca` and `gen secrets` write
+machine configs and the secrets bundle in the client's format. Run the helpers below in bash, not
+fish. Your custom installer reports `v1.13.9-dirty`, so expect a warning on every command that the
+server is older than the client. You can ignore it.
+
 Work in a private directory. Its files will hold new CA keys and an etcd snapshot. Leave it out of
 backups. On macOS, `tmutil addexclusion` keeps it out of Time Machine.
 
@@ -58,9 +63,8 @@ NODES=10.11.0.10,10.11.0.100,10.11.0.101,10.11.0.102
 # Strip PEM blocks, crt/key/token/secret values and long base64 runs, so the output is safe to share.
 redact() { sed -E '/-----BEGIN/,/-----END/d; s/((crt|key|Key|token|secret|Secret)[A-Za-z]*:[[:space:]]*).+/\1<redacted>/' \
   | grep -v -E '[A-Za-z0-9+/]{40,}'; }
-# Print the subject, expiry and SHA-256 fingerprint of every certificate in a file.
-certs() { awk '/-----BEGIN CERTIFICATE-----/{f=1;n++} f{print > ("cert-" n ".pem")} /-----END CERTIFICATE-----/{f=0}' "$1"
-  for c in cert-*.pem; do openssl x509 -in "$c" -noout -subject -enddate -fingerprint -sha256; done; rm -f cert-*.pem; }
+# Print the base64 certificate under a rotate-ca log heading, e.g. logca rotate.log Current | b64fp
+logca() { awk -v h="^> $2 Talos CA" '$0 ~ h {getline; print $2}' "$1"; }
 # Print the subject, expiry and fingerprint of a base64-encoded PEM certificate read from stdin.
 b64fp() { base64 -d | openssl x509 -noout -subject -enddate -fingerprint -sha256; }
 # Print the base64-encoded CA of a talosconfig's current context.
@@ -92,13 +96,18 @@ talosctl -n 10.11.0.10 rotate-ca --talos=true --kubernetes=false \
   --control-plane-nodes 10.11.0.10 --worker-nodes 10.11.0.100,10.11.0.101,10.11.0.102 \
   --with-docs=false --with-examples=false --output ./talosconfig.new \
   > dryrun.log 2>&1; echo "exit $?"
-redact < dryrun.log      # safe to share: the phases and node list, no PEM
-certs dryrun.log         # fingerprints only: the current CA should match ca-talos-old.txt
+redact < dryrun.log                    # safe to share: the phases and node list, no keys
+logca dryrun.log Current | b64fp       # matches ca-talos-old.txt
+rm dryrun.log                          # it holds the current and a throwaway CA key
 ```
 
 **Checks:**
 
-- The exit code is 0.
+- The exit code is 1. The log ends with `failed to create new client with rotated Talos CA:
+  failed to determine endpoints`. That's a talosctl v1.13.9 dry-run bug: after the dry run,
+  `rotate-ca` builds a client from a talosconfig it never generated. It's harmless.
+- Every phase shows `OK (dry-run)` or `skipped (dry-run)`, and the log ends with
+  `Dry-run mode enabled, no changes were made`.
 - The topology lists 1 control plane node and 3 workers.
 - No phase reports an error.
 - `--kubernetes=false` shows as no Kubernetes phases.
@@ -113,8 +122,10 @@ until step 5 is done.
 talosctl -n 10.11.0.10 rotate-ca --talos=true --kubernetes=false --dry-run=false \
   --control-plane-nodes 10.11.0.10 --worker-nodes 10.11.0.100,10.11.0.101,10.11.0.102 \
   --with-docs=false --with-examples=false --output ./talosconfig.new \
-  > rotate.log 2>&1; echo "exit $?"
+  > rotate.log 2>&1; echo "exit $?"     # expect 0
 redact < rotate.log
+logca rotate.log Current | b64fp        # matches ca-talos-old.txt
+logca rotate.log New | b64fp            # matches the CA in talosconfig.new (below)
 ```
 
 ### Checks
