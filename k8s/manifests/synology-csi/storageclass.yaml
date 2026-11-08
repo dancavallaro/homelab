@@ -34,6 +34,20 @@ parameters:
 reclaimPolicy: Delete
 allowVolumeExpansion: true
 ---
+# Same as synology-iscsi, but the LUN survives deletion of its PVC. For volumes
+# whose loss would be costly (e.g. RustFS, which holds every bucket).
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: synology-iscsi-retain
+provisioner: csi.san.synology.com
+parameters:
+  location: "/volume1"
+  protocol: iscsi
+  csi.storage.k8s.io/fstype: ext4
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+---
 apiVersion: snapshot.storage.k8s.io/v1
 kind: VolumeSnapshotClass
 metadata:
