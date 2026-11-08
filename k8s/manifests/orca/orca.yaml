@@ -47,6 +47,9 @@ spec:
       serviceAccountName: orca
       # Orca's stale-lock check compares hostnames, so keep this stable across pods.
       hostname: orca
+      # BestEffort pods hide their memory from the scheduler; worker1 is sized to hold Orca.
+      nodeSelector:
+        kubernetes.io/hostname: talos-prod-worker1
       enableServiceLinks: false
       terminationGracePeriodSeconds: 60
       securityContext:
@@ -88,9 +91,9 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 1Gi
+              memory: 3Gi
             limits:
-              memory: 2500Mi
+              memory: 3Gi
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

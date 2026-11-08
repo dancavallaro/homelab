@@ -10,4 +10,4 @@ This session runs in a pod on Dan's Kubernetes cluster, reached through the Orca
   tokens or private hostnames that aren't already in the repo.
 - This pod has no cluster or host access. It can reach DNS and the internet, but no private
   addresses, so `kubectl`, `talosctl`, Ansible and SSH to homelab hosts won't work.
-- Memory is limited to 2.5 GiB. Avoid large parallel builds.
+- Memory is limited to 3 GiB, shared by every session in the pod. Avoid large parallel builds.
