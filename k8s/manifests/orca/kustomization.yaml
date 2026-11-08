@@ -4,6 +4,7 @@ namespace: orca
 resources:
   - orca.yaml
   - rbac.yaml
+  - grafana-reader.yaml
 configMapGenerator:
   - name: orca-session-instructions
     files:
@@ -11,3 +12,6 @@ configMapGenerator:
     options:
       # A hashed name would replace the pod, and end its agents, on every edit.
       disableNameSuffixHash: true
+  - name: grafana-reader-conf
+    files:
+      - default.conf=grafana-reader.conf

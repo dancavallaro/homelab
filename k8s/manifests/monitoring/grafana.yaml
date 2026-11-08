@@ -57,6 +57,21 @@ data:
     scopes = openid email profile groups
     role_attribute_path = contains(groups[*], 'superusers') && 'Admin' || 'None'
 
+    # Orca sessions query as Viewer with their pod's projected token (audience grafana, 1h). Only
+    # that ServiceAccount's tokens pass expect_claims; the role path repeats the check.
+    [auth.jwt]
+    enabled = true
+    header_name = X-JWT-Assertion
+    jwk_set_url = https://oidc.cavnet.io/openid/v1/jwks
+    cache_ttl = 60m
+    expect_claims = {"iss": "https://oidc.cavnet.io", "aud": "grafana", "sub": "system:serviceaccount:orca:orca"}
+    username_claim = sub
+    auto_sign_up = true
+    role_attribute_path = sub == 'system:serviceaccount:orca:orca' && 'Viewer' || 'None'
+    role_attribute_strict = true
+    allow_assign_grafana_admin = false
+    url_login = false
+
     [feature_toggles]
     enable = alertmanagerRemoteOnly sqlExpressions provisioning kubernetesDashboards
 ---
