@@ -153,7 +153,7 @@ spec:
                 weekly: 4
                 monthly: 10
                 yearly: 4
-              copyMethod: '{{lookup(`{"synology-iscsi": "Clone"}`, request.object.spec.storageClassName) || `"Direct"`}}'
+              copyMethod: '{{lookup(`{"synology-iscsi": "Clone", "synology-iscsi-retain": "Clone"}`, request.object.spec.storageClassName) || `"Direct"`}}'
               cacheCapacity: "5Gi"
     - name: escalate-mover-privileges
       match:
