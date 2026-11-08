@@ -101,7 +101,7 @@ $ helm upgrade --install cilium cilium/cilium --version 1.20.1 --namespace kube-
 
 ```shell
 $ virt-install --name talos-prod-worker1 \
-     --ram 4096 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
+     --ram 8192 --vcpus 2 --os-variant ubuntu22.04 --graphics none \
      --disk size=50,format=qcow2 --disk size=100,format=qcow2 \
      --location "$IMAGE_PATH",kernel=boot/vmlinuz,initrd=boot/initramfs.xz \
      --extra-args="console=ttyS0 talos.platform=metal slab_nomerge pti=on ip=10.11.0.100::$GATEWAY:255.255.255.0::enp1s0:off" --noautoconsole \
