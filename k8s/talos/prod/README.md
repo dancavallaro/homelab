@@ -1,3 +1,7 @@
+# Talos prod cluster
+
+To rotate the Talos API or etcd CA, see [ca-rotation.md](ca-rotation.md).
+
 ## Set up host
 
 ### Networking config
