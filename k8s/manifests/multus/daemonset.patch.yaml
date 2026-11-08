@@ -8,14 +8,14 @@ spec:
     spec:
       containers:
         - name: kube-multus
-          # The upstream 50Mi limit OOM-kills the delegated primary CNI (multus-cni#1346).
+          # A tight limit OOM-kills or throttles the delegated primary CNI (multus-cni#1346); it idles near 130Mi.
           resources:
             requests:
               cpu: 200m
-              memory: 100Mi
+              memory: 150Mi
             limits:
               cpu: 300m
-              memory: 150Mi
+              memory: 300Mi
       initContainers:
         # Talos ships no macvlan, static or tuning plugin; install only those three.
         - name: install-reference-plugins
