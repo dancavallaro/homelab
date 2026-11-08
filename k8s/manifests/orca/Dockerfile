@@ -11,6 +11,9 @@ ARG SPIFFE_HELPER_TARBALL_SHA256=b275a572d36ec02f5da995c11c736b3300ab5210af21f3d
 # Within one minor version of the cluster's Kubernetes.
 ARG KUBECTL_VERSION=1.36.6
 ARG KUBECTL_SHA256=29818b6729dc9262b692307470d0558d027725e738be5dd47c760261868a2634
+# Matches the cluster's Talos version.
+ARG TALOSCTL_VERSION=1.13.9
+ARG TALOSCTL_SHA256=7e1d4b7d5846964bdcf63a794e3c8161bb6ef2983d5ace58ea5322f3bf32a27e
 
 LABEL org.opencontainers.image.source="https://github.com/dancavallaro/homelab"
 
@@ -37,6 +40,10 @@ RUN apt-get update \
         "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
     && echo "${KUBECTL_SHA256}  /usr/local/bin/kubectl" | sha256sum -c - \
     && chmod 755 /usr/local/bin/kubectl \
+    && curl -fsSL -o /usr/local/bin/talosctl \
+        "https://github.com/siderolabs/talos/releases/download/v${TALOSCTL_VERSION}/talosctl-linux-amd64" \
+    && echo "${TALOSCTL_SHA256}  /usr/local/bin/talosctl" | sha256sum -c - \
+    && chmod 755 /usr/local/bin/talosctl \
     && rm -rf /tmp/* /var/lib/apt/lists/* \
     && useradd --uid 1000 --create-home --shell /bin/bash orca \
     && rm -f /etc/machine-id && ln -s /home/orca/.machine-id /etc/machine-id \
@@ -56,6 +63,7 @@ USER orca
 ENV HOME=/home/orca \
     PATH=/home/orca/.local/bin:/usr/local/bin:/usr/bin:/bin \
     KUBECONFIG=/etc/orca/kubeconfig \
+    TALOSCONFIG=/var/run/secrets/talos.dev/config \
     ORCA_SERVE_RUNTIME=orcad
 WORKDIR /home/orca
 EXPOSE 6768

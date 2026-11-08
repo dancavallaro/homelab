@@ -1,0 +1,10 @@
+# Talos writes a talosconfig for this into a Secret of the same name, with a 6-hour os:reader
+# client certificate that it renews in the last hour. Needs orca in cp.patch.yaml's
+# kubernetesTalosAPIAccess.allowedKubernetesNamespaces.
+apiVersion: talos.dev/v1alpha1
+kind: ServiceAccount
+metadata:
+  name: orca-talos
+spec:
+  roles:
+    - os:reader

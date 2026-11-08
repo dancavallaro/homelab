@@ -2,7 +2,7 @@ machine:
   certSANs:
     - k8s.cavnet.cloud
   features:
-    # Enable Talos API access for the cluster backup job
+    # Talos API access for the cluster backup job, and os:reader for Orca sessions
     kubernetesTalosAPIAccess:
       enabled: true
       allowedRoles:
@@ -12,6 +12,7 @@ machine:
       allowedKubernetesNamespaces:
         - default
         - cluster-archiver
+        - orca
 cluster:
   apiServer:
     admissionControl:

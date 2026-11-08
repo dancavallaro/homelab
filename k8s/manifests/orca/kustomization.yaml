@@ -5,6 +5,7 @@ resources:
   - orca.yaml
   - rbac.yaml
   - grafana-reader.yaml
+  - talos.yaml
 configMapGenerator:
   - name: orca-session-instructions
     files:

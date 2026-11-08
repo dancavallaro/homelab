@@ -62,7 +62,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: orca
-          image: ghcr.io/dancavallaro/homelab/orca:0.2.0
+          image: ghcr.io/dancavallaro/homelab/orca:0.3.0
           env:
             - name: ORCA_PAIRING_ADDRESS
               value: orca.o.cavnet.cloud:6768
@@ -116,6 +116,9 @@ spec:
             - name: grafana-token
               mountPath: /var/run/secrets/orca/grafana
               readOnly: true
+            - name: talos
+              mountPath: /var/run/secrets/talos.dev
+              readOnly: true
       volumes:
         - name: home
           persistentVolumeClaim:
@@ -145,6 +148,11 @@ spec:
                   path: token
                   audience: grafana
                   expirationSeconds: 3600
+        # talos.yaml's talosconfig. Optional, so the pod still starts if Talos refuses to issue it.
+        - name: talos
+          secret:
+            secretName: orca-talos
+            optional: true
 ---
 apiVersion: v1
 kind: Service
@@ -162,7 +170,7 @@ spec:
       targetPort: orca
 ---
 # Matches the Proxmox guest VLAN: agents get DNS and the internet, and nothing private, apart
-# from the API server for read-only kubectl and grafana-reader for Grafana queries as Viewer.
+# from the API server for read-only kubectl and talosctl, and grafana-reader for Grafana queries.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -180,14 +188,17 @@ spec:
         - ports:
             - port: "53"
               protocol: ANY
-    # Cilium's kube-proxy replacement translates kubernetes.default.svc:443 at connect(), so
-    # policy sees the control plane on 6443 with the kube-apiserver identity. A CIDR rule can't
-    # match it: node addresses carry node identities, never world.
+    # Cilium's kube-proxy replacement translates kubernetes.default.svc:443 and talos.default:50000
+    # at connect(), so policy sees the control plane on 6443 or 50000 with the kube-apiserver
+    # identity. A CIDR rule can't match it: node addresses carry node identities, never world.
+    # The control plane's apid proxies talosctl -n <worker> to the workers.
     - toEntities:
         - kube-apiserver
       toPorts:
         - ports:
             - port: "6443"
+              protocol: TCP
+            - port: "50000"
               protocol: TCP
     # Never Grafana, Loki or Mimir directly: Loki's and Mimir's HTTP ports have no auth, and
     # Grafana's datasource proxy would pass writes to them. grafana-reader allows reads only.
