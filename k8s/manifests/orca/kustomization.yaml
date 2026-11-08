@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: orca
 resources:
   - orca.yaml
+  - rbac.yaml
 configMapGenerator:
   - name: orca-session-instructions
     files:
