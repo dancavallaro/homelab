@@ -187,10 +187,12 @@ Keep `rotate.log` and `~/.talos/config.pre-rotate` until step 5 is merged.
 
 ```shell
 talosctl config contexts                       # note the context name, e.g. talos-prod
-talosctl config remove talos-prod              # remove the old, dead context so the merge keeps its name
-talosctl config merge ./talosconfig.new
-talosctl config context talos-prod             # use the name merge reports, if it differs
+talosctl config context <another-context>      # talosctl won't remove the current context
+talosctl config remove talos-prod -y           # remove the old, dead context so the merge keeps its name
+talosctl config merge ./talosconfig.new        # prints "renamed ..." if the name was still taken
+talosctl config context talos-prod
 talosctl config endpoint k8s.cavnet.cloud
+talosctl config node k8s.cavnet.cloud          # rotate-ca's talosconfig has no default nodes
 ```
 
 **Checks:**
