@@ -91,6 +91,12 @@ loki.process "filter_service_logs" {
     separator = "@"
     expression = "auditd@info"
   }
+  // Talos host DNS logs every query and response at DEBUG, but ships them labelled info. Keep its
+  // WARN lines, which report failed lookups.
+  stage.match {
+    selector = "{talos_service=\"dns-resolve-cache\"} |= \"DEBUG\""
+    action = "drop"
+  }
   forward_to = [
     //loki.echo.echo.receiver,
     loki.write.loki.receiver,
