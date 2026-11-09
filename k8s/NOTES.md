@@ -465,6 +465,31 @@ To cancel an in-flight request:
 curl -s -X DELETE "loki.o.cavnet.cloud/loki/api/v1/delete?request_id=<REQUEST_ID>&force=true"
 ```
 
+How a delete plays out:
+
+- A request can be cancelled for `delete_request_cancel_period` (1m). The compactor picks it up on
+  its next run (every 10m) and marks it `processed`. Queries stop returning the lines at that point.
+  Large requests take several runs, and the status shows `N% Complete` in between.
+- Chunk files are removed `retention_delete_delay` (1h) later. Until then the old chunks stay on
+  disk, and `index/stats` may still count them.
+- A chunk is dropped whole only if it lies entirely inside `start`/`end` and the query has no line
+  filter. Every other matching chunk is rewritten without the deleted lines. Rewrites are much
+  slower, so narrow the time range to where the unwanted lines actually are.
+- Keep `end` at least a day in the past. Deleting recently flushed chunks can leave the WAL
+  referencing them, which breaks queries after a restart (`failed to load chunk`).
+
+To check the result, compare per-stream stats before and after (times in seconds):
+
+```shell
+curl -s loki.o.cavnet.cloud/loki/api/v1/index/stats \
+  --data-urlencode 'query={talos_service="auditd"}' \
+  --data-urlencode start=1735689600 --data-urlencode end=1794067200
+```
+
+The Loki image has no shell, so check disk usage from the node with `talosctl usage` on the PV's
+host path (`kubectl get pv <name> -o jsonpath='{.spec.local.path}'`). Chunks live under
+`thanos/fake/<stream fingerprint>/`.
+
 ## Use Pocket ID to get token to access k8s APIs from CLI
 
 First get a token:
