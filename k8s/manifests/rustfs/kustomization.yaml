@@ -13,26 +13,20 @@ helmCharts:
     # would sync as an ordinary Pod and hold the app Degraded.
     skipTests: true
     valuesInline:
+      # Scaled to 0 while rustfs-data is copied to rustfs-data-nas by hand.
+      replicaCount: 0
       config:
         rustfs:
           log_level: warn
+          # Log to stdout (collected by Alloy) instead of a logs PVC.
+          obs_log_directory: ""
       mode:
         standalone:
           enabled: true
+          existingClaim:
+            dataClaim: rustfs-data-nas
         distributed:
           enabled: false
-      storageclass:
-        name: local-path-v2
-        dataStorageSize: 10Gi
-        logStorageSize: 1Gi
-        # Keep the chart's local-path PVCs when RustFS moves to rustfs-data-nas and
-        # the chart stops rendering them (Argo ignores helm.sh/resource-policy).
-        # Delete them by hand once the migration is done.
-        pvcAnnotations:
-          data:
-            argocd.argoproj.io/sync-options: Prune=false,Delete=false
-          logs:
-            argocd.argoproj.io/sync-options: Prune=false,Delete=false
       resources:
         requests:
           cpu: 10m
