@@ -16,18 +16,28 @@ data:
           store: inmemory
     common:
       storage:
-        backend: filesystem
-        filesystem:
-          dir: /mimir/data
+        backend: s3
+        s3:
+          endpoint: rustfs-svc.rustfs:9000
+          insecure: true
+          region: us-east-1
+          bucket_lookup_type: path
+          # Credentials come from AWS_WEB_IDENTITY_TOKEN_FILE and AWS_ROLE_ARN via RustFS STS.
+          sts_endpoint: http://rustfs-svc.rustfs:9000
     blocks_storage:
+      s3:
+        bucket_name: mimir-blocks
       tsdb:
         dir: /mimir/tsdb
+      bucket_store:
+        sync_dir: /mimir/tsdb-sync
+    compactor:
+      data_dir: /mimir/compactor
     ruler:
       alertmanager_url: http://alertmanager.monitoring
     ruler_storage:
-      backend: filesystem
-      filesystem:
-        dir: /mimir/ruler
+      s3:
+        bucket_name: mimir-ruler
     limits:
       cardinality_analysis_enabled: true
 ---
@@ -56,8 +66,12 @@ metadata:
   name: mimir
   namespace: monitoring
 spec:
-  replicas: 1
+  # Held at 0 while the final block copy to RustFS runs; the next PR starts Mimir on S3.
+  replicas: 0
   revisionHistoryLimit: 0
+  # Never run two Mimir pods against the same TSDB directory on the local-path volume.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: mimir
@@ -73,6 +87,11 @@ spec:
           image: grafana/mimir:2.16.0
           args:
             - -config.file=/etc/mimir/conf.yaml
+          env:
+            - name: AWS_ROLE_ARN
+              value: arn:aws:iam::000000000000:role/rustfs
+            - name: AWS_WEB_IDENTITY_TOKEN_FILE
+              value: /var/run/secrets/rustfs/token
           ports:
             - name: http
               containerPort: 8080
@@ -83,6 +102,9 @@ spec:
             - name: mimir-data
               mountPath: /mimir
               readOnly: false
+            - name: rustfs-token
+              mountPath: /var/run/secrets/rustfs
+              readOnly: true
           resources:
             requests:
               cpu: 25m
@@ -107,6 +129,13 @@ spec:
         - name: mimir-data
           persistentVolumeClaim:
             claimName: mimir-data
+        - name: rustfs-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: rustfs
+                  expirationSeconds: 3600
+                  path: token
 ---
 apiVersion: v1
 kind: Service
