@@ -13,8 +13,6 @@ helmCharts:
     # would sync as an ordinary Pod and hold the app Degraded.
     skipTests: true
     valuesInline:
-      # Scaled to 0 while rustfs-data is copied to rustfs-data-nas by hand.
-      replicaCount: 0
       config:
         rustfs:
           log_level: warn
