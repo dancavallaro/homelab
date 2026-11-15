@@ -66,8 +66,7 @@ metadata:
   name: mimir
   namespace: monitoring
 spec:
-  # Held at 0 while the final block copy to RustFS runs; the next PR starts Mimir on S3.
-  replicas: 0
+  replicas: 1
   revisionHistoryLimit: 0
   # Never run two Mimir pods against the same TSDB directory on the local-path volume.
   strategy:
