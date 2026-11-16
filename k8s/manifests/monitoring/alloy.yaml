@@ -17,10 +17,6 @@ rules:
   - apiGroups: [""]
     resources: ["nodes/metrics"]
     verbs: ["get"]
-  # loki.source.kubernetes
-  - apiGroups: [""]
-    resources: ["pods/log"]
-    verbs: ["get"]
   # mimir.rules.kubernetes
   - apiGroups: [""]
     resources: ["namespaces"]
@@ -123,8 +119,16 @@ spec:
             # hostNetwork pod: keep off Cilium's Envoy proxy-port range (10000-20000)
             # to avoid colliding with a gateway L7LB listener after a node reboot.
             - --server.http.listen-addr=127.0.0.1:8012
+            # Keeps loki.source.file positions across restarts, so pod logs aren't re-read.
+            - --storage.path=/var/lib/alloy
             - --stability.level=experimental
             - /etc/alloy.d
+          env:
+            # pod-logs.alloy discovers only the pods on this node.
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           volumeMounts:
             - name: alloy-talos-conf
               mountPath: /etc/alloy.d
@@ -141,6 +145,11 @@ spec:
             - name: udev-data
               mountPath: /host/udev
               mountPropagation: HostToContainer
+            - name: pod-logs
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: alloy-data
+              mountPath: /var/lib/alloy
           resources:
             requests:
               cpu: 25m
@@ -165,6 +174,14 @@ spec:
           hostPath:
             path: /run/udev/data
             type: Directory
+        - name: pod-logs
+          hostPath:
+            path: /var/log/pods
+            type: Directory
+        - name: alloy-data
+          hostPath:
+            path: /var/lib/alloy
+            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: Service
