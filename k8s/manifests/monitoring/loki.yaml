@@ -13,7 +13,7 @@ data:
       configs:
         - from: 2025-04-01
           store: tsdb
-          object_store: filesystem
+          object_store: s3
           schema: v13
           index:
             prefix: index_
@@ -26,8 +26,14 @@ data:
       path_prefix: /loki
       storage:
         object_store:
-          filesystem:
-            dir: /loki/thanos
+          s3:
+            bucket_name: loki-chunks
+            endpoint: rustfs-svc.rustfs:9000
+            insecure: true
+            region: us-east-1
+            bucket_lookup_type: path
+            # Credentials come from AWS_WEB_IDENTITY_TOKEN_FILE and AWS_ROLE_ARN via RustFS STS.
+            sts_endpoint: http://rustfs-svc.rustfs:9000
     limits_config:
       max_query_length: 0
       # Don't enforce automatic retention (only enabled for deletion)
@@ -41,13 +47,21 @@ data:
       retention_delete_delay: "1h"
       delete_request_cancel_period: "1m"
       compaction_interval: "10m"
-      delete_request_store: filesystem
+      delete_request_store: s3
     storage_config:
       use_thanos_objstore: true
+      tsdb_shipper:
+        # A fresh cache, so nothing is reused from the filesystem store.
+        cache_location: /loki/tsdb-shipper-cache-s3
     ruler_storage:
-      backend: filesystem
-      filesystem:
-        dir: /loki/ruler
+      backend: s3
+      s3:
+        bucket_name: loki-ruler
+        endpoint: rustfs-svc.rustfs:9000
+        insecure: true
+        region: us-east-1
+        bucket_lookup_type: path
+        sts_endpoint: http://rustfs-svc.rustfs:9000
     ruler:
       enable_api: true
       alertmanager_url: http://alertmanager.monitoring
@@ -84,7 +98,7 @@ metadata:
   name: loki
   namespace: monitoring
 spec:
-  replicas: 1
+  replicas: 0
   revisionHistoryLimit: 0
   # Never run two Loki pods against the same data volume (WAL, index, compactor state). RWO doesn't
   # prevent that here, since both pods would land on the same node as the local-path volume.
@@ -105,6 +119,11 @@ spec:
           image: grafana/loki:3.7.9
           args:
             - -config.file=/etc/loki/config.yaml
+          env:
+            - name: AWS_ROLE_ARN
+              value: arn:aws:iam::000000000000:role/rustfs
+            - name: AWS_WEB_IDENTITY_TOKEN_FILE
+              value: /var/run/secrets/rustfs/token
           ports:
             - name: http
               containerPort: 3100
@@ -115,6 +134,9 @@ spec:
             - name: loki-data
               mountPath: /loki
               readOnly: false
+            - name: rustfs-token
+              mountPath: /var/run/secrets/rustfs
+              readOnly: true
           resources:
             requests:
               cpu: 25m
@@ -140,6 +162,13 @@ spec:
         - name: loki-data
           persistentVolumeClaim:
             claimName: loki-data
+        - name: rustfs-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: rustfs
+                  expirationSeconds: 3600
+                  path: token
 ---
 apiVersion: v1
 kind: Service
