@@ -4,14 +4,44 @@ metadata:
   name: kube-state-metrics
   namespace: monitoring
 ---
+# Read access for exactly the collectors enabled by --resources below.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-state-metrics-reader
+rules:
+  - apiGroups: [""]
+    resources:
+      - configmaps
+      - endpoints
+      - namespaces
+      - nodes
+      - persistentvolumeclaims
+      - persistentvolumes
+      - pods
+      - services
+    verbs: ["list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
+    verbs: ["list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["cronjobs", "jobs"]
+    verbs: ["list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["list", "watch"]
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: kube-state-metrics
+  name: kube-state-metrics-reader
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: metrics-reader
+  name: kube-state-metrics-reader
 subjects:
   - kind: ServiceAccount
     name: kube-state-metrics
@@ -35,6 +65,10 @@ spec:
       containers:
         - name: kube-state-metrics
           image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0
+          args:
+            # The collectors the dashboards and alerts use. Leaving out secrets means KSM never
+            # needs read access to Secrets.
+            - --resources=configmaps,cronjobs,daemonsets,deployments,endpoints,horizontalpodautoscalers,ingresses,jobs,namespaces,networkpolicies,nodes,persistentvolumeclaims,persistentvolumes,pods,replicasets,services,statefulsets
           resources:
             requests:
               memory: 32Mi
