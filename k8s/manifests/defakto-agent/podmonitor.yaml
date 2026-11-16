@@ -1,0 +1,11 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: spirl-agent
+  namespace: spirl-system
+spec:
+  selector:
+    matchLabels:
+      app: spirl-agent
+  podMetricsEndpoints:
+    - port: metrics

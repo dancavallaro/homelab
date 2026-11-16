@@ -4,6 +4,7 @@ namespace: hass
 resources:
   - ha.yaml
   - home-network.yaml
+  - servicemonitor.yaml
 configMapGenerator:
   - name: hass-config
     files:

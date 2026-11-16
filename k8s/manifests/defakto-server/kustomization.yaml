@@ -31,6 +31,7 @@ helmCharts:
 namespace: *tdd
 resources:
   - grpcroute.yaml
+  - podmonitor.yaml
 replacements:
   # Derive the Service name from the chart's release-prefixed Deployment so the
   # trust domain deployment ID appears only once, above.

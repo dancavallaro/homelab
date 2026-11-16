@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nut-exporter
+  namespace: nut-exporter
+spec:
+  selector:
+    matchLabels:
+      app: nut-exporter
+  endpoints:
+    - port: metrics
+      path: /ups_metrics
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: network_ups_tools_.*
+          action: keep
+        # The alerts and the UPS dashboard select by ups.
+        - targetLabel: ups
+          replacement: cp900avr

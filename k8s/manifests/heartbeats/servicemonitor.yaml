@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: heartbeat-exporter
+  namespace: heartbeats
+spec:
+  selector:
+    matchLabels:
+      app: heartbeats
+  endpoints:
+    - port: metrics
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: iot_.*
+          action: keep

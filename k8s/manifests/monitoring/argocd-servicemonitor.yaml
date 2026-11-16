@@ -1,0 +1,21 @@
+# Argo CD isn't deployed from this repo, so its ServiceMonitor lives here.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-metrics
+  namespace: monitoring
+spec:
+  namespaceSelector:
+    matchNames: [argocd]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-metrics
+  endpoints:
+    - port: metrics
+      # The application metrics carry their own namespace label; keep it rather than
+      # renaming it to exported_namespace.
+      honorLabels: true
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: argocd_.*
+          action: keep
