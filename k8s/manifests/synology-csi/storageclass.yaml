@@ -31,6 +31,11 @@ parameters:
   location: "/volume1"
   protocol: iscsi
   csi.storage.k8s.io/fstype: ext4
+  # Extra mkfs.ext4 arguments for a volume's first mount. By default mkfs
+  # discards the whole LUN first (~200 MB/s, so ~8 min per 100Gi, past
+  # kubelet's 2-minute mount timeout), which a new thin LUN doesn't need.
+  # Stored in each PV at provisioning, so changing it only affects new volumes.
+  formatOptions: "-E nodiscard"
 reclaimPolicy: Delete
 allowVolumeExpansion: true
 ---
@@ -45,6 +50,7 @@ parameters:
   location: "/volume1"
   protocol: iscsi
   csi.storage.k8s.io/fstype: ext4
+  formatOptions: "-E nodiscard" # See synology-iscsi
 reclaimPolicy: Retain
 allowVolumeExpansion: true
 ---
