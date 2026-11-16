@@ -16,5 +16,12 @@ spec:
     automated:
       selfHeal: true
       prune: true
+    # The PrometheusRules here need the CRDs from the prometheus-crds app, which may sync later.
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
     syncOptions:
       - CreateNamespace=true

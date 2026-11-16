@@ -9,6 +9,11 @@ resources:
   - alloy.yaml
   - grafana.yaml
   - kube-state-metrics.yaml
+  - alerts/home.yaml
+  - alerts/hosts.yaml
+  - alerts/iot.yaml
+  - alerts/kubernetes.yaml
+  - alerts/ups.yaml
 configMapGenerator:
   - name: alloy-conf
     files:
@@ -16,6 +21,7 @@ configMapGenerator:
       - conf/alloy/pod-logs.alloy
       - conf/alloy/cluster-events.alloy
       - conf/alloy/cluster-metrics.alloy
+      - conf/alloy/rules.alloy
   - name: alloy-talos-conf
     files:
       - conf/alloy/common.alloy

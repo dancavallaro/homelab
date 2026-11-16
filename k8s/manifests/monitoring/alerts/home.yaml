@@ -1,44 +1,48 @@
-namespace: home
-groups:
-  - name: air-quality
-    interval: 1m
-    rules:
-      - alert: CO2 level in office is approaching unhealthy threshold
-        expr: homeassistant_sensor_carbon_dioxide_ppm > 1200
-        for: 15m
-      - alert: CO2 level in office is unhealthy - get fresh air
-        expr: homeassistant_sensor_carbon_dioxide_ppm > 1500
-        for: 5m
-      - alert: Air quality monitor disappeared
-        expr: absent_over_time(homeassistant_sensor_temperature_celsius[15m])
-        for: 5m
-  - name: basement-freezer
-    interval: 1m
-    rules:
-      - alert: Basement freezer plug metrics disappeared
-        expr: absent_over_time(homeassistant_sensor_current_a{entity="sensor.athom_plug_4cf682_current"}[15m])
-        for: 5m
-        annotations:
-          message: "Basement freezer plug has stopped reporting current for 15m - plug may be offline"
-      # TODO: revisit the 2h window and 0.1A threshold once we have a few days of
-      # data on this freezer's normal compressor duty cycle (set up 2026-07-24).
-      - alert: Basement freezer has no current draw
-        expr: max_over_time(homeassistant_sensor_current_a{entity="sensor.athom_plug_4cf682_current"}[2h]) < 0.1
-        for: 10m
-        annotations:
-          message: "Basement freezer has drawn no current for over 2h - freezer may have lost power or failed"
-  # Blackbox probes from rpi.lan's Alloy, listed in ansible/host_vars/rpi.lan.yaml.
-  - name: homenet-legs
-    interval: 1m
-    rules:
-      - alert: Homenet pod has lost its Multus leg
-        expr: probe_success{service="homenet_probe"} == 0
-        for: 5m
-        annotations:
-          message: "{{ $labels.target }} stopped answering from rpi.lan. Check the pod for net1; if it's missing, delete the pod."
-      # Keep the count equal to the length of homenet_probes.
-      - alert: Homenet leg probes are not reporting
-        expr: count(probe_success{service="homenet_probe"}) < 4 or absent(probe_success{service="homenet_probe"})
-        for: 10m
-        annotations:
-          message: "Fewer than 4 homenet probe results in Mimir. Is Alloy on rpi.lan running and remote-writing?"
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: home
+spec:
+  groups:
+    - name: air-quality
+      interval: 1m
+      rules:
+        - alert: CO2 level in office is approaching unhealthy threshold
+          expr: homeassistant_sensor_carbon_dioxide_ppm > 1200
+          for: 15m
+        - alert: CO2 level in office is unhealthy - get fresh air
+          expr: homeassistant_sensor_carbon_dioxide_ppm > 1500
+          for: 5m
+        - alert: Air quality monitor disappeared
+          expr: absent_over_time(homeassistant_sensor_temperature_celsius[15m])
+          for: 5m
+    - name: basement-freezer
+      interval: 1m
+      rules:
+        - alert: Basement freezer plug metrics disappeared
+          expr: absent_over_time(homeassistant_sensor_current_a{entity="sensor.athom_plug_4cf682_current"}[15m])
+          for: 5m
+          annotations:
+            message: "Basement freezer plug has stopped reporting current for 15m - plug may be offline"
+        # TODO: revisit the 2h window and 0.1A threshold once we have a few days of
+        # data on this freezer's normal compressor duty cycle (set up 2026-07-24).
+        - alert: Basement freezer has no current draw
+          expr: max_over_time(homeassistant_sensor_current_a{entity="sensor.athom_plug_4cf682_current"}[2h]) < 0.1
+          for: 10m
+          annotations:
+            message: "Basement freezer has drawn no current for over 2h - freezer may have lost power or failed"
+    # Blackbox probes from rpi.lan's Alloy, listed in ansible/host_vars/rpi.lan.yaml.
+    - name: homenet-legs
+      interval: 1m
+      rules:
+        - alert: Homenet pod has lost its Multus leg
+          expr: probe_success{service="homenet_probe"} == 0
+          for: 5m
+          annotations:
+            message: "{{ $labels.target }} stopped answering from rpi.lan. Check the pod for net1; if it's missing, delete the pod."
+        # Keep the count equal to the length of homenet_probes.
+        - alert: Homenet leg probes are not reporting
+          expr: count(probe_success{service="homenet_probe"}) < 4 or absent(probe_success{service="homenet_probe"})
+          for: 10m
+          annotations:
+            message: "Fewer than 4 homenet probe results in Mimir. Is Alloy on rpi.lan running and remote-writing?"
