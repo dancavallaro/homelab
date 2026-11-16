@@ -19,7 +19,6 @@ configMapGenerator:
   - name: alloy-conf
     files:
       - conf/alloy/common.alloy
-      - conf/alloy/pod-logs.alloy
       - conf/alloy/cluster-events.alloy
       - conf/alloy/cluster-metrics.alloy
       - conf/alloy/rules.alloy
@@ -29,3 +28,4 @@ configMapGenerator:
       - conf/alloy/common.alloy
       - conf/alloy/talos-logs.alloy
       - conf/alloy/node-metrics.alloy
+      - conf/alloy/pod-logs.alloy
