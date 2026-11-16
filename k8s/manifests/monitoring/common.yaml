@@ -4,17 +4,3 @@ metadata:
   name: monitoring
   labels:
     pod-security.kubernetes.io/enforce: privileged
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: metrics-reader
-rules:
-  - apiGroups:
-      - '*'
-    resources:
-      - '*'
-    verbs:
-      - get
-      - list
-      - watch
