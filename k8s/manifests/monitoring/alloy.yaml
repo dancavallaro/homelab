@@ -5,13 +5,38 @@ metadata:
   namespace: monitoring
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: alloy-cluster-reader
+rules:
+  # discovery.kubernetes (node and pod roles), loki.source.kubernetes_events
+  - apiGroups: [""]
+    resources: ["nodes", "pods", "events"]
+    verbs: ["get", "list", "watch"]
+  # kubelet cAdvisor scrape
+  - apiGroups: [""]
+    resources: ["nodes/metrics"]
+    verbs: ["get"]
+  # loki.source.kubernetes
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  # mimir.rules.kubernetes
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["prometheusrules"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: alloy
+  name: alloy-cluster-reader
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: metrics-reader
+  name: alloy-cluster-reader
 subjects:
   - kind: ServiceAccount
     name: alloy
@@ -36,7 +61,7 @@ spec:
       serviceAccountName: alloy
       containers:
         - name: alloy
-          image: grafana/alloy:v1.7.5
+          image: grafana/alloy:v1.22.0
           args:
             - run
             - --server.http.listen-addr=0.0.0.0:12345
@@ -80,7 +105,7 @@ spec:
           operator: Exists
       containers:
         - name: alloy
-          image: grafana/alloy:v1.7.5
+          image: grafana/alloy:v1.22.0
           securityContext:
             privileged: true
           args:

@@ -1,0 +1,5 @@
+// Loads every PrometheusRule in the cluster into the Mimir ruler. This lives only in the
+// single-replica Deployment's config so exactly one Alloy instance syncs rules.
+mimir.rules.kubernetes "default" {
+  address = "http://mimir-http"
+}
