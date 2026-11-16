@@ -8,10 +8,33 @@ helmCharts:
     version: 0.16.0
     namespace: volsync
     includeCRDs: true
+    # The chart renders its ServiceMonitor only when this API exists. Argo CD passes the
+    # cluster's API versions to Helm; listing it here makes local builds render the same thing.
+    apiVersions:
+      - monitoring.coreos.com/v1/ServiceMonitor
     valuesInline:
       metrics:
         disableAuth: true
 resources:
   - resources.yaml
   - metrics-exporter.yaml
-  - servicemonitors.yaml
+  - servicemonitor.yaml
+patches:
+  # The chart's ServiceMonitor scrapes every metric every 30s; keep only volsync_* at the
+  # default interval. The endpoint list is replaced whole.
+  - patch: |-
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: volsync
+      spec:
+        endpoints:
+          - port: https
+            path: /metrics
+            scheme: https
+            tlsConfig:
+              insecureSkipVerify: true
+            metricRelabelings:
+              - sourceLabels: [__name__]
+                regex: volsync_.*
+                action: keep
