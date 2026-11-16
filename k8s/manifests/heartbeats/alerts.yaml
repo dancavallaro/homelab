@@ -1,7 +1,8 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: iot
+  name: heartbeats
+  namespace: heartbeats
 spec:
   groups:
     - name: device-heartbeats

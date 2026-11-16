@@ -1,6 +1,13 @@
+### Where rules live
+
+Alerts about one app live next to that app, in an `alerts.yaml` `PrometheusRule` in its
+manifest directory (for example `home-assistant/`, `nut-exporter/`, `volsync/`). This directory
+holds the rest: cluster-wide alerts (`kubernetes.yaml`, including Argo CD, which isn't deployed
+from this repo) and alerts about hosts outside the cluster (`hosts.yaml`).
+
 ### Deploying rules
 
-Each file here is a `PrometheusRule`. Argo CD applies them, and the `mimir.rules.kubernetes`
+Argo CD applies each `PrometheusRule` with its app, and the `mimir.rules.kubernetes`
 component in the `alloy` Deployment (`conf/alloy/rules.alloy`) loads every `PrometheusRule` in
 the cluster into the Mimir ruler. Rule namespaces in Mimir are named
 `alloy/<k8s namespace>/<name>/<uid>`; Alloy creates, updates and deletes only namespaces with that

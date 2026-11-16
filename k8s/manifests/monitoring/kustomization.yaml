@@ -10,11 +10,8 @@ resources:
   - grafana.yaml
   - kube-state-metrics.yaml
   - argocd-servicemonitor.yaml
-  - alerts/home.yaml
   - alerts/hosts.yaml
-  - alerts/iot.yaml
   - alerts/kubernetes.yaml
-  - alerts/ups.yaml
 configMapGenerator:
   - name: alloy-conf
     files:
