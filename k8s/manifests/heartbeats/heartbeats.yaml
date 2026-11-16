@@ -53,9 +53,12 @@ kind: Service
 metadata:
   name: heartbeat-exporter
   namespace: heartbeats
+  labels:
+    app: heartbeats
 spec:
   ports:
-    - port: 8080
+    - name: metrics
+      port: 8080
   selector:
     app: heartbeats
 ---

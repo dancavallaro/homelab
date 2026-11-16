@@ -26,11 +26,14 @@ kind: Service
 metadata:
   namespace: hass
   name: hass
+  labels:
+    app: hass
 spec:
   selector:
     app: hass
   ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: 8123
 ---
 apiVersion: apps/v1

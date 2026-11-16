@@ -34,8 +34,11 @@ kind: Service
 metadata:
   name: nut-exporter
   namespace: nut-exporter
+  labels:
+    app: nut-exporter
 spec:
   ports:
-    - port: 8080
+    - name: metrics
+      port: 8080
   selector:
     app: nut-exporter

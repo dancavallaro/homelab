@@ -9,6 +9,7 @@ resources:
   - alloy.yaml
   - grafana.yaml
   - kube-state-metrics.yaml
+  - argocd-servicemonitor.yaml
   - alerts/home.yaml
   - alerts/hosts.yaml
   - alerts/iot.yaml
@@ -22,6 +23,7 @@ configMapGenerator:
       - conf/alloy/cluster-events.alloy
       - conf/alloy/cluster-metrics.alloy
       - conf/alloy/rules.alloy
+      - conf/alloy/app-metrics.alloy
   - name: alloy-talos-conf
     files:
       - conf/alloy/common.alloy

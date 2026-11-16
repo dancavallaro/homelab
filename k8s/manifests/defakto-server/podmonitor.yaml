@@ -1,0 +1,10 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: spirl-server
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: spirl-server
+  podMetricsEndpoints:
+    - port: metrics

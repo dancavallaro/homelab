@@ -28,6 +28,16 @@ rules:
   - apiGroups: ["monitoring.coreos.com"]
     resources: ["prometheusrules"]
     verbs: ["get", "list", "watch"]
+  # prometheus.operator.servicemonitors and podmonitors, plus the endpointslice discovery they run
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["servicemonitors", "podmonitors"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

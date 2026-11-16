@@ -1,0 +1,10 @@
+// Scrapes the ServiceMonitors and PodMonitors that apps define next to their own manifests.
+// Only the single-replica Deployment runs these, so each target is scraped once.
+prometheus.operator.servicemonitors "apps" {
+  kubernetes_role = "endpointslice"
+  forward_to      = [prometheus.remote_write.mimir.receiver]
+}
+
+prometheus.operator.podmonitors "apps" {
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}

@@ -60,8 +60,11 @@ kind: Service
 metadata:
   name: volsync-metrics-exporter
   namespace: volsync
+  labels:
+    app: volsync-metrics-exporter
 spec:
   ports:
-    - port: 8080
+    - name: metrics
+      port: 8080
   selector:
     app: volsync-metrics-exporter

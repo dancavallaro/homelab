@@ -1,0 +1,38 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: volsync
+  namespace: volsync
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: volsync
+      control-plane: volsync-controller
+  endpoints:
+    - port: https
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: true
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: volsync_.*
+          action: keep
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: volsync-metrics-exporter
+  namespace: volsync
+spec:
+  selector:
+    matchLabels:
+      app: volsync-metrics-exporter
+  endpoints:
+    - port: metrics
+      # Keep the exporter's namespace label (the PVC's namespace) instead of renaming it to
+      # exported_namespace.
+      honorLabels: true
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: volsync_.*
+          action: keep

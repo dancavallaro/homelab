@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: hass
+  namespace: hass
+spec:
+  selector:
+    matchLabels:
+      app: hass
+  endpoints:
+    - port: http
+      path: /api/prometheus
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: homeassistant_.*
+          action: keep
