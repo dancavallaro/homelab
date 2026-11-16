@@ -1,0 +1,38 @@
+# Throwaway volume for checking how a new synology-iscsi volume is formatted on
+# its first mount. Apply, watch the pod start, then delete the namespace (which
+# also removes the LUN and the Volsync objects Kyverno generates for the PVC).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: synology-format-test
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: format-test
+  namespace: synology-format-test
+spec:
+  storageClassName: synology-iscsi
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: format-test
+  namespace: synology-format-test
+spec:
+  containers:
+    - name: shell
+      image: busybox:1.37
+      command: ["sleep", "infinity"]
+      volumeMounts:
+        - mountPath: /mnt/pv
+          name: vol
+  volumes:
+    - name: vol
+      persistentVolumeClaim:
+        claimName: format-test
