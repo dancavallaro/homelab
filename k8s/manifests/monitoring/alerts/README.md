@@ -11,11 +11,13 @@ Alloy syncs a rule shortly after its resource changes, and re-checks Mimir every
 ### List rule groups
 
 ```shell
-mimirtool rules list --address=http://mimir.o.cavnet.cloud
+mimirtool rules list --address=http://mimir.o.cavnet.cloud --id 1
 ```
 
 ### Get rules
 
 ```shell
-mimirtool rules print --address=http://mimir.o.cavnet.cloud
+mimirtool rules print --address=http://mimir.o.cavnet.cloud --id 1
 ```
+
+`mimirtool` requires `--id`, but Mimir runs with multitenancy disabled and ignores the value.
