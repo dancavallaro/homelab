@@ -5,6 +5,7 @@ resources:
   - ha.yaml
   - home-network.yaml
   - servicemonitor.yaml
+  - alerts.yaml
 configMapGenerator:
   - name: hass-config
     files:

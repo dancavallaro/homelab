@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: orca
+  namespace: orca
+spec:
+  groups:
+    - name: orca
+      interval: 1m
+      rules:
+        - alert: Orca nearing its memory limit
+          expr: sum by (pod) (container_memory_working_set_bytes{cluster="talos-prod", namespace="orca", container="orca"}) / sum by (pod) (kube_pod_container_resource_limits{cluster="talos-prod", namespace="orca", container="orca", resource="memory"}) > 0.8
+          for: 15m
+          annotations:
+            message: "Orca is using {{ $value | humanizePercentage }} of its memory limit. Close idle sessions; they resume with claude --resume."

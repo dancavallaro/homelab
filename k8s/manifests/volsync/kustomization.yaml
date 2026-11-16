@@ -19,6 +19,7 @@ resources:
   - resources.yaml
   - metrics-exporter.yaml
   - servicemonitor.yaml
+  - alerts.yaml
 patches:
   # The chart's ServiceMonitor scrapes every metric every 30s; keep only volsync_* at the
   # default interval. The endpoint list is replaced whole.

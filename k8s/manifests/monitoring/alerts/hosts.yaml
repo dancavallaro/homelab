@@ -12,3 +12,8 @@ spec:
           expr: node_time_seconds{job="integrations/unix", service="host_metrics"} offset 1h unless on (host) node_time_seconds{job="integrations/unix", service="host_metrics"}
           annotations:
             message: "Host {{ $labels.host }} has stopped reporting telemetry. Is it up? Is Alloy failing?"
+        - alert: Loss of Telemetry from RPi
+          expr: absent(node_boot_time_seconds{service="host_metrics", instance="rpi"})
+          for: 10m
+          annotations:
+            message: "RPi has stopped publishing telemetry to Mimir. Is Tailscale down?"
