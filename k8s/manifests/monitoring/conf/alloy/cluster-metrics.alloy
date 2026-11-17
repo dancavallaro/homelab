@@ -31,6 +31,28 @@ prometheus.relabel "kube_state_metrics" {
 }
 
 // ----------------------------------------------------------------------------
+// Loki's own metrics: ingestion, chunk flushes, WAL and compactor
+// ----------------------------------------------------------------------------
+
+prometheus.scrape "loki" {
+  targets = [{"__address__" = "loki-http.monitoring:80"}]
+  job_name = "integrations/loki"
+  scrape_interval = "60s"
+  forward_to = [prometheus.relabel.loki.receiver]
+}
+
+prometheus.relabel "loki" {
+  rule {
+    source_labels = ["__name__"]
+    regex = "up|loki_build_info|loki_ingester_.*|loki_compactor_.*|loki_distributor_(lines|bytes)_received_total|loki_discarded_.*|loki_objstore_bucket_operation(s|_failures)_total|loki_internal_log_messages_total|loki_panic_total"
+    action = "keep"
+  }
+  forward_to = [
+    prometheus.relabel.output.receiver,
+  ]
+}
+
+// ----------------------------------------------------------------------------
 // kubelet cAdvisor metrics
 // ----------------------------------------------------------------------------
 

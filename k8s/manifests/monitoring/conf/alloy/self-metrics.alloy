@@ -1,0 +1,18 @@
+// Alloy's own metrics, kept to log delivery and remote write health. Every Alloy instance scrapes itself.
+prometheus.exporter.self "alloy" {}
+
+prometheus.scrape "alloy" {
+  targets         = prometheus.exporter.self.alloy.targets
+  job_name        = "integrations/alloy"
+  scrape_interval = "60s"
+  forward_to      = [prometheus.relabel.alloy.receiver]
+}
+
+prometheus.relabel "alloy" {
+  rule {
+    source_labels = ["__name__"]
+    regex         = "up|alloy_build_info|loki_write_.*|prometheus_remote_storage_(samples|exemplars)_(total|failed_total|retried_total|dropped_total|pending)"
+    action        = "keep"
+  }
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
