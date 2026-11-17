@@ -20,9 +20,11 @@ configMapGenerator:
       - conf/alloy/cluster-metrics.alloy
       - conf/alloy/rules.alloy
       - conf/alloy/app-metrics.alloy
+      - conf/alloy/self-metrics.alloy
   - name: alloy-talos-conf
     files:
       - conf/alloy/common.alloy
       - conf/alloy/talos-logs.alloy
       - conf/alloy/node-metrics.alloy
       - conf/alloy/pod-logs.alloy
+      - conf/alloy/self-metrics.alloy
