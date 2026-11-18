@@ -1,4 +1,11 @@
 domain: o.cavnet.cloud
+# Mirrored from codeberg.org/k8s-gateway/k8s_gateway (see README.md). The digest
+# is upstream's multi-arch index, so a bad or partial copy fails to pull instead
+# of running something else.
+image:
+  registry: ghcr.io
+  repository: dancavallaro/mirror/k8s_gateway
+  tag: 1.8.3@sha256:f692817ed4615526fc8b0749f3aa3e7c61f035280d42bdf38429aa81f31211ca
 watchedResources:
   - Ingress
   - Service
