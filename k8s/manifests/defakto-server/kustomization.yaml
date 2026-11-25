@@ -3,7 +3,7 @@ kind: Kustomization
 helmCharts:
   - name: spirl-server
     repo: oci://public.ecr.aws/d1i7q6j7/charts
-    version: 0.41.0-rc3
+    version: 0.44.0
     # Defakto requires the release name to equal trustDomainDeployment.id.
     releaseName: &tdd tdd-h0efqszxk9
     namespace: *tdd
