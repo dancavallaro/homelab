@@ -39,6 +39,14 @@ data:
       # Don't enforce automatic retention (only enabled for deletion)
       retention_period: "0s"
       deletion_mode: filter-and-delete
+    # Most streams are slow, so the default limits cut chunks of a few KB each. Longer chunks mean
+    # far fewer objects in the bucket; the WAL keeps unflushed data across restarts.
+    ingester:
+      chunk_idle_period: 6h
+      max_chunk_age: 12h
+    querier:
+      # Covers max_chunk_age plus the index upload after a flush.
+      query_ingesters_within: 13h
     compactor:
       # Keep delete requests' end time at least a day in the past. WAL replay after a restart can
       # bring back references to recently flushed chunks, and queries then fail with
