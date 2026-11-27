@@ -13,6 +13,9 @@ resources:
   - alerts/hosts.yaml
   - alerts/kubernetes.yaml
 configMapGenerator:
+  - name: loki-conf
+    files:
+      - config.yaml=conf/loki/config.yaml
   - name: alloy-conf
     files:
       - conf/alloy/common.alloy
